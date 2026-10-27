@@ -1,0 +1,22 @@
+[package]
+name = "veriga-gui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+authors.workspace = true
+description = "VERIGA — interfață grafică nativă"
+rust-version = "1.95"
+
+[[bin]]
+name = "veriga-gui"
+path = "src/main.rs"
+
+[dependencies]
+veriga-core = { path = "../veriga-core", version = "1.0.0" }
+tokio = { workspace = true, features = ["rt-multi-thread", "sync"] }
+anyhow.workspace = true
+eframe = { version = "0.37", default-features = false, features = ["default_fonts", "glow", "x11", "wayland"] }
+egui_extras = "0.37"
+rfd = { version = "0.17", default-features = false, features = ["xdg-portal"] }
+url.workspace = true

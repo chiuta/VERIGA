@@ -1,0 +1,24 @@
+[package]
+name = "veriga-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+authors.workspace = true
+description = "VERIGA — verificator de legături în linie de comandă"
+
+[[bin]]
+name = "veriga"
+path = "src/main.rs"
+
+[dependencies]
+veriga-core = { path = "../veriga-core", version = "1.0.0" }
+tokio = { workspace = true, features = ["signal"] }
+clap.workspace = true
+anyhow.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+url.workspace = true
+chrono.workspace = true
+reqwest.workspace = true
