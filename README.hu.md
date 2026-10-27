@@ -53,7 +53,7 @@ veriga --recheck session.veriga -o report.html                      # csak a hib
 veriga https://example.com --ignore-status 999 --exclude '/logout' -o s.veriga
 ```
 
-A kilépési kód `2`, ha hibás hivatkozásokat találtak (CI-ben hasznos); a `--no-fail` kikapcsolja. A `veriga --help` mindent felsorol.
+A kilépési kód `2`, ha hibás hivatkozásokat találtak (CI-ben hasznos); a `--no-fail` kikapcsolja. A `veriga --help` mindent felsorol. A kilépési kód `3`, ha a futást megszakították vagy a `--max-urls` megcsonkította.
 
 ## Fordítás
 
@@ -112,7 +112,7 @@ A projekt támogatása: https://www.buymeacoffee.com/echo.of.the.strings
 - Nem küld jelentéseket e-mailben (SMTP), és nem észleli az árva fájlokat FTP-n — csak helyi könyvtárban.
 - A tömörített `.xml.gz` webhelytérképeket nem olvassa.
 - A JavaScripttel felépített hivatkozású oldalakat nem rendereli (nincs böngészőmotor); a kiszolgált HTML-t elemzi.
-- A grafikus felület virtuális kijelzőn lefordult és elindult (indítási hibák nélkül), de vizuálisan nem lett kipróbálva.
+- A grafikus felületet csak virtuális kijelzőn (Linux/X11) próbáltuk ki: bejárás, szűrők, részletek panel és Guardian. A Windows és macOS buildeket a CI állítja elő, de interaktívan nem teszteltük őket.
 
 ## A „clean-room” jelentéséről
 

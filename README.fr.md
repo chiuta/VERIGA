@@ -53,7 +53,7 @@ veriga --recheck session.veriga -o report.html                      # liens cass
 veriga https://example.com --ignore-status 999 --exclude '/logout' -o s.veriga
 ```
 
-Code de sortie `2` si des liens cassés ont été trouvés (utile en CI) ; `--no-fail` le désactive. `veriga --help` liste tout.
+Code de sortie `2` si des liens cassés ont été trouvés (utile en CI) ; `--no-fail` le désactive. `veriga --help` liste tout. Code de sortie `3` si l'exécution a été interrompue ou tronquée par `--max-urls`.
 
 ## Compilation
 
@@ -112,7 +112,7 @@ Soutenir le projet : https://www.buymeacoffee.com/echo.of.the.strings
 - Il n'envoie pas de rapports par e-mail (SMTP) et ne détecte pas les orphelins via FTP — uniquement dans un répertoire local.
 - Les sitemaps compressés `.xml.gz` ne sont pas lus.
 - Les pages qui construisent leurs liens en JavaScript ne sont pas interprétées (il n'y a pas de moteur de navigateur) ; c'est le HTML servi qui est analysé.
-- L'interface graphique a été compilée et lancée sous un affichage virtuel (aucune erreur au démarrage), mais n'a pas été testée visuellement.
+- L'interface graphique n'a été éprouvée que sous un affichage virtuel (Linux/X11) : exploration, filtres, panneau de détails et Guardian. Les versions Windows et macOS sont produites par la CI mais n'ont pas été testées de façon interactive.
 
 ## À propos de « clean-room »
 

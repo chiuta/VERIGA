@@ -223,10 +223,29 @@ impl App {
         }
     }
 
+    /// Setările de securitate se iau mereu din interfață, niciodată dintr-un fișier de sesiune.
+    fn adopt_security(&self, c: &mut Config) {
+        c.proxy = self.cfg.proxy.clone();
+        c.ignore_tls_errors = self.cfg.ignore_tls_errors;
+        c.block_private = self.cfg.block_private;
+        c.user_agent = self.cfg.user_agent.clone();
+        c.headers = Self::lines(&self.headers)
+            .iter()
+            .filter_map(|l| l.split_once(':'))
+            .map(|(k, v)| (k.trim().into(), v.trim().into()))
+            .collect();
+        c.basic_auth = self
+            .auth
+            .split_once(':')
+            .map(|(u, p)| (u.to_string(), p.to_string()));
+        c.retries = c.retries.min(veriga_core::check::MAX_RETRIES);
+    }
+
     fn start_recheck(&mut self) {
-        let Some(s) = self.session.clone() else {
+        let Some(mut s) = self.session.clone() else {
             return;
         };
+        self.adopt_security(&mut s.config);
         self.progress = Progress::default();
         self.spawn_job(move |ctl, tx| Box::pin(veriga_core::recheck(s, ctl, Some(tx))));
     }
@@ -328,11 +347,17 @@ impl App {
                 .into();
             return;
         };
+        let en = self.english;
+        let tr = |ro: &'static str, e: &'static str| if en { e } else { ro };
         let (name, ext, data): (&str, &str, Vec<u8>) = match kind {
-            "html" => ("Raport HTML", "html", report::to_html(s).into_bytes()),
+            "html" => (
+                tr("Raport HTML", "HTML report"),
+                "html",
+                report::to_html(s).into_bytes(),
+            ),
             "csv" => ("CSV", "csv", report::to_csv(s, b',', false).into_bytes()),
             "csvb" => (
-                "CSV — rupte",
+                tr("CSV — rupte", "CSV — broken"),
                 "csv",
                 report::to_csv(s, b',', true).into_bytes(),
             ),
@@ -340,12 +365,16 @@ impl App {
             "json" => ("JSON", "json", report::to_json(s).into_bytes()),
             "txt" => ("Text", "txt", report::to_text(s).into_bytes()),
             "xml" => ("Sitemap XML", "xml", report::to_sitemap_xml(s).into_bytes()),
-            "tree" => ("Arbore", "txt", report::to_tree_text(s, 12).into_bytes()),
+            "tree" => (
+                tr("Arbore", "Tree"),
+                "txt",
+                report::to_tree_text(s, 12).into_bytes(),
+            ),
             _ => return,
         };
         if let Some(p) = rfd::FileDialog::new()
             .set_title(name)
-            .set_file_name(format!("veriga-raport.{ext}"))
+            .set_file_name(format!("{}.{ext}", tr("veriga-raport", "veriga-report")))
             .add_filter(name, &[ext])
             .save_file()
         {
@@ -358,9 +387,15 @@ impl App {
 }
 
 fn open_in_browser(url: &str) {
+    // doar http/https/file; fără interpretor de comenzi (cmd /C start era injectabil)
+    let Ok(u) = url::Url::parse(url) else { return };
+    if !matches!(u.scheme(), "http" | "https" | "file") {
+        return;
+    }
+    let url = u.as_str();
     #[cfg(target_os = "windows")]
-    let _ = std::process::Command::new("cmd")
-        .args(["/C", "start", "", url])
+    let _ = std::process::Command::new("rundll32")
+        .args(["url.dll,FileProtocolHandler", url])
         .spawn();
     #[cfg(target_os = "macos")]
     let _ = std::process::Command::new("open").arg(url).spawn();
@@ -443,9 +478,10 @@ impl eframe::App for App {
                         .pick_file()
                 {
                     match Session::load(&p) {
-                        Ok(s) => {
+                        Ok(mut s) => {
                             self.results = s.results.clone();
                             self.start = s.config.start.join("\n");
+                            self.adopt_security(&mut s.config);
                             self.cfg = s.config.clone();
                             self.session = Some(s);
                             self.status_line =
@@ -470,14 +506,14 @@ impl eframe::App for App {
                 }
                 ui.menu_button(self.t("📤 Exportă", "📤 Export"), |ui| {
                     for (k, l) in [
-                        ("html", "Raport HTML"),
+                        ("html", self.t("Raport HTML", "HTML report")),
                         ("csv", "CSV"),
-                        ("csvb", "CSV (doar rupte)"),
+                        ("csvb", self.t("CSV (doar rupte)", "CSV (broken only)")),
                         ("tsv", "TSV"),
                         ("json", "JSON"),
                         ("txt", "Text"),
                         ("xml", "Sitemap XML"),
-                        ("tree", "Arbore site"),
+                        ("tree", self.t("Arbore site", "Site tree")),
                     ] {
                         if ui.button(l).clicked() {
                             self.export(k);
@@ -495,11 +531,15 @@ impl eframe::App for App {
                     "Start (one URL / path per line):",
                 ));
             });
+            let start_hint = self.t(
+                "https://exemplu.ro/   sau   /cale/catre/site",
+                "https://example.com/   or   /path/to/site",
+            );
             ui.add(
                 egui::TextEdit::multiline(&mut self.start)
                     .desired_rows(1)
                     .desired_width(f32::INFINITY)
-                    .hint_text("https://exemplu.ro/   sau   /cale/catre/site"),
+                    .hint_text(start_hint),
             );
             ui.add_space(4.0);
         });
@@ -519,7 +559,11 @@ impl eframe::App for App {
                         self.t("rupte", "broken"),
                         self.progress.broken,
                         self.progress.elapsed_ms as f64 / 1000.0,
-                        if self.paused { "(pauză)" } else { "" }
+                        if self.paused {
+                            self.t("(pauză)", "(paused)")
+                        } else {
+                            ""
+                        }
                     ));
                     if !self.phase.is_empty() {
                         ui.label(RichText::new(&self.phase).weak());

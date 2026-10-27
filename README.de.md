@@ -53,7 +53,7 @@ veriga --recheck session.veriga -o report.html                      # nur defekt
 veriga https://example.com --ignore-status 999 --exclude '/logout' -o s.veriga
 ```
 
-Exit-Code `2`, wenn defekte Links gefunden wurden (nützlich in CI); `--no-fail` schaltet das ab. `veriga --help` listet alles auf.
+Exit-Code `2`, wenn defekte Links gefunden wurden (nützlich in CI); `--no-fail` schaltet das ab. `veriga --help` listet alles auf. Exit-Code `3`, wenn der Lauf abgebrochen oder durch `--max-urls` abgeschnitten wurde.
 
 ## Erstellen
 
@@ -112,7 +112,7 @@ Unterstütze das Projekt: https://www.buymeacoffee.com/echo.of.the.strings
 - Berichte werden nicht per E-Mail (SMTP) versendet, und verwaiste Dateien werden nicht über FTP erkannt — nur in einem lokalen Verzeichnis.
 - Komprimierte `.xml.gz`-Sitemaps werden nicht gelesen.
 - Seiten, die ihre Links mit JavaScript aufbauen, werden nicht gerendert (es gibt keine Browser-Engine); analysiert wird das ausgelieferte HTML.
-- Die grafische Oberfläche wurde unter einem virtuellen Display kompiliert und gestartet (keine Startfehler), aber nicht visuell durchgetestet.
+- Die grafische Oberfläche wurde nur unter einem virtuellen Display (Linux/X11) erprobt: Crawl, Filter, Detailbereich und Guardian. Die Windows- und macOS-Builds entstehen in der CI, wurden aber nicht interaktiv getestet.
 
 ## Zum Begriff „Clean-Room“
 

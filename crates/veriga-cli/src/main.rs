@@ -18,7 +18,21 @@ use veriga_core::{Config, Control, Event, OrphanConfig, Session};
     about = "VERIGA — verificator de legături (clean-room), pentru site-uri și directoare locale",
     long_about = "Parcurge un site (sau un director local), verifică toate legăturile — pagini, imagini, CSS, \
 scripturi, cadre, media, obiecte, e-mail, FTP, ancore — și produce rapoarte HTML/CSV/TSV/JSON/text/sitemap.\n\n\
-Exemple:\n  veriga https://exemplu.ro -o raport.html -o rupte.csv\n  veriga ./site --orphans ./site\n  veriga --recheck sesiune.veriga -o raport.html"
+Exemple:\n  veriga https://exemplu.ro -o raport.html -o rupte.csv\n  veriga ./site --orphans ./site\n  veriga --recheck sesiune.veriga -o raport.html",
+    after_help = "Subcomenzi (Guardian) / Subcommands — `veriga <subcomandă> --help`:\n  \
+lint        analiză offline a surselor / offline source lint\n  \
+fix         propune/aplică reparații / propose/apply fixes\n  \
+undo        anulează reparații / undo fixes\n  \
+log404      404 din jurnale de acces / 404s from access logs\n  \
+guardian    verificare + reparare + istoric / check + fix + history\n  \
+compliance  raport de conformitate / compliance report\n  \
+history     istoricul verificărilor / check history\n  \
+watch       verificare periodică / periodic checks\n  \
+wizard      configurare ghidată / guided setup\n\n\
+Un director cu numele unei subcomenzi se verifică prin `veriga ./lint` sau `veriga -- lint`.\n\
+A directory named like a subcommand is checked with `veriga ./lint` or `veriga -- lint`.\n\n\
+Coduri de ieșire / Exit codes: 0 ok · 2 linkuri rupte / broken links · \
+3 verificare oprită sau trunchiată (--max-urls) / run cancelled or truncated"
 )]
 struct Cli {
     /// URL-uri, fișiere HTML sau directoare locale de la care începe verificarea
@@ -152,7 +166,7 @@ fn build_config(c: &Cli) -> Result<Config> {
     cfg.threads = c.threads;
     cfg.per_host = c.per_host;
     cfg.timeout_secs = c.timeout;
-    cfg.retries = c.retries;
+    cfg.retries = c.retries.min(veriga_core::check::MAX_RETRIES);
     cfg.max_depth = c.depth;
     cfg.max_urls = c.max_urls;
     cfg.max_redirects = c.max_redirects;
@@ -205,6 +219,19 @@ fn build_config(c: &Cli) -> Result<Config> {
         "ro".into()
     };
     Ok(cfg)
+}
+
+/// Suprascrie în configurația unei sesiuni încărcate câmpurile relevante pentru securitate
+/// cu valorile curente (linie de comandă / implicite), ca un fișier .veriga străin să nu
+/// poată impune proxy, TLS nesigur, dezactivarea anti-SSRF sau antete.
+fn adopt_security(loaded: &mut Config, cur: &Config) {
+    loaded.proxy = cur.proxy.clone();
+    loaded.ignore_tls_errors = cur.ignore_tls_errors;
+    loaded.block_private = cur.block_private;
+    loaded.user_agent = cur.user_agent.clone();
+    loaded.headers = cur.headers.clone();
+    loaded.basic_auth = cur.basic_auth.clone();
+    loaded.retries = loaded.retries.min(veriga_core::check::MAX_RETRIES);
 }
 
 fn write_outputs(s: &Session, outs: &[PathBuf], only_broken: bool) -> Result<()> {
@@ -329,8 +356,11 @@ async fn main() -> Result<()> {
     });
 
     let session = if let Some(p) = &cli.recheck {
-        let s =
+        let mut s =
             Session::load(p).with_context(|| format!("nu pot încărca sesiunea {}", p.display()))?;
+        // setările de securitate vin din linia de comandă, nu din fișierul sesiunii
+        let cur = build_config(&cli)?;
+        adopt_security(&mut s.config, &cur);
         veriga_core::recheck(s, ctl.clone(), Some(tx)).await?
     } else {
         let cfg = build_config(&cli)?;
@@ -354,5 +384,69 @@ async fn main() -> Result<()> {
     if broken > 0 && !cli.no_fail {
         std::process::exit(2);
     }
+    // verificare incompletă: niciodată „succes”, nici cu --no-fail
+    if session.cancelled || session.truncated {
+        if !cli.quiet {
+            eprintln!(
+                "Atenție: verificare incompletă ({}) — cod de ieșire 3",
+                if session.cancelled {
+                    "oprită / cancelled"
+                } else {
+                    "trunchiată la --max-urls / truncated"
+                }
+            );
+        }
+        std::process::exit(3);
+    }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::CommandFactory;
+
+    #[test]
+    fn help_lists_subcommands() {
+        let h = Cli::command().render_long_help().to_string();
+        for n in guardian::NAMES {
+            assert!(h.contains(n), "{n}");
+        }
+        assert!(h.contains("-- lint"));
+    }
+
+    #[test]
+    fn double_dash_treats_subcommand_name_as_start() {
+        let c = Cli::try_parse_from(["veriga", "--", "lint"]).unwrap();
+        assert_eq!(c.start, vec!["lint".to_string()]);
+    }
+
+    #[test]
+    fn recheck_ignores_security_settings_from_session_file() {
+        let mut loaded = Config::with_start("https://example.com/");
+        loaded.proxy = Some("http://evil:8080".into());
+        loaded.ignore_tls_errors = true;
+        loaded.block_private = false;
+        loaded.user_agent = "evil".into();
+        loaded.headers = vec![("X-Evil".into(), "1".into())];
+        loaded.retries = u32::MAX;
+        let cli = Cli::try_parse_from(["veriga", "--recheck", "x.veriga"]).unwrap();
+        let cur = build_config(&cli).unwrap();
+        adopt_security(&mut loaded, &cur);
+        assert_eq!(loaded.proxy, None);
+        assert!(!loaded.ignore_tls_errors);
+        assert!(loaded.block_private);
+        assert_eq!(loaded.user_agent, Config::default().user_agent);
+        assert!(loaded.headers.is_empty());
+        assert_eq!(loaded.retries, veriga_core::check::MAX_RETRIES);
+    }
+
+    #[test]
+    fn retries_are_clamped() {
+        let cli = Cli::try_parse_from(["veriga", "--retries", "4000000000", "x"]).unwrap();
+        assert_eq!(
+            build_config(&cli).unwrap().retries,
+            veriga_core::check::MAX_RETRIES
+        );
+    }
 }

@@ -53,7 +53,7 @@ veriga --recheck sesiune.veriga -o raport.html                      # doar linku
 veriga https://exemplu.ro --ignore-status 999 --exclude '/logout' -o s.veriga
 ```
 
-Cod de ieșire `2` dacă s-au găsit legături rupte (util în CI); `--no-fail` îl dezactivează. `veriga --help` listează tot.
+Cod de ieșire `2` dacă s-au găsit legături rupte (util în CI); `--no-fail` îl dezactivează. `veriga --help` listează tot. Cod de ieșire `3` dacă rularea a fost oprită sau tăiată de `--max-urls`.
 
 ## Compilare
 
@@ -112,7 +112,7 @@ Susține proiectul: https://www.buymeacoffee.com/echo.of.the.strings
 - Nu trimite rapoarte prin e-mail (SMTP) și nu detectează orfani prin FTP — doar prin director local.
 - Sitemap-urile comprimate `.xml.gz` nu sunt citite.
 - Paginile care își construiesc linkurile din JavaScript nu sunt randate (nu există motor de browser); se analizează HTML-ul servit.
-- Interfața grafică a fost compilată și pornită sub un ecran virtual (fără erori la pornire), dar nu a fost exersată vizual.
+- Interfața grafică a fost exersată doar sub un ecran virtual (Linux/X11): parcurgere, filtre, panou de detalii și Guardian. Variantele pentru Windows și macOS sunt produse de CI, dar nu au fost testate interactiv.
 
 ## Despre „clean-room”
 

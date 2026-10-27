@@ -39,6 +39,30 @@ pub struct GuardianUi {
     hits: Vec<insights::Hit404>,
     days: u32,
     prev: Option<Session>,
+    /// Propuneri manuale calculate pe un fir separat (scanarea surselor poate dura).
+    manual_rx: Option<Receiver<Result<Vec<Proposal>, String>>>,
+    /// Statistici derivate din sesiune, recalculate doar când sesiunea se schimbă.
+    cache_key: Option<SessionKey>,
+    cache_domains: Vec<insights::DomainStat>,
+    cache_health: Vec<insights::PageHealth>,
+    cache_redirects: Vec<(String, String, Vec<u16>, bool, usize)>,
+    /// Istoricul citit de pe disc (invalidat la schimbarea directorului de stare / la adăugare).
+    cache_history: Option<(PathBuf, Vec<insights::Snapshot>)>,
+}
+
+/// Identitatea unei sesiuni pentru cache (fără a compara toate rezultatele).
+#[derive(PartialEq, Clone)]
+struct SessionKey(String, String, usize, usize);
+
+impl SessionKey {
+    fn of(s: &Session) -> Self {
+        Self(
+            s.started.clone(),
+            s.finished.clone(),
+            s.results.len(),
+            s.results.as_ptr() as usize,
+        )
+    }
 }
 
 impl Default for GuardianUi {
@@ -61,6 +85,12 @@ impl Default for GuardianUi {
             hits: vec![],
             days: 30,
             prev: None,
+            manual_rx: None,
+            cache_key: None,
+            cache_domains: vec![],
+            cache_health: vec![],
+            cache_redirects: vec![],
+            cache_history: None,
         }
     }
 }
@@ -80,6 +110,39 @@ impl GuardianUi {
         log.save(&logp).map_err(|e| e.to_string())?;
         self.log = log;
         Ok(r)
+    }
+
+    fn refresh_session_cache(&mut self, session: &Option<Session>) {
+        let key = session.as_ref().map(SessionKey::of);
+        if key != self.cache_key {
+            match session {
+                Some(s) => {
+                    self.cache_domains = insights::domain_stats(s);
+                    self.cache_health = insights::health_map(s);
+                    self.cache_redirects = insights::redirects(s);
+                }
+                None => {
+                    self.cache_domains.clear();
+                    self.cache_health.clear();
+                    self.cache_redirects.clear();
+                }
+            }
+            self.cache_key = key;
+        }
+    }
+
+    fn history(&mut self) -> &[insights::Snapshot] {
+        let hp = self.paths().0;
+        if self
+            .cache_history
+            .as_ref()
+            .map(|(p, _)| p != &hp)
+            .unwrap_or(true)
+        {
+            let h = insights::history_load(&hp);
+            self.cache_history = Some((hp, h));
+        }
+        &self.cache_history.as_ref().expect("history cache").1
     }
 
     fn scan(&mut self, session: Option<Session>, lang: &str) {
@@ -158,6 +221,28 @@ impl GuardianUi {
                 }
             }
         }
+        if let Some(rx) = &self.manual_rx {
+            match rx.try_recv() {
+                Ok(Ok(add)) => {
+                    for p in add {
+                        self.props.push(p);
+                        self.sel.push(true);
+                    }
+                    self.manual_rx = None;
+                }
+                Ok(Err(e)) => {
+                    self.msg = e;
+                    self.manual_rx = None;
+                }
+                Err(std::sync::mpsc::TryRecvError::Empty) => {
+                    ctx.request_repaint_after(std::time::Duration::from_millis(150));
+                }
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                    self.manual_rx = None;
+                }
+            }
+        }
+        self.refresh_session_cache(session);
         if !self.log_loaded {
             match FixLog::load_checked(&self.paths().1) {
                 Ok(l) => self.log = l,
@@ -189,6 +274,7 @@ impl GuardianUi {
                 ui.label(t("Director de stare:", "State folder:"));
                 if ui.text_edit_singleline(&mut self.state).changed() {
                     self.log_loaded = false;
+                    self.cache_history = None;
                 }
             });
             match self.tab {
@@ -214,16 +300,21 @@ impl GuardianUi {
                         ui.add(egui::TextEdit::singleline(&mut self.manual_old).hint_text("URL").desired_width(220.0));
                         ui.label("→");
                         ui.add(egui::TextEdit::singleline(&mut self.manual_new).hint_text(t("URL nou (gol = dezleagă)", "new URL (empty = unlink)")).desired_width(220.0));
-                        if ui.button(t("Adaugă propunere", "Add proposal")).clicked() && !self.manual_old.trim().is_empty() {
+                        if ui.add_enabled(self.manual_rx.is_none(), egui::Button::new(t("Adaugă propunere", "Add proposal"))).clicked() && !self.manual_old.trim().is_empty() {
+                            // scanarea surselor rulează pe un fir separat (nu blocăm interfața)
                             let paths: Vec<PathBuf> = self.sources.lines().map(|l| PathBuf::from(l.trim())).filter(|p| !p.as_os_str().is_empty()).collect();
-                            let occs = srcscan::scan_paths(&paths).unwrap_or_default();
                             let old = self.manual_old.trim().to_string();
-                            let mut add = if self.manual_new.trim().is_empty() { fixer::unlink(&occs, &old) } else { match fixer::manual_replace(&occs, &old, self.manual_new.trim()) { Ok(v) => v, Err(e) => { self.msg = e; vec![] } } };
-                            fixer::fill_old_raw(&mut add);
-                            for p in add {
-                                self.props.push(p);
-                                self.sel.push(true);
-                            }
+                            let new = self.manual_new.trim().to_string();
+                            let (tx, rx) = channel();
+                            self.manual_rx = Some(rx);
+                            std::thread::spawn(move || {
+                                let occs = srcscan::scan_paths(&paths).unwrap_or_default();
+                                let res = if new.is_empty() { Ok(fixer::unlink(&occs, &old)) } else { fixer::manual_replace(&occs, &old, &new) };
+                                let _ = tx.send(res.map(|mut add| {
+                                    fixer::fill_old_raw(&mut add);
+                                    add
+                                }));
+                            });
                         }
                     });
                     ui.label(&self.msg);
@@ -290,7 +381,11 @@ impl GuardianUi {
                             for e in self.log.entries.iter().rev() {
                                 ui.label(&e.run);
                                 ui.label(e.rule.label(lang));
-                                ui.label(format!("{:?}", e.status));
+                                ui.label(match e.status {
+                                    FixStatus::Applied => t("aplicat", "applied"),
+                                    FixStatus::Undone => t("anulat", "undone"),
+                                    FixStatus::Conflict => t("conflict", "conflict"),
+                                });
                                 ui.label(RichText::new(format!("{} → {}", e.old, e.new)).monospace());
                                 if e.status == FixStatus::Applied && ui.small_button("↶").clicked() {
                                     undo_id = Some(e.id.clone());
@@ -307,14 +402,14 @@ impl GuardianUi {
                     }
                 }
                 Tab::Domains => match session {
-                    Some(s) => {
+                    Some(_) => {
                         egui::ScrollArea::vertical().show(ui, |ui| {
                             egui::Grid::new("dom").striped(true).show(ui, |ui| {
                                 for h in [t("Gazdă", "Host"), t("Total", "Total"), t("Rupte", "Broken"), "403", t("Redir.", "Redir."), "ms", t("Sănătate", "Health")] {
                                     ui.label(RichText::new(h).strong());
                                 }
                                 ui.end_row();
-                                for d in insights::domain_stats(s) {
+                                for d in &self.cache_domains {
                                     ui.label(&d.host);
                                     ui.label(d.total.to_string());
                                     ui.label(d.broken.to_string());
@@ -332,9 +427,9 @@ impl GuardianUi {
                     }
                 },
                 Tab::Health => match session {
-                    Some(s) => {
+                    Some(_) => {
                         egui::ScrollArea::vertical().show(ui, |ui| {
-                            for p in insights::health_map(s) {
+                            for p in &self.cache_health {
                                 let head = format!("{:.0}% · {} / {} — {}", p.score, p.broken, p.links, p.title.as_deref().unwrap_or(&p.page));
                                 if p.items.is_empty() {
                                     ui.label(head);
@@ -353,10 +448,10 @@ impl GuardianUi {
                     }
                 },
                 Tab::Redirects => match session {
-                    Some(s) => {
+                    Some(_) => {
                         egui::ScrollArea::vertical().show(ui, |ui| {
-                            for (a, b, c, perm, n) in insights::redirects(s) {
-                                ui.label(RichText::new(format!("{a}\n  → {b}   {} {} · {n} {}", c.iter().map(|x| x.to_string()).collect::<Vec<_>>().join("→"), if perm { t("permanent", "permanent") } else { t("temporar", "temporary") }, t("pagini", "pages"))).monospace());
+                            for (a, b, c, perm, n) in &self.cache_redirects {
+                                ui.label(RichText::new(format!("{a}\n  → {b}   {} {} · {n} {}", c.iter().map(|x| x.to_string()).collect::<Vec<_>>().join("→"), if *perm { t("permanent", "permanent") } else { t("temporar", "temporary") }, t("pagini", "pages"))).monospace());
                             }
                         });
                     }
@@ -365,11 +460,12 @@ impl GuardianUi {
                     }
                 },
                 Tab::Trends => {
-                    let h = insights::history_load(&self.paths().0);
+                    let h = self.history().to_vec();
                     ui.horizontal(|ui| {
                         if ui.add_enabled(session.is_some(), egui::Button::new(t("➕ Înregistrează rularea curentă", "➕ Record current run"))).clicked()
                             && let Some(s) = session {
                                 let _ = insights::history_append(&self.paths().0, s);
+                                self.cache_history = None;
                             }
                         if ui.button(t("Încarcă sesiune anterioară…", "Load previous session…")).clicked()
                             && let Some(f) = rfd::FileDialog::new().add_filter("VERIGA", &["veriga"]).pick_file() {
@@ -386,7 +482,7 @@ impl GuardianUi {
                     }
                     egui::ScrollArea::vertical().show(ui, |ui| {
                         for x in h.iter().rev() {
-                            ui.label(RichText::new(format!("{}  total {:>6}  rupte {:>5}  {:.1}%", x.time, x.total, x.broken, x.health)).monospace());
+                            ui.label(RichText::new(format!("{}  {} {:>6}  {} {:>5}  {:.1}%", x.time, t("total", "total"), x.total, t("rupte", "broken"), x.broken, x.health)).monospace());
                         }
                     });
                 }

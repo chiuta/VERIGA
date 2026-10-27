@@ -101,7 +101,11 @@ impl<'a> Sink<'a> {
             if let Some(m) = c.get(1).or_else(|| c.get(2)).or_else(|| c.get(3)) {
                 // @import url(...) este tratat ca stil
                 let s = m.start();
-                let before = &css[..s.saturating_sub(5)];
+                let mut b = s.saturating_sub(5);
+                while !css.is_char_boundary(b) {
+                    b -= 1;
+                }
+                let before = &css[..b];
                 let k = if before.trim_end().to_ascii_lowercase().ends_with("@import") {
                     LinkKind::Stylesheet
                 } else {
@@ -469,5 +473,14 @@ mod tests {
         assert!(u.contains(&"https://ex.ro/c/a.css".to_string()));
         assert!(u.contains(&"https://ex.ro/img/b.png".to_string()));
         assert!(u.contains(&"https://ex.ro/c/f.woff2".to_string()));
+    }
+
+    #[test]
+    fn css_url_after_multibyte_does_not_panic() {
+        let u = Url::parse("https://a.ro/s.css").unwrap();
+        let l = extract_css(&u, "x{background:€url(a.png)}");
+        assert_eq!(l.len(), 1);
+        let e = extract_html(&u, "<div style=\"background:ăurl(a.png)\">", false);
+        assert_eq!(e.links.len(), 1);
     }
 }

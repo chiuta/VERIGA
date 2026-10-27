@@ -53,7 +53,7 @@ veriga --recheck session.veriga -o report.html                      # solo enlac
 veriga https://example.com --ignore-status 999 --exclude '/logout' -o s.veriga
 ```
 
-Código de salida `2` si se encontraron enlaces rotos (útil en CI); `--no-fail` lo desactiva. `veriga --help` lo muestra todo.
+Código de salida `2` si se encontraron enlaces rotos (útil en CI); `--no-fail` lo desactiva. `veriga --help` lo muestra todo. Código de salida `3` si la ejecución se canceló o se truncó por `--max-urls`.
 
 ## Compilación
 
@@ -112,7 +112,7 @@ Apoye el proyecto: https://www.buymeacoffee.com/echo.of.the.strings
 - No envía informes por correo electrónico (SMTP) ni detecta huérfanos por FTP; solo en un directorio local.
 - No se leen los sitemaps comprimidos `.xml.gz`.
 - Las páginas que construyen sus enlaces con JavaScript no se renderizan (no hay motor de navegador); se analiza el HTML servido.
-- La interfaz gráfica se compiló y se inició bajo una pantalla virtual (sin errores de arranque), pero no se ha probado visualmente.
+- La interfaz gráfica solo se ha probado bajo una pantalla virtual (Linux/X11): rastreo, filtros, panel de detalles y Guardian. Las versiones para Windows y macOS las genera la CI, pero no se han probado de forma interactiva.
 
 ## Sobre «clean-room»
 

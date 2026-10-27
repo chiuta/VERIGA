@@ -245,7 +245,11 @@ fn scan_html_like(
         // textul ancorei: de după `>` al tagului curent până la `</a>`
         let mut atext = String::new();
         if attr == "href" {
-            let tail = &text[g.end()..text.len().min(g.end() + 600)];
+            let mut e = text.len().min(g.end() + 600);
+            while !text.is_char_boundary(e) {
+                e -= 1;
+            }
+            let tail = &text[g.end()..e];
             if let Some(m) = anchor_text_re().captures(tail) {
                 atext = plain_text(m.get(1).unwrap().as_str());
             }
@@ -516,5 +520,14 @@ mod tests {
         let t = "<urlset><url><loc> https://a.ro/?a=1&amp;b=2 </loc></url></urlset>";
         let o = scan_text(t, Path::new("s.xml"), SrcKind::Sitemap);
         assert_eq!(o[0].url, "https://a.ro/?a=1&b=2");
+    }
+
+    #[test]
+    fn anchor_text_window_respects_char_boundary() {
+        let mut h = String::from("<a href=\"http://a.ro/x\">");
+        h.push_str(&"a".repeat(597));
+        h.push_str("ășș</a>");
+        let o = scan_text(&h, Path::new("a.html"), SrcKind::Html);
+        assert_eq!(o.len(), 1);
     }
 }

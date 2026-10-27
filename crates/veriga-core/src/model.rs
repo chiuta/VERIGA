@@ -277,10 +277,37 @@ pub struct Session {
     pub cancelled: bool,
 }
 
+/// Proxy fără `user:parolă@` (credențialele nu se salvează pe disc).
+pub fn strip_proxy_userinfo(p: &str) -> Option<String> {
+    match url::Url::parse(p) {
+        Ok(mut u) => {
+            if !u.username().is_empty() || u.password().is_some() {
+                let _ = u.set_username("");
+                let _ = u.set_password(None);
+            }
+            let out = u.to_string();
+            // „u:p@gazdă” fără schemă se parsează altfel; orice „@” rămas e suspect
+            (!out.contains('@')).then_some(out)
+        }
+        // neparsabil: îl păstrăm doar dacă sigur nu conține credențiale
+        Err(_) => (!p.contains('@')).then(|| p.to_string()),
+    }
+}
+
 impl Session {
-    pub fn save(&self, path: &std::path::Path) -> anyhow::Result<()> {
+    /// Copie fără secrete: autentificare, antete sensibile, credențiale de proxy.
+    pub fn redacted(&self) -> Session {
         let mut s = self.clone();
         s.config.basic_auth = None;
+        s.config
+            .headers
+            .retain(|(k, _)| !crate::check::is_sensitive_header(k));
+        s.config.proxy = s.config.proxy.as_deref().and_then(strip_proxy_userinfo);
+        s
+    }
+
+    pub fn save(&self, path: &std::path::Path) -> anyhow::Result<()> {
+        let s = self.redacted();
         // scriere atomică: nu lăsăm o sesiune pe jumătate scrisă la întrerupere
         let tmp = path.with_extension(format!("veriga.{}.tmp", std::process::id()));
         std::fs::write(&tmp, serde_json::to_vec(&s)?)?;
@@ -303,5 +330,56 @@ impl Session {
 
     pub fn broken_count(&self) -> usize {
         self.broken().count()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sess() -> Session {
+        let mut c = Config::with_start("https://example.com/");
+        c.headers
+            .push(("Authorization".into(), "Bearer SECRET".into()));
+        c.headers.push(("X-Session-Id".into(), "SECRET2".into()));
+        c.headers.push(("Accept-Language".into(), "ro".into()));
+        c.basic_auth = Some(("u".into(), "SECRET3".into()));
+        c.proxy = Some("http://user:pw@proxy:3128".into());
+        Session {
+            version: 1,
+            tool: "veriga".into(),
+            started: String::new(),
+            finished: String::new(),
+            config: c,
+            results: vec![],
+            ignored: 0,
+            truncated: false,
+            cancelled: false,
+        }
+    }
+
+    #[test]
+    fn session_and_json_do_not_persist_secrets() {
+        let s = sess();
+        let p = std::env::temp_dir().join(format!("veriga-redact-{}.veriga", std::process::id()));
+        s.save(&p).unwrap();
+        let t = std::fs::read_to_string(&p).unwrap();
+        let _ = std::fs::remove_file(&p);
+        let j = crate::report::to_json(&s);
+        for out in [&t, &j] {
+            assert!(!out.contains("SECRET"), "{out}");
+            assert!(!out.contains("user:pw"), "{out}");
+            assert!(out.contains("Accept-Language"));
+            assert!(out.contains("proxy:3128"));
+        }
+    }
+
+    #[test]
+    fn proxy_userinfo_is_stripped() {
+        assert_eq!(
+            strip_proxy_userinfo("socks5://a:b@h:1080").as_deref(),
+            Some("socks5://h:1080")
+        );
+        assert_eq!(strip_proxy_userinfo("u:p@weird").as_deref(), None);
     }
 }

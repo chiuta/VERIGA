@@ -385,7 +385,12 @@ fn candidate(
             return Some((Rule::Redirect, f.clone()));
         }
     }
-    if upgrade_http && url.len() > 7 && url[..7].eq_ignore_ascii_case("http://") {
+    if upgrade_http
+        && url.len() > 7
+        && url
+            .get(..7)
+            .is_some_and(|p| p.eq_ignore_ascii_case("http://"))
+    {
         return Some((Rule::Protocol, format!("https://{}", &url[7..])));
     }
     None
@@ -631,6 +636,14 @@ pub fn unlink(occs: &[Occurrence], old: &str) -> Vec<Proposal> {
             .entry(o.file.clone())
             .or_insert_with(|| std::fs::read_to_string(&o.file).unwrap_or_default())
             .clone();
+        // poziții vechi (fișier modificat între timp) → ignorăm apariția
+        if o.start > o.end
+            || o.end > text.len()
+            || !text.is_char_boundary(o.start)
+            || !text.is_char_boundary(o.end)
+        {
+            continue;
+        }
         let span = match o.attr.as_str() {
             "href" => {
                 // eticheta trebuie să fie exact <a …> (nu <area>, <abbr>, <article>) și
@@ -662,9 +675,7 @@ pub fn unlink(occs: &[Occurrence], old: &str) -> Vec<Proposal> {
                 let lb = open.and_then(|p| text[..p].rfind('['));
                 let rb = text[o.end..].find(')').map(|p| o.end + p + 1);
                 match (lb, open, rb) {
-                    (Some(a), Some(p), Some(b))
-                        if !text[a..a + 1].is_empty() && !(a > 0 && &text[a - 1..a] == "!") =>
-                    {
+                    (Some(a), Some(p), Some(b)) if !text[..a].ends_with('!') => {
                         Some((a, b, text[a + 1..p].to_string()))
                     }
                     _ => None,
@@ -755,7 +766,12 @@ fn fnv64(s: &str) -> u64 {
 }
 
 pub fn run_id() -> String {
-    chrono::Local::now().format("%Y%m%d-%H%M%S").to_string()
+    use std::sync::atomic::{AtomicU32, Ordering};
+    static SEQ: AtomicU32 = AtomicU32::new(0);
+    let n = SEQ.fetch_add(1, Ordering::Relaxed);
+    let base = chrono::Local::now().format("%Y%m%d-%H%M%S%.3f").to_string();
+    let base = base.replace('.', "-");
+    if n == 0 { base } else { format!("{base}-{n}") }
 }
 
 pub fn apply(props: &[Proposal], log: &mut FixLog, o: &ApplyOpts) -> ApplyReport {
@@ -838,10 +854,32 @@ pub fn apply(props: &[Proposal], log: &mut FixLog, o: &ApplyOpts) -> ApplyReport
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_default()
         );
-        let bpath = o.backup_dir.join(&o.run).join(rel);
-        let backup = if std::fs::create_dir_all(bpath.parent().unwrap()).is_ok()
-            && std::fs::write(&bpath, &orig).is_ok()
-        {
+        let bdir = o.backup_dir.join(&o.run);
+        // nu suprascriem niciodată o copie existentă (două aplicări cu același ID de rulare)
+        let write_new = |p: &Path| -> std::io::Result<()> {
+            use std::io::Write;
+            let mut f = std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(p)?;
+            f.write_all(orig.as_bytes())
+        };
+        let made = std::fs::create_dir_all(&bdir).ok().and_then(|_| {
+            (0..1000).find_map(|n| {
+                let name = if n == 0 {
+                    rel.clone()
+                } else {
+                    format!("{rel}.{n}")
+                };
+                let p = bdir.join(name);
+                match write_new(&p) {
+                    Ok(()) => Some(Some(p)),
+                    Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => None,
+                    Err(_) => Some(None),
+                }
+            })?
+        });
+        let backup = if let Some(bpath) = made {
             Some(bpath)
         } else {
             for (_, e) in &done {
@@ -921,12 +959,18 @@ pub fn undo(log: &mut FixLog, ids: Option<&[String]>, run: Option<&str>) -> Undo
         .map(|(i, _)| i)
         .collect();
     idx.reverse(); // cele mai noi primele
-    let mut texts: HashMap<PathBuf, String> = HashMap::new();
+    // None = fișier ilizibil (nu se rescrie niciodată); bool = s-a anulat ceva în el
+    let mut texts: HashMap<PathBuf, Option<(String, bool)>> = HashMap::new();
     for i in idx {
         let e = log.entries[i].clone();
-        let t = texts
+        let slot = texts
             .entry(e.file.clone())
-            .or_insert_with(|| std::fs::read_to_string(&e.file).unwrap_or_default());
+            .or_insert_with(|| std::fs::read_to_string(&e.file).ok().map(|t| (t, false)));
+        let Some((t, changed)) = slot.as_mut() else {
+            rep.conflicts
+                .push((e.id.clone(), "fișier ilizibil — neatins".into()));
+            continue;
+        };
         let ctx = format!("{}{}", e.before, e.new_raw);
         // 1) poziția înregistrată, confirmată de context; 2) context unic; 3) text nou unic
         let at_pos = (e.pos >= e.before.len()
@@ -938,6 +982,7 @@ pub fn undo(log: &mut FixLog, ids: Option<&[String]>, run: Option<&str>) -> Undo
         match pos {
             Some(p) if t.get(p..p + e.new_raw.len()) == Some(e.new_raw.as_str()) => {
                 t.replace_range(p..p + e.new_raw.len(), &e.old_raw);
+                *changed = true;
                 log.entries[i].status = FixStatus::Undone;
                 rep.undone.push(e.id.clone());
             }
@@ -950,8 +995,10 @@ pub fn undo(log: &mut FixLog, ids: Option<&[String]>, run: Option<&str>) -> Undo
             }
         }
     }
-    for (f, t) in texts {
-        let _ = write_atomic(&f, &t);
+    for (f, slot) in texts {
+        if let Some((t, true)) = slot {
+            let _ = write_atomic(&f, &t);
+        }
     }
     rep
 }
@@ -1534,5 +1581,114 @@ mod tests {
             s.results.iter().map(|r| (norm_cmp(&r.url), r)).collect();
         let c = candidate("http://a.ro/vechi", Some(&m), &HashMap::new(), false).unwrap();
         assert_eq!(c, (Rule::Redirect, "https://a.ro/nou".to_string()));
+    }
+
+    #[test]
+    fn candidate_with_multibyte_url_does_not_panic() {
+        assert_eq!(candidate("/pagină.html", None, &HashMap::new(), true), None);
+        assert_eq!(candidate("ăăăă", None, &HashMap::new(), true), None);
+    }
+
+    #[test]
+    fn unlink_markdown_after_multibyte_does_not_panic() {
+        let d = std::env::temp_dir().join(format!("veriga-unlink-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let f = d.join("a.md");
+        let src = "Vezi ș[pagina](https://x.ro/mort).";
+        std::fs::write(&f, src).unwrap();
+        let occ = srcscan::scan_text(src, &f, SrcKind::Markdown);
+        let ps = unlink(&occ, "https://x.ro/mort");
+        assert_eq!(ps.len(), 1);
+        assert_eq!(ps[0].new_raw, "pagina");
+        // poziții vechi (fișierul s-a scurtat între timp): fără panică, fără propunere
+        std::fs::write(&f, "ș").unwrap();
+        assert!(unlink(&occ, "https://x.ro/mort").is_empty());
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn undo_never_truncates_unreadable_file() {
+        let d = std::env::temp_dir().join(format!("veriga-undo-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        let f = d.join("a.html");
+        let src = r#"<a href="htp://a.ro/x">1</a>"#;
+        std::fs::write(&f, src).unwrap();
+        let mut ps = vec![prop(
+            &f,
+            src,
+            "htp://a.ro/x",
+            "http://a.ro/x",
+            Rule::SchemeTypo,
+        )];
+        fill_old_raw(&mut ps);
+        let mut log = FixLog::default();
+        let rep = apply(
+            &ps,
+            &mut log,
+            &ApplyOpts {
+                backup_dir: d.join("bk"),
+                run: "r".into(),
+                allow_unverified: true,
+            },
+        );
+        assert_eq!(rep.applied.len(), 1);
+        // fișierul devine ne-UTF-8 (ex. salvat în CP1250)
+        let mut bytes = std::fs::read(&f).unwrap();
+        bytes.extend_from_slice(b"<p>Bucure\xBAti</p>");
+        std::fs::write(&f, &bytes).unwrap();
+        let u = undo(&mut log, None, Some("r"));
+        assert!(u.undone.is_empty());
+        assert_eq!(u.conflicts.len(), 1);
+        assert_eq!(std::fs::read(&f).unwrap(), bytes);
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn same_run_id_never_overwrites_backup() {
+        let d = std::env::temp_dir().join(format!("veriga-bk-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        let f = d.join("a.html");
+        let v1 = r#"<a href="htp://a.ro/x">1</a> <a href="htp://a.ro/y">2</a>"#;
+        std::fs::write(&f, v1).unwrap();
+        let o = ApplyOpts {
+            backup_dir: d.join("bk"),
+            run: "same".into(),
+            allow_unverified: true,
+        };
+        let mut log = FixLog::default();
+        let mut p1 = vec![prop(
+            &f,
+            v1,
+            "htp://a.ro/x",
+            "http://a.ro/x",
+            Rule::SchemeTypo,
+        )];
+        fill_old_raw(&mut p1);
+        assert_eq!(apply(&p1, &mut log, &o).applied.len(), 1);
+        let v2 = std::fs::read_to_string(&f).unwrap();
+        let mut p2 = vec![prop(
+            &f,
+            &v2,
+            "htp://a.ro/y",
+            "http://a.ro/y",
+            Rule::SchemeTypo,
+        )];
+        fill_old_raw(&mut p2);
+        assert_eq!(apply(&p2, &mut log, &o).applied.len(), 1);
+        let b1 = log.entries[0].backup.clone().unwrap();
+        let b2 = log.entries[1].backup.clone().unwrap();
+        assert_ne!(b1, b2);
+        assert_eq!(std::fs::read_to_string(b1).unwrap(), v1);
+        assert_eq!(std::fs::read_to_string(b2).unwrap(), v2);
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn run_ids_are_unique() {
+        let a = run_id();
+        let b = run_id();
+        assert_ne!(a, b);
     }
 }

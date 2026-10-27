@@ -303,6 +303,24 @@ impl Coord {
             return;
         }
         let depth = parent_depth + 1;
+        if url.scheme() == "file" && !parent.url.starts_with("file:") {
+            // O pagină la distanță nu are voie să ne facă să citim fișiere locale:
+            // linkul se raportează, dar nu se deschide.
+            if self.results.len() >= self.cfg.max_urls {
+                self.truncated = true;
+                return;
+            }
+            let idx = self.results.len();
+            let mut r = LinkResult::new(&key, l.kind, depth, false);
+            r.status = Status::Skipped;
+            r.message =
+                "link file: într-o pagină la distanță — fișierul local nu se citește".into();
+            r.parents.push(p);
+            self.emit(Event::Checked(Box::new(r.clone())));
+            self.results.push(r);
+            self.index.insert(key, idx);
+            return;
+        }
         let Some((internal, parse)) = self.plan(&url, l.kind, depth) else {
             return;
         };
@@ -493,15 +511,30 @@ impl Coord {
                     break;
                 }
                 fetched += 1;
-                let Ok(resp) = self.sh.client.get(&sm).send().await else {
+                let Ok(sm_url) = Url::parse(&sm) else {
+                    continue;
+                };
+                if !matches!(sm_url.scheme(), "http" | "https")
+                    || self.sh.is_private_target(&sm_url).await
+                {
+                    continue;
+                }
+                let Ok(mut resp) = self.sh.client.get(sm_url).send().await else {
                     continue;
                 };
                 if !resp.status().is_success() {
                     continue;
                 }
-                let Ok(text) = resp.text().await else {
-                    continue;
-                };
+                let cap = self.cfg.max_body_bytes;
+                let mut buf: Vec<u8> = Vec::new();
+                while let Ok(Some(c)) = resp.chunk().await {
+                    buf.extend_from_slice(&c);
+                    if buf.len() >= cap {
+                        buf.truncate(cap);
+                        break;
+                    }
+                }
+                let text = String::from_utf8_lossy(&buf).into_owned();
                 let is_index = text.contains("<sitemapindex");
                 let parent = Parent {
                     url: sm.clone(),

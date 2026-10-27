@@ -53,7 +53,7 @@ veriga --recheck session.veriga -o report.html                      # broken lin
 veriga https://example.com --ignore-status 999 --exclude '/logout' -o s.veriga
 ```
 
-Exit code `2` if broken links were found (useful in CI); `--no-fail` turns it off. `veriga --help` lists everything.
+Exit code `2` if broken links were found (useful in CI); `--no-fail` turns it off. `veriga --help` lists everything. Exit code `3` if the run was cancelled or truncated by `--max-urls`.
 
 ## Building
 
@@ -112,7 +112,7 @@ Support the project: https://www.buymeacoffee.com/echo.of.the.strings
 - It does not send reports by e-mail (SMTP) and does not detect orphans over FTP — only in a local directory.
 - Compressed `.xml.gz` sitemaps are not read.
 - Pages that build their links with JavaScript are not rendered (there is no browser engine); the served HTML is analysed.
-- The graphical interface was compiled and started under a virtual display (no startup errors), but it has not been exercised visually.
+- The graphical interface was exercised under a virtual display (Linux/X11) only: crawl, filters, detail panel and Guardian. The Windows and macOS builds are produced by CI but not tested interactively.
 
 ## About "clean-room"
 

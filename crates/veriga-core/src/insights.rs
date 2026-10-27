@@ -777,11 +777,27 @@ pub fn closest(path: &str, known: &[String]) -> Option<String> {
         .trim_end_matches('/')
         .to_ascii_lowercase();
     let last = |x: &str| x.rsplit('/').next().unwrap_or("").to_string();
+    if p.len() > MAX_404_PATH {
+        return None;
+    }
     let pl = last(&p);
+    let (pc, plc) = (p.chars().count(), pl.chars().count());
     let mut best: Option<((usize, usize), &String)> = None;
     for k in known {
+        if k.len() > MAX_404_PATH {
+            continue;
+        }
         let kk = k.trim_end_matches('/').to_ascii_lowercase();
         if kk == p {
+            continue;
+        }
+        // prefiltru ieftin: distanța Levenshtein ≥ diferența de lungime
+        let kl = last(&kk);
+        let full_lb = pc.abs_diff(kk.chars().count());
+        let seg_lb = plc.abs_diff(kl.chars().count());
+        if full_lb * 100 > p.len().max(kk.len()) * 35
+            && (pl.is_empty() || seg_lb * 100 > pl.len().max(kl.len()) * 25)
+        {
             continue;
         }
         let full = lev(&p, &kk);
@@ -798,6 +814,11 @@ pub fn closest(path: &str, known: &[String]) -> Option<String> {
     best.map(|(_, k)| k.clone())
 }
 
+/// Căile mai lungi decât atât nu se compară (protecție CPU).
+const MAX_404_PATH: usize = 512;
+/// Numărul maxim de căi distincte reținute din jurnale.
+const MAX_404_DISTINCT: usize = 20_000;
+
 /// Parsează jurnale Apache/nginx (format common/combined) și numără 404-urile.
 pub fn parse_404(text: &str, ignore_bots: bool, known_paths: &[String]) -> Vec<Hit404> {
     let mut m: HashMap<String, (usize, String, HashMap<String, usize>)> = HashMap::new();
@@ -812,7 +833,10 @@ pub fn parse_404(text: &str, ignore_bots: bool, known_paths: &[String]) -> Vec<H
             continue;
         }
         let path = c[2].to_string();
-        if path.ends_with("/favicon.ico") || path.contains("wp-login") && false {
+        if path.ends_with("/favicon.ico") || path.len() > MAX_404_PATH {
+            continue;
+        }
+        if m.len() >= MAX_404_DISTINCT && !m.contains_key(&path) {
             continue;
         }
         let e = m
@@ -822,7 +846,7 @@ pub fn parse_404(text: &str, ignore_bots: bool, known_paths: &[String]) -> Vec<H
         e.1 = c[1].to_string();
         if let Some(r) = c.get(4) {
             let r = r.as_str();
-            if r != "-" && !r.is_empty() {
+            if r != "-" && !r.is_empty() && (e.2.len() < 100 || e.2.contains_key(r)) {
                 *e.2.entry(r.to_string()).or_default() += 1;
             }
         }
@@ -941,5 +965,20 @@ mod tests {
         let cfg = crate::Config::default();
         assert!(!r.status.is_broken(&cfg));
         assert!(r.status.needs_review(&cfg));
+    }
+
+    #[test]
+    fn log404_limits_path_length_and_skips_far_candidates() {
+        let long = format!("/{}", "a".repeat(2000));
+        let log = format!(
+            "1.2.3.4 - - [10/Oct/2026:13:55:36 +0000] \"GET {long} HTTP/1.1\" 404 1 \"-\" \"Mozilla\"\n"
+        );
+        assert!(parse_404(&log, true, &["/a".into()]).is_empty());
+        assert_eq!(closest(&long, &["/a".into()]), None);
+        // prefiltrul nu pierde potrivirile apropiate
+        assert_eq!(
+            closest("/contactt", &["/contact".into(), "/x".repeat(300)]),
+            Some("/contact".into())
+        );
     }
 }

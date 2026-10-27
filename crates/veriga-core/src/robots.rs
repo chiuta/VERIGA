@@ -121,7 +121,12 @@ impl Rules {
                 }
                 "crawl-delay" => {
                     in_rules = true;
-                    cur.delay = v.parse().ok();
+                    // doar valori finite, nenegative (NaN/inf ar face Duration să intre în panică)
+                    cur.delay = v
+                        .parse::<f64>()
+                        .ok()
+                        .filter(|d| d.is_finite() && *d >= 0.0)
+                        .map(|d| d.min(30.0));
                 }
                 "sitemap" => sitemaps.push(v.to_string()),
                 _ => {}
@@ -295,5 +300,15 @@ mod tests {
         let r = Rules::parse(TXT, "veriga");
         assert!(r.allowed("/privat/x"));
         assert!(!r.allowed("/doar-veriga/a"));
+    }
+
+    #[test]
+    fn crawl_delay_rejects_non_finite_and_negative() {
+        for v in ["NaN", "inf", "-inf", "-1", "1e400"] {
+            let r = Rules::parse(&format!("User-agent: *\nCrawl-delay: {v}\n"), "veriga");
+            assert_eq!(r.crawl_delay, None, "{v}");
+        }
+        let r = Rules::parse("User-agent: *\nCrawl-delay: 1000\n", "veriga");
+        assert_eq!(r.crawl_delay, Some(30.0));
     }
 }

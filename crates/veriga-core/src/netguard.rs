@@ -23,11 +23,32 @@ pub fn ip_is_private(ip: IpAddr) -> bool {
                 return ip_is_private(IpAddr::V4(m));
             }
             let s = v.segments();
+            let o = v.octets();
+            let embedded = |a: u8, b: u8, c: u8, d: u8| {
+                ip_is_private(IpAddr::V4(std::net::Ipv4Addr::new(a, b, c, d)))
+            };
+            // IPv4-compatibil ::a.b.c.d (::/96, în afară de :: și ::1, tratate mai jos)
+            if s[..6].iter().all(|x| *x == 0) && !v.is_loopback() && !v.is_unspecified() {
+                return true;
+            }
+            // NAT64 64:ff9b::/96 — adresa IPv4 încorporată
+            if s[..6] == [0x64, 0xff9b, 0, 0, 0, 0] && embedded(o[12], o[13], o[14], o[15]) {
+                return true;
+            }
+            // IPv4-translated (SIIT) ::ffff:0:a.b.c.d
+            if s[..6] == [0, 0, 0, 0, 0xffff, 0] && embedded(o[12], o[13], o[14], o[15]) {
+                return true;
+            }
+            // 6to4 2002::/16 — adresa IPv4 încorporată în biții 16..48
+            if s[0] == 0x2002 && embedded(o[2], o[3], o[4], o[5]) {
+                return true;
+            }
             v.is_loopback()
                 || v.is_unspecified()
                 || v.is_multicast()
                 || (s[0] & 0xfe00) == 0xfc00 // ULA fc00::/7
                 || (s[0] & 0xffc0) == 0xfe80 // link-local fe80::/10
+                || (s[0] & 0xffc0) == 0xfec0 // site-local (depreciat) fec0::/10
         }
     }
 }
@@ -91,6 +112,14 @@ mod tests {
             "foo.local",
             "router",
             "metadata.internal",
+            "::127.0.0.1",
+            "::8.8.8.8",
+            "64:ff9b::a9fe:a9fe",
+            "64:ff9b::7f00:1",
+            "2002:7f00:1::1",
+            "2002:c0a8:0101::1",
+            "fec0::1",
+            "::ffff:0:7f00:1",
         ] {
             assert!(host_is_private_syntactic(h), "{h}");
         }
@@ -99,6 +128,8 @@ mod tests {
             "example.com",
             "www.exemplu.ro",
             "2606:4700::1111",
+            "64:ff9b::808:808",
+            "2002:808:808::1",
         ] {
             assert!(!host_is_private_syntactic(h), "{h}");
         }

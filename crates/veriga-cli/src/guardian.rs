@@ -565,6 +565,9 @@ pub async fn dispatch() -> Result<()> {
     let g = G::parse();
     match g.cmd {
         Cmd::Lint { paths, out, c } => {
+            if paths.is_empty() {
+                bail!("indică fișiere sau directoare-sursă");
+            }
             let lg = lang(&c.lang);
             let occs = srcscan::scan_paths(&paths)?;
             let f = rules::analyze(&occs, lg);

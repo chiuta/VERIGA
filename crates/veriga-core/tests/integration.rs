@@ -185,3 +185,48 @@ async fn recheck_and_session_roundtrip() {
     assert_eq!(re.broken_count(), before);
     let _ = std::fs::remove_file(&p);
 }
+
+/// O pagină la distanță care trimite spre file:// nu are voie să declanșeze citirea discului.
+#[tokio::test]
+async fn remote_page_cannot_read_local_files() {
+    let secret = std::env::temp_dir().join(format!("veriga-secret-{}.html", std::process::id()));
+    std::fs::write(&secret, "<title>SECRET-TITLU</title>").unwrap();
+    let file_url = url::Url::from_file_path(&secret).unwrap().to_string();
+    let l = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = l.local_addr().unwrap();
+    let page = format!(r#"<a href="{file_url}">x</a><img src="{file_url}">"#);
+    tokio::spawn(async move {
+        loop {
+            let Ok((mut s, _)) = l.accept().await else {
+                return;
+            };
+            let page = page.clone();
+            tokio::spawn(async move {
+                let mut buf = vec![0u8; 4096];
+                let _ = s.read(&mut buf).await;
+                let resp = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{page}",
+                    page.len()
+                );
+                let _ = s.write_all(resp.as_bytes()).await;
+                let _ = s.shutdown().await;
+            });
+        }
+    });
+    let mut cfg = Config::with_start(format!("http://{addr}/"));
+    cfg.respect_robots = false;
+    let s = veriga_core::run(cfg, Control::new(), None).await.unwrap();
+    let r = s
+        .results
+        .iter()
+        .find(|r| r.url.starts_with("file:"))
+        .expect("file link reported");
+    assert_eq!(r.status, Status::Skipped, "{}", r.message);
+    assert!(r.title.is_none() && r.size.is_none());
+    assert!(
+        !s.results
+            .iter()
+            .any(|r| r.title.as_deref() == Some("SECRET-TITLU"))
+    );
+    let _ = std::fs::remove_file(&secret);
+}

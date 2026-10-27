@@ -390,17 +390,15 @@ fn status_from_code(code: u16) -> Status {
     }
 }
 
-fn is_sensitive_header(name: &str) -> bool {
-    matches!(
-        name.trim().to_ascii_lowercase().as_str(),
-        "authorization"
-            | "cookie"
-            | "proxy-authorization"
-            | "x-api-key"
-            | "x-auth-token"
-            | "x-csrf-token"
-            | "x-access-token"
-    )
+/// Antete care pot purta credențiale: nu pleacă spre alte gazde și nu se salvează.
+pub fn is_sensitive_header(name: &str) -> bool {
+    let n = name.trim().to_ascii_lowercase();
+    n == "proxy-authorization"
+        || [
+            "auth", "token", "key", "secret", "cookie", "password", "session",
+        ]
+        .iter()
+        .any(|w| n.contains(w))
 }
 
 async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
@@ -433,10 +431,13 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
         }
         // Antetele sensibile și autentificarea pleacă doar către site-ul intern de origine,
         // niciodată către alte gazde (inclusiv după redirecționări).
-        let same_site = match (cur.host_str(), t.url.host_str()) {
-            (Some(a), Some(b)) => crate::urlutil::site_key(a) == crate::urlutil::site_key(b),
-            _ => false,
-        };
+        // Aceeași schemă și aceeași gazdă (fără coborâre https → http).
+        let same_site = cur.scheme() == t.url.scheme()
+            && match (cur.host_str(), t.url.host_str()) {
+                (Some(a), Some(b)) => a.eq_ignore_ascii_case(b),
+                _ => false,
+            }
+            && cur.port_or_known_default() == t.url.port_or_known_default();
         let trusted = t.internal && same_site;
         for (k, v) in &cfg.headers {
             if !trusted && is_sensitive_header(k) {
@@ -620,6 +621,9 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
     }
 }
 
+/// Limita superioară a reîncercărilor (protecție la valori absurde din configurație).
+pub const MAX_RETRIES: u32 = 10;
+
 async fn http_check(sh: &Shared, t: &Task, r: &mut LinkResult) -> Option<Body> {
     let cfg = &sh.cfg;
     let mut delay = Duration::from_millis(cfg.delay_ms);
@@ -635,11 +639,11 @@ async fn http_check(sh: &Shared, t: &Task, r: &mut LinkResult) -> Option<Body> {
             r.message = "exclus de robots.txt".into();
             return None;
         }
-        if let Some(d) = rules.crawl_delay {
+        if let Some(d) = rules.crawl_delay.filter(|d| d.is_finite()) {
             delay = delay.max(Duration::from_secs_f64(d.clamp(0.0, 30.0)));
         }
     }
-    let attempts = cfg.retries + 1;
+    let attempts = cfg.retries.min(MAX_RETRIES).saturating_add(1);
     let mut last = Attempt::default();
     for n in 0..attempts {
         last = http_once(sh, t, delay).await;
@@ -694,6 +698,11 @@ async fn file_check(sh: &Shared, t: &Task, r: &mut LinkResult) -> Option<Body> {
             r.message = "director".into();
             None
         }
+        Ok(m) if !m.is_file() => {
+            r.status = Status::Skipped;
+            r.message = "nu este un fișier obișnuit".into();
+            None
+        }
         Ok(m) => {
             r.status = Status::Ok;
             r.size = Some(m.len());
@@ -711,9 +720,9 @@ async fn file_check(sh: &Shared, t: &Task, r: &mut LinkResult) -> Option<Body> {
                     .map(|e| e.eq_ignore_ascii_case("css"))
                     == Some(true);
                 if (is_html_ext(&path) || is_css)
-                    && let Ok(bytes) = tokio::fs::read(&path).await
+                    && let Some(bytes) = read_capped(&path, sh.cfg.max_body_bytes).await
                 {
-                    let cut = &bytes[..bytes.len().min(sh.cfg.max_body_bytes)];
+                    let cut = &bytes[..];
                     return Some(Body {
                         kind: if is_css {
                             BodyKind::Css
@@ -727,6 +736,15 @@ async fn file_check(sh: &Shared, t: &Task, r: &mut LinkResult) -> Option<Body> {
             None
         }
     }
+}
+
+/// Citește cel mult `cap` octeți dintr-un fișier.
+async fn read_capped(path: &Path, cap: usize) -> Option<Vec<u8>> {
+    use tokio::io::AsyncReadExt;
+    let f = tokio::fs::File::open(path).await.ok()?;
+    let mut buf = Vec::new();
+    f.take(cap as u64).read_to_end(&mut buf).await.ok()?;
+    Some(buf)
 }
 
 // ───────────────────────────── mailto ─────────────────────────────
@@ -779,15 +797,26 @@ fn mailto_check(t: &Task, r: &mut LinkResult) {
 async fn ftp_reply<R: tokio::io::AsyncBufRead + Unpin>(
     rd: &mut R,
 ) -> std::io::Result<(u16, String)> {
+    use tokio::io::AsyncReadExt;
+    const MAX_LINE: u64 = 4096;
+    const MAX_LINES: usize = 200;
     let mut first_code: Option<String> = None;
     let mut text = String::new();
+    let mut lines = 0usize;
     loop {
         let mut line = String::new();
-        let n = rd.read_line(&mut line).await?;
+        let n = (&mut *rd).take(MAX_LINE).read_line(&mut line).await?;
         if n == 0 {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::UnexpectedEof,
                 "conexiune închisă",
+            ));
+        }
+        lines += 1;
+        if (n as u64 >= MAX_LINE && !line.ends_with('\n')) || lines > MAX_LINES {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "răspuns FTP prea lung",
             ));
         }
         let l = line.trim_end();
@@ -827,7 +856,23 @@ async fn ftp_cmd<W: tokio::io::AsyncWrite + Unpin, R: tokio::io::AsyncBufRead + 
     ftp_reply(rd).await
 }
 
+/// Utilizatorul, parola și calea decodate nu pot conține CR/LF/NUL
+/// (altfel s-ar putea injecta comenzi FTP suplimentare).
+fn ftp_url_has_ctl(u: &Url) -> bool {
+    [u.username(), u.password().unwrap_or(""), u.path()]
+        .iter()
+        .any(|v| {
+            percent_encoding::percent_decode_str(v).any(|b| b == b'\r' || b == b'\n' || b == 0)
+        })
+}
+
 async fn ftp_probe(u: &Url) -> Result<(Option<u64>, String), (Status, String)> {
+    if ftp_url_has_ctl(u) {
+        return Err((
+            Status::InvalidUrl,
+            "URL FTP cu caractere de control (CR/LF/NUL) — refuzat".into(),
+        ));
+    }
     let host = u.host_str().unwrap_or("").to_string();
     let port = u.port().unwrap_or(21);
     let stream = tokio::net::TcpStream::connect((host.as_str(), port))
@@ -866,6 +911,9 @@ async fn ftp_probe(u: &Url) -> Result<(Option<u64>, String), (Status, String)> {
                 .to_string()
         })
         .unwrap_or_else(|| "anonymous@veriga.invalid".to_string());
+    let path = percent_encoding::percent_decode_str(u.path())
+        .decode_utf8_lossy()
+        .to_string();
     let (code, txt) = ftp_cmd(&mut wr, &mut rd, &format!("USER {user}"))
         .await
         .map_err(io)?;
@@ -889,9 +937,6 @@ async fn ftp_probe(u: &Url) -> Result<(Option<u64>, String), (Status, String)> {
             ));
         }
     }
-    let path = percent_encoding::percent_decode_str(u.path())
-        .decode_utf8_lossy()
-        .to_string();
     let result: Result<(Option<u64>, String), (Status, String)>;
     if path.is_empty() || path == "/" || path.ends_with('/') {
         let (c, t) = ftp_cmd(&mut wr, &mut rd, &format!("CWD {path}"))
@@ -939,6 +984,11 @@ async fn ftp_probe(u: &Url) -> Result<(Option<u64>, String), (Status, String)> {
 }
 
 async fn ftp_check(sh: &Shared, t: &Task, r: &mut LinkResult) {
+    if sh.is_private_target(&t.url).await {
+        r.status = Status::Skipped;
+        r.message = "adresă privată/locală blocată (anti-SSRF; vezi --allow-private)".into();
+        return;
+    }
     let to = Duration::from_secs(sh.cfg.timeout_secs.max(1));
     match tokio::time::timeout(to, ftp_probe(&t.url)).await {
         Err(_) => {
@@ -1053,5 +1103,77 @@ mod tests {
             None
         );
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn sensitive_headers_broadened() {
+        for h in [
+            "X-Session-Id",
+            "Api-Token",
+            "X-Client-Secret",
+            "X-Password",
+            "Set-Cookie",
+            "X-Auth",
+            "Ocp-Apim-Subscription-Key",
+        ] {
+            assert!(is_sensitive_header(h), "{h}");
+        }
+        for h in ["Accept", "User-Agent", "Referer", "Keep-Alive"] {
+            assert!(!is_sensitive_header(h), "{h}");
+        }
+    }
+
+    #[tokio::test]
+    async fn ftp_rejects_crlf_injection_before_connecting() {
+        for u in [
+            "ftp://127.0.0.1:1/a%0D%0ADELE%20important.txt",
+            "ftp://u%0D%0AX:p@127.0.0.1:1/a",
+            "ftp://u:p%0AQUIT@127.0.0.1:1/a",
+            "ftp://127.0.0.1:1/a%00b",
+        ] {
+            let u = Url::parse(u).unwrap();
+            assert!(ftp_url_has_ctl(&u), "{u}");
+            let e = ftp_probe(&u).await.unwrap_err();
+            assert_eq!(e.0, Status::InvalidUrl, "{u}");
+        }
+        assert!(!ftp_url_has_ctl(
+            &Url::parse("ftp://ftp.example.com/pub/a%20b.txt").unwrap()
+        ));
+    }
+
+    #[tokio::test]
+    async fn ftp_reply_caps_line_length() {
+        let mut long = "220 ".to_string();
+        long.push_str(&"x".repeat(10_000));
+        long.push_str("\r\n");
+        let mut rd = BufReader::new(long.as_bytes());
+        assert!(ftp_reply(&mut rd).await.is_err());
+        let mut ok = BufReader::new(&b"220-a\r\n220 b\r\n"[..]);
+        assert_eq!(ftp_reply(&mut ok).await.unwrap().0, 220);
+    }
+
+    #[tokio::test]
+    async fn ftp_honours_ssrf_guard() {
+        let sh = Shared::new(Arc::new(Config::with_start("https://example.com/"))).unwrap();
+        let t = Task {
+            url: Url::parse("ftp://127.0.0.1:1/x").unwrap(),
+            kind: LinkKind::Other,
+            depth: 1,
+            parse: false,
+            internal: false,
+            idx: 0,
+            host: "127.0.0.1".into(),
+        };
+        let mut r = LinkResult::new(t.url.as_str(), t.kind, 1, false);
+        ftp_check(&sh, &t, &mut r).await;
+        assert_eq!(r.status, Status::Skipped, "{}", r.message);
+    }
+
+    #[tokio::test]
+    async fn read_capped_limits_bytes() {
+        let f = std::env::temp_dir().join(format!("veriga-cap-{}.html", std::process::id()));
+        std::fs::write(&f, "a".repeat(5000)).unwrap();
+        assert_eq!(read_capped(&f, 100).await.unwrap().len(), 100);
+        let _ = std::fs::remove_file(&f);
     }
 }

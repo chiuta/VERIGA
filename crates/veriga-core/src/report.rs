@@ -356,7 +356,7 @@ pub fn to_csv(s: &Session, delim: u8, only_broken: bool) -> String {
 }
 
 pub fn to_json(s: &Session) -> String {
-    serde_json::to_string_pretty(s).unwrap_or_default()
+    serde_json::to_string_pretty(&s.redacted()).unwrap_or_default()
 }
 
 pub fn to_sitemap_xml(s: &Session) -> String {
