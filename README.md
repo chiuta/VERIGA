@@ -116,7 +116,7 @@ Codul este scris de la zero, pe baza comportamentului general al verificatoarelo
 (HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org). Nu conține cod, resurse, texte sau designul vreunui alt produs și
 nu a fost scris privind codul sau executabilul altui program.
 
-Licență: MIT sau Apache-2.0, la alegere.
+Licență: MIT.
 
 ## Securitate și model de amenințare / Security & threat model
 
@@ -141,6 +141,6 @@ VERIGA procesează conținut necontrolat (pagini web, fișiere exportate, fișie
 | URL | WHATWG URL / IDNA (UTS 46) prin crate-urile `url` și `idna` |
 | Sitemap | sitemaps.org 0.9 (index + urlset) |
 | Web (veriga.html) | **WCAG 2.2 AA** (axe-core 4.14: 0 încălcări, temă clară/întunecată), tab-uri WAI-ARIA APG cu tastatură, `prefers-reduced-motion`, `forced-colors`, ținte ≥ 24 px, regiuni `status`/`progressbar`; **CSP** cu hash-uri (fără `unsafe-inline` pentru scripturi), `referrer: no-referrer`; rapoartele exportate au CSP propriu |
-| Lanț de aprovizionare | `LICENSE-MIT` / `LICENSE-APACHE`, `SECURITY.md`, `deny.toml`, Dependabot, release cu sume SHA-256 și atestare de proveniență (Sigstore/SLSA), fără acțiuni terțe în publicare |
+| Lanț de aprovizionare | `LICENSE` (MIT), `SECURITY.md`, `deny.toml`, Dependabot, release cu sume SHA-256 și atestare de proveniență (Sigstore/SLSA), fără acțiuni terțe în publicare |
 
 Teste web: `cd web/tests && npm install && npx playwright install chromium && npm test`. După orice modificare a `veriga.html`: `python3 web/stamp-csp.py web/veriga.html`.

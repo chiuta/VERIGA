@@ -6,7 +6,7 @@ members = ["crates/veriga-core", "crates/veriga-cli", "crates/veriga-gui"]
 version = "1.0.0"
 edition = "2024"
 rust-version = "1.88"
-license = "MIT OR Apache-2.0"
+license = "MIT"
 authors = ["Alexio"]
 
 [workspace.dependencies]

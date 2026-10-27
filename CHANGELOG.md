@@ -11,4 +11,4 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 - robots.txt conform RFC 9309 (grupuri îmbinate, normalizare procentuală, plafon 500 KiB, 5xx ⇒ interdicție totală).
 - Dependențe actualizate: reqwest 0.13, scraper 0.29, thiserror 2, egui/eframe 0.37, rfd 0.17.
 - Web: WCAG 2.2 AA (axe-core: 0 încălcări), tab-uri WAI-ARIA cu tastatură, `prefers-reduced-motion`, `forced-colors`.
-- Lanț de aprovizionare: `cargo-audit` + `cargo-deny` (`deny.toml`), `LICENSE-*`, `SECURITY.md`, Dependabot.
+- Lanț de aprovizionare: `cargo-audit` + `cargo-deny` (`deny.toml`), `LICENSE` (MIT), `SECURITY.md`, Dependabot.
