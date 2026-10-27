@@ -1,146 +1,150 @@
-# VERIGA — verificator de legături (clean-room)
+# VERIGA — link checker (clean-room)
 
-Aplicație 64-bit în Rust, pentru Windows, macOS și Linux (x86-64 și ARM64), care parcurge un site
-sau un director local și verifică legăturile. Vine în trei forme cu același model de rezultate:
+**English** · [Română](README.ro.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [Español](README.es.md) · [Português](README.pt.md) · [Deutsch](README.de.md) · [Magyar](README.hu.md)
 
-| Formă | Unde | Ce face |
+Version: 1.0.0 · Last updated: 27.10.2026 · Presentation site: https://veriga.chiuta.ro
+
+A 64-bit Rust application for Windows, macOS and Linux (x86-64 and ARM64) that crawls a website
+or a local folder and checks its links. It comes in three forms that share one result model:
+
+| Form | Where | What it does |
 |---|---|---|
-| `veriga` (CLI) | terminal, CI, containere (binar static musl) | verificare completă, rapoarte, cod de ieșire |
-| `veriga-gui` | desktop nativ (egui) | tabel sortabil/filtrabil, panou de detalii, pauză/stop, export |
-| `web/veriga.html` | orice browser, un singur fișier, offline | analiză de folder local, site online (cu limitele CORS), listă de URL-uri |
+| `veriga` (CLI) | terminal, CI, containers (static musl binary) | full check, reports, exit code |
+| `veriga-gui` | native desktop (egui) | sortable/filterable table, detail panel, pause/stop, export |
+| `web/veriga.html` | any browser, single file, offline | local folder analysis, online site (within CORS limits), URL list |
 
-Sesiunile (`.veriga`, JSON) sunt interschimbabile între cele trei forme.
+Sessions (`.veriga`, JSON) are interchangeable between the three forms.
 
-## Ce verifică
+## What it checks
 
-- **Linkuri HTML**: `a`, `area`, `img` (+`srcset`, `data-src`), `source`, `video`/`audio`/`track`, `embed`, `object`/`param`,
-  `applet`, `iframe`/`frame`, `script`, `link` (stil, pictograme, preload), `form[action]` (opțional), `input[type=image]`,
+- **HTML links**: `a`, `area`, `img` (+`srcset`, `data-src`), `source`, `video`/`audio`/`track`, `embed`, `object`/`param`,
+  `applet`, `iframe`/`frame`, `script`, `link` (style, icons, preload), `form[action]` (optional), `input[type=image]`,
   `background=`, `meta refresh`, `og:image`/`twitter:image`, `cite`, SVG `image`/`use`, `<base href>`.
-- **CSS**: `url(...)` și `@import`, atât din fișiere `.css`, cât și din `<style>` și atribute `style`.
-- **Protocoale**: HTTP/HTTPS (HEAD cu revenire la GET), `file://` și căi locale, FTP (autentificare, `SIZE`/`CWD`),
-  `mailto:` (sintaxă).
-- **Redirecționări**: lanț complet cu coduri, detecție de bucle, limită configurabilă, opțiune „redirecționările sunt erori”.
-- **Ancore** `#fragment`: se verifică în paginile parcurse (`id` și `name`).
-- **Fișiere orfane**: fișiere din directorul site-ului la care nu duce niciun link.
-- **Diferențe de majuscule** în căi locale (merge pe Windows/macOS, se strică pe Linux).
-- **robots.txt** (grupuri, `Allow`/`Disallow` cu `*` și `$`, `Crawl-delay`) și pornire din **sitemap.xml**.
-- **Observații**: titluri duplicate/lipsă, răspunsuri lente, statistici pe tip MIME.
-- Codificări de caractere (antet, BOM, `<meta charset>`) — inclusiv paginile vechi în Windows-1250.
+- **CSS**: `url(...)` and `@import`, from `.css` files as well as from `<style>` and `style` attributes.
+- **Protocols**: HTTP/HTTPS (HEAD with fallback to GET), `file://` and local paths, FTP (authentication, `SIZE`/`CWD`),
+  `mailto:` (syntax).
+- **Redirects**: full chain with status codes, loop detection, configurable limit, a "redirects are errors" option.
+- **`#fragment` anchors**: checked in the crawled pages (`id` and `name`).
+- **Orphan files**: files in the site directory that no link points to.
+- **Case mismatches** in local paths (works on Windows/macOS, breaks on Linux).
+- **robots.txt** (groups, `Allow`/`Disallow` with `*` and `$`, `Crawl-delay`) and seeding from **sitemap.xml**.
+- **Observations**: duplicate/missing titles, slow responses, statistics by MIME type.
+- Character encodings (header, BOM, `<meta charset>`) — including old Windows-1250 pages.
 
-## Opțiuni principale
+## Main options
 
-Fire simultane și limită pe gazdă, timeout, reîncercări (cu `Retry-After`), adâncime maximă, limită de URL-uri,
-linkuri externe da/nu, „rămâi în director”, exclude / nu-parcurge / doar-acestea (regex), gazde interne suplimentare,
-coduri HTTP tratate ca OK (ex. 999), User-Agent, proxy (HTTP/SOCKS), autentificare Basic (doar către gazdele interne),
-antete și cookie-uri, certificate invalide, pauză între cereri.
+Concurrent threads and a per-host limit, timeout, retries (honouring `Retry-After`), maximum depth, URL limit,
+external links yes/no, "stay in the directory", exclude / don't-follow / only-these (regex), extra internal hosts,
+HTTP codes treated as OK (e.g. 999), User-Agent, proxy (HTTP/SOCKS), Basic authentication (internal hosts only),
+headers and cookies, invalid certificates, delay between requests.
 
-## Rapoarte
+## Reports
 
-HTML autonom (se deschide oriunde), CSV, TSV, JSON, text, sitemap.xml, arbore al site-ului, sesiune `.veriga`.
-**Reverificare a linkurilor rupte** dintr-o sesiune salvată (`--recheck`, buton în GUI/web).
+Self-contained HTML (opens anywhere), CSV, TSV, JSON, text, sitemap.xml, a site tree, a `.veriga` session.
+**Re-check of broken links** from a saved session (`--recheck`, a button in the GUI/web).
 
 ## CLI
 
 ```bash
-veriga https://exemplu.ro -o raport.html -o rupte.csv --only-broken
-veriga ./site --orphans ./site --fragments -o raport.html          # director local + orfani
-veriga https://exemplu.ro --sitemap --stay-in-dir -d 4 -t 50
-veriga --recheck sesiune.veriga -o raport.html                      # doar linkurile rupte
-veriga https://exemplu.ro --ignore-status 999 --exclude '/logout' -o s.veriga
+veriga https://example.com -o report.html -o broken.csv --only-broken
+veriga ./site --orphans ./site --fragments -o report.html          # local folder + orphans
+veriga https://example.com --sitemap --stay-in-dir -d 4 -t 50
+veriga --recheck session.veriga -o report.html                      # broken links only
+veriga https://example.com --ignore-status 999 --exclude '/logout' -o s.veriga
 ```
 
-Cod de ieșire `2` dacă s-au găsit legături rupte (util în CI); `--no-fail` îl dezactivează. `veriga --help` listează tot.
+Exit code `2` if broken links were found (useful in CI); `--no-fail` turns it off. `veriga --help` lists everything.
 
-## Compilare
+## Building
 
 ```bash
 cargo build --release                 # veriga + veriga-gui
-cargo build --release -p veriga-cli   # doar CLI
+cargo build --release -p veriga-cli   # CLI only
 cargo test --workspace
 ```
 
-Fluxul `.github/workflows/build.yml` produce arhive pentru: Windows x64/ARM64, macOS Intel/Apple Silicon,
-Linux x64/ARM64 (glibc, cu GUI) și Linux x64/ARM64 (musl, CLI static). `Dockerfile` construiește o imagine minimă cu CLI-ul.
+The `.github/workflows/build.yml` workflow produces archives for: Windows x64/ARM64, macOS Intel/Apple Silicon,
+Linux x64/ARM64 (glibc, with GUI) and Linux x64/ARM64 (musl, static CLI). The `Dockerfile` builds a minimal image with the CLI.
 
-## Varianta HTML single-file
+## The single-file HTML edition
 
-`web/veriga.html` rulează 100% în browser, fără server:
+`web/veriga.html` runs 100% in the browser, without a server:
 
-- **Folder local** (trage folderul site-ului sau „Alege folder”): verificare completă a legăturilor interne, CSS, ancore, orfani,
-  diferențe de majuscule, titluri duplicate. Aici nu există nicio limitare de browser.
-- **Site online**: un browser nu poate citi codul HTTP al altor domenii (CORS). Rezultate complete când fișierul e deschis de pe
-  același site, sau printr-un proxy CORS propriu (șablon `https://proxy/?u={url}`). Altfel, linkurile externe sunt marcate
-  *neverificabile* dacă serverul răspunde, respectiv *fără conexiune* dacă nu răspunde — niciodată „OK” fals.
-- **Listă de URL-uri / HTML lipit**.
-- Nu verifică FTP și nu citește robots.txt (restricții ale browserului). Pentru acestea folosește CLI/GUI.
+- **Local folder** (drag the site folder in, or "Choose folder"): full check of internal links, CSS, anchors, orphans,
+  case mismatches, duplicate titles. There is no browser limitation here.
+- **Online site**: a browser cannot read the HTTP status of other domains (CORS). Full results when the file is opened from the
+  same site, or through your own CORS proxy (template `https://proxy/?u={url}`). Otherwise external links are marked
+  *unverifiable* if the server answers, or *no connection* if it does not — never a false "OK".
+- **URL list / pasted HTML**.
+- It does not check FTP and does not read robots.txt (browser restrictions). Use the CLI/GUI for those.
 
-## Guardian — reparare, istoric, conformitate
+## Guardian — repair, history, compliance
 
-VERIGA include și funcțiile unui „păzitor de linkuri” (inspirate de pluginul WordPress *Trade-Free Link Guardian*), dar ca unealtă independentă, care lucrează pe **fișiere**: HTML, Markdown, export WordPress (WXR `.xml`, inclusiv meniurile) și sitemap.
+VERIGA also includes the features of a "link guardian" (inspired by the *Trade-Free Link Guardian* WordPress plugin), but as an independent tool that works on **files**: HTML, Markdown, WordPress export (WXR `.xml`, menus included) and sitemaps.
 
-* **Reparații deterministe, verificate live** — `scheme_typo` (`htp://`, `https//`), `unmangle` (schemă dublă, `%20`, punctuație agățată), `missing_scheme` (`www.…`), `tracking` (`utm_*`, `fbclid`, `gclid`…), `protocol` (http→https), `www` (consecvență), `redirect` (doar 301/308). O reparație se aplică automat **numai dacă URL-ul nou a răspuns cu succes**; fără verificare rămâne „propunere”.
-* **Reparații manuale** — înlocuire URL, „dezleagă” (păstrează textul), căutare Wayback Machine (opt-in, nu se apelează automat).
-* **Siguranță** — copie de siguranță per rulare, jurnal de modificări, **anulare** individuală sau pe rulare (octet cu octet, inclusiv `&amp;`); se scriu doar octeții din interval.
-* **401/403 = „merită o a doua privire”**, nu link rupt (opțiune, implicit activă).
-* **Vederi și rapoarte** — domenii, hartă de sănătate pe pagini, vedere „carte”, redirecționări (permanente/temporare), derivă de conținut (titlu/H1 față de rularea anterioară), noi/rezolvate, tendințe din istoric, **raport de conformitate** pe perioadă, insignă de impact (în meniu sau pe ≥ 3 pagini). Exporturile CSV neutralizează celulele-formulă.
-* **404 din jurnale de acces** Apache/nginx, cu sugestii de redirecționare și export `.htaccess`.
-* **Programare** — `veriga wizard` (4 pași) scrie `veriga-guardian.json`; `veriga watch --config … [--once]` rulează periodic (sau din cron/Task Scheduler), ține istoricul, repară automat regulile alese și notifică prin webhook sau `sendmail`.
+* **Deterministic repairs, verified live** — `scheme_typo` (`htp://`, `https//`), `unmangle` (doubled scheme, `%20`, trailing punctuation), `missing_scheme` (`www.…`), `tracking` (`utm_*`, `fbclid`, `gclid`…), `protocol` (http→https), `www` (consistency), `redirect` (301/308 only). A repair is applied automatically **only if the new URL answered successfully**; without verification it stays a "proposal".
+* **Manual repairs** — URL replacement, "unlink" (keeps the text), Wayback Machine lookup (opt-in, never called automatically).
+* **Safety** — a backup per run, a change journal, individual or per-run **undo** (byte for byte, `&amp;` included); only the bytes in the span are written.
+* **401/403 = "worth a second look"**, not a broken link (an option, on by default).
+* **Views and reports** — domains, per-page health map, "book" view, redirects (permanent/temporary), content drift (title/H1 against the previous run), new/resolved, trends from the history, a period **compliance report**, an impact badge (in the menu or on ≥ 3 pages). CSV exports neutralise formula cells.
+* **404s from access logs** (Apache/nginx), with redirect suggestions and `.htaccess` export.
+* **Scheduling** — `veriga wizard` (4 steps) writes `veriga-guardian.json`; `veriga watch --config … [--once]` runs periodically (or from cron/Task Scheduler), keeps the history, repairs the chosen rules automatically and notifies by webhook or `sendmail`.
 
 ```
-veriga lint ./site                       # analiză offline
-veriga fix ./site --session s.veriga     # propune + verifică live (simulare)
-veriga fix ./site --apply                # scrie, cu copie de siguranță și jurnal
-veriga fix ./site --unlink https://mort.ro/x --apply
+veriga lint ./site                       # offline analysis
+veriga fix ./site --session s.veriga     # propose + verify live (dry run)
+veriga fix ./site --apply                # write, with a backup and a journal
+veriga fix ./site --unlink https://dead.example/x --apply
 veriga undo --list ; veriga undo --run 20261027-173720
 veriga log404 access.log --known s.veriga -o redirect.htaccess
-veriga guardian s.veriga --prev veche.veriga --record -o guardian.html
-veriga compliance s.veriga --days 30 -o conformitate.html
+veriga guardian s.veriga --prev old.veriga --record -o guardian.html
+veriga compliance s.veriga --days 30 -o compliance.html
 ```
 
-GUI: butonul **🛡 Guardian**. Varianta HTML: secțiunea **Guardian** (modificările se fac în memorie; descarci fișierele sau le scrii într-un folder acolo unde browserul permite; verificarea live e limitată de CORS).
+GUI: the **🛡 Guardian** button. HTML edition: the **Guardian** section (changes are made in memory; you download the files or write them into a folder where the browser allows it; live verification is limited by CORS).
 
-**Ce nu se poate replica dintr-un plugin WordPress:** căutarea de `old slug` din baza de date, cârligul din editor la salvare, cron-ul WP, multisite și `wp_mail`. În locul lor: import WXR, fișiere de pe disc, `watch`/cron și `sendmail`/webhook. Lista de funcții a fost reconstituită din descrierea publică și din conversațiile anterioare, nu din codul sursă al pluginului.
+**What cannot be replicated from a WordPress plugin:** the database `old slug` lookup, the editor save hook, WP-Cron, multisite and `wp_mail`. In their place: WXR import, files on disk, `watch`/cron and `sendmail`/webhook. The feature list was reconstructed from the public description and from earlier conversations, not from the plugin's source code.
 
-Susține proiectul: https://www.buymeacoffee.com/echo.of.the.strings
+Support the project: https://www.buymeacoffee.com/echo.of.the.strings
 
-## Limite cunoscute
+## Known limits
 
-- Nu trimite rapoarte prin e-mail (SMTP) și nu detectează orfani prin FTP — doar prin director local.
-- Sitemap-urile comprimate `.xml.gz` nu sunt citite.
-- Paginile care își construiesc linkurile din JavaScript nu sunt randate (nu există motor de browser); se analizează HTML-ul servit.
-- Interfața grafică nu a putut fi lansată în mediul în care a fost scrisă (fără ecran); este compilată, dar neexersată vizual.
+- It does not send reports by e-mail (SMTP) and does not detect orphans over FTP — only in a local directory.
+- Compressed `.xml.gz` sitemaps are not read.
+- Pages that build their links with JavaScript are not rendered (there is no browser engine); the served HTML is analysed.
+- The graphical interface was compiled and started under a virtual display (no startup errors), but it has not been exercised visually.
 
-## Despre „clean-room”
+## About "clean-room"
 
-Codul este scris de la zero, pe baza comportamentului general al verificatoarelor de legături și a specificațiilor publice
-(HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org). Nu conține cod, resurse, texte sau designul vreunui alt produs și
-nu a fost scris privind codul sau executabilul altui program.
+The code is written from scratch, based on the general behaviour of link checkers and on public specifications
+(HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org). It contains no code, resources, text or design from any other product and
+was not written while looking at the code or the executable of another program.
 
-Licență: MIT.
+License: MIT.
 
-## Securitate și model de amenințare / Security & threat model
+## Security and threat model
 
-VERIGA procesează conținut necontrolat (pagini web, fișiere exportate, fișiere de configurare). Măsuri implicite:
+VERIGA processes untrusted content (web pages, exported files, configuration files). Default measures:
 
-- **Anti-SSRF:** țintele private/locale (127.0.0.0/8, RFC1918, link-local, `localhost`, `.local`, IPv6 ULA) sunt blocate, inclusiv după redirect. Dezactivare explicită: `--allow-private` (CLI) / bifa din GUI. *Limită:* rebinding-ul DNS între verificare și conectare nu este închis complet.
-- **Anteturi sensibile** (`Authorization`, `Cookie`, chei API) se trimit doar către originea internă, niciodată către alte gazde sau după redirect extern.
-- **Filtru de injecție la remedieri:** un URL nou (ex. `Location` ostil) cu ghilimele, `<`, `>`, spații, backtick, backslash sau paranteze în Markdown este refuzat (`unsafe_url_for` / `gUnsafeUrl`).
-- **Scriere sigură:** backup unic, scriere atomică, blocare cooperativă, re-verificarea conținutului înainte de aplicare (TOCTOU), păstrarea permisiunilor/symlink-urilor; propunerile vechi sunt eliminate, nu aplicate pe poziții greșite.
-- **Export CSV** protejat împotriva formulelor (`=`, `+`, `-`, `@`).
-- **Notificări:** `sendmail` trebuie să fie cale absolută; nu folosiți fișiere de configurare din surse nesigure (pot declanșa execuția unui binar ales).
-- **Limite cunoscute:** HTML escapat în WXR nu este scanat (fals-negative); varianta web este limitată de CORS; `lint` iese cu cod 2 când are constatări.
+- **Anti-SSRF:** private/local targets (127.0.0.0/8, RFC1918, link-local, `localhost`, `.local`, IPv6 ULA) are blocked, including after a redirect. Explicit opt-out: `--allow-private` (CLI) / the GUI checkbox. *Limit:* DNS rebinding between the check and the connection is not fully closed.
+- **Sensitive headers** (`Authorization`, `Cookie`, API keys) are sent only to the internal origin, never to other hosts or after an external redirect.
+- **Injection filter for repairs:** a new URL (e.g. a hostile `Location`) containing quotes, `<`, `>`, spaces, backticks, backslashes or brackets in Markdown is refused (`unsafe_url_for` / `gUnsafeUrl`).
+- **Safe writes:** a unique backup, atomic writes, cooperative locking, re-checking the content before applying (TOCTOU), keeping permissions/symlinks; stale proposals are dropped, not applied at wrong positions.
+- **CSV export** protected against formulas (`=`, `+`, `-`, `@`).
+- **Notifications:** `sendmail` must be an absolute path; do not use configuration files from untrusted sources (they could trigger execution of a chosen binary).
+- **Known limits:** escaped HTML in WXR is not scanned (false negatives); the web edition is limited by CORS; `lint` exits with code 2 when it has findings.
 
-## Standarde și conformitate / Standards & compliance (verificat 27.10.2026)
+## Standards and compliance (checked 27.10.2026)
 
-| Domeniu | Stare |
+| Area | Status |
 |---|---|
-| Rust | edition **2024**, MSRV **1.88** (core + CLI; dependențele lor declară cel mult 1.88), GUI **1.95** (egui 0.37); `cargo clippy -- -D warnings` și `cargo fmt --check` curate; `--locked` în CI |
-| Dependențe | reqwest 0.13 (rustls + verificator de platformă, HTTP/2, gzip/brotli/zstd), scraper 0.29, thiserror 2, eframe/egui 0.37, rfd 0.17; `cargo audit` 0 vulnerabilități; `cargo deny` (advisories, licențe, surse, ban-uri) |
-| robots.txt | **RFC 9309**: grupuri îmbinate, potrivire exactă pe tokenul de produs, normalizare procentuală/UTF-8, `*` și `$`, cea mai lungă regulă câștigă (Allow la egalitate), plafon 500 KiB, 4xx ⇒ permis, 5xx/rețea ⇒ interzis |
-| HTTP | RFC 9110: `Retry-After` (secunde/dată) la 429/503, redirecturi 301/302/303/307/308, `Location` relativ, `HEAD` cu revenire la `GET` |
-| URL | WHATWG URL / IDNA (UTS 46) prin crate-urile `url` și `idna` |
+| Rust | edition **2024**, MSRV **1.88** (core + CLI; their dependencies declare at most 1.88), GUI **1.95** (egui 0.37); `cargo clippy -- -D warnings` and `cargo fmt --check` clean; `--locked` in CI |
+| Dependencies | reqwest 0.13 (rustls + platform verifier, HTTP/2, gzip/brotli/zstd), scraper 0.29, thiserror 2, eframe/egui 0.37, rfd 0.17; `cargo audit` 0 vulnerabilities; `cargo deny` (advisories, licenses, sources, bans) |
+| robots.txt | **RFC 9309**: merged groups, exact match on the product token, percent/UTF-8 normalisation, `*` and `$`, longest rule wins (Allow on a tie), 500 KiB cap, 4xx ⇒ allowed, 5xx/network ⇒ disallowed |
+| HTTP | RFC 9110: `Retry-After` (seconds/date) on 429/503, redirects 301/302/303/307/308, relative `Location`, `HEAD` with fallback to `GET` |
+| URL | WHATWG URL / IDNA (UTS 46) through the `url` crate (with `idna`) |
 | Sitemap | sitemaps.org 0.9 (index + urlset) |
-| Web (veriga.html) | **WCAG 2.2 AA** (axe-core 4.14: 0 încălcări, temă clară/întunecată), tab-uri WAI-ARIA APG cu tastatură, `prefers-reduced-motion`, `forced-colors`, ținte ≥ 24 px, regiuni `status`/`progressbar`; **CSP** cu hash-uri (fără `unsafe-inline` pentru scripturi), `referrer: no-referrer`; rapoartele exportate au CSP propriu |
-| Lanț de aprovizionare | `LICENSE` (MIT), `SECURITY.md`, `deny.toml`, Dependabot, release cu sume SHA-256 și atestare de proveniență (Sigstore/SLSA), fără acțiuni terțe în publicare |
+| Web (veriga.html) | **WCAG 2.2 AA** (axe-core 4.14: 0 violations, light/dark theme), WAI-ARIA APG tabs with keyboard, `prefers-reduced-motion`, `forced-colors`, targets ≥ 24 px, `status`/`progressbar` regions; **CSP** with hashes (no `unsafe-inline` for scripts), `referrer: no-referrer`; exported reports carry their own CSP |
+| Supply chain | `LICENSE` (MIT), `SECURITY.md`, `deny.toml`, Dependabot, releases with SHA-256 sums and a provenance attestation (Sigstore/SLSA), no third-party actions in publishing |
 
-Teste web: `cd web/tests && npm install && npx playwright install chromium && npm test`. După orice modificare a `veriga.html`: `python3 web/stamp-csp.py web/veriga.html`.
+Web tests: `cd web/tests && npm install && npx playwright install chromium && npm test`. After any change to `veriga.html`: `python3 web/stamp-csp.py web/veriga.html`.
