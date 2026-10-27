@@ -2,20 +2,40 @@
 <html lang="ro">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-hQD/6HHwnj3ehPxCdheaWVZ4rgfiW0wXHKxM+s+DVOQ='; style-src 'sha256-PahTzoGYEyWbYHpvsCzS9061YIB2816/Xy+AhFIUl34='; img-src 'self' data:; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="VERIGA: verificator de legături în Rust, clean-room. Găsește legăturile rupte, propune reparația, o verifică live și o aplică cu copie de siguranță și anulare.">
 <meta property="og:title" content="VERIGA">
 <meta property="og:description" content="Verificator de legături în Rust: găsește, repară și anulează, cu copie de siguranță.">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="VERIGA">
+<meta property="og:locale" content="ro_RO">
+<meta property="og:image" content="https://veriga.chiuta.ro/assets/gui-en-2.png">
+<meta property="og:image:width" content="1180">
+<meta property="og:image:height" content="760">
+<meta property="og:image:alt" content="VERIGA native app: broken links table with detail panel">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="referrer" content="no-referrer">
+<meta name="author" content="Alexio">
+<meta name="theme-color" content="#EBEFF3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A1016" media="(prefers-color-scheme: dark)">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"VERIGA","applicationCategory":"DeveloperApplication","operatingSystem":"Windows, macOS, Linux","license":"https://opensource.org/license/mit","url":"https://veriga.chiuta.ro/","codeRepository":"https://github.com/chiuta/VERIGA","author":{"@type":"Person","name":"Alexio","email":"alexio@trom.tf"},"offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}}</script>
 <meta property="og:url" content="https://veriga.chiuta.ro/">
 <link rel="canonical" href="https://veriga.chiuta.ro/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230D1620'/%3E%3Crect x='10' y='20' width='34' height='24' rx='12' fill='none' stroke='%23fff' stroke-width='6'/%3E%3Crect x='38' y='26' width='16' height='12' rx='6' fill='%2386A0FF'/%3E%3C/svg%3E">
 <meta name="color-scheme" content="light dark">
-<title>VERIGA</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>VERIGA · verificator de legături / link checker</title>
+<link rel="preload" href="assets/fonts/hanken-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+/* fonturi proprii (OFL), fără Google Fonts: nicio cerere către terți */
+@font-face{font-family:"Big Shoulders Display";font-style:normal;font-display:swap;font-weight:100 900;src:url(assets/fonts/big-shoulders-display-latin-wght-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Hanken Grotesk";font-style:normal;font-display:swap;font-weight:100 900;src:url(assets/fonts/hanken-grotesk-latin-wght-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-display:swap;font-weight:400;src:url(assets/fonts/ibm-plex-mono-latin-400-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-display:swap;font-weight:500;src:url(assets/fonts/ibm-plex-mono-latin-500-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Big Shoulders Display";font-style:normal;font-display:swap;font-weight:100 900;src:url(assets/fonts/big-shoulders-display-latin-ext-wght-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Hanken Grotesk";font-style:normal;font-display:swap;font-weight:100 900;src:url(assets/fonts/hanken-grotesk-latin-ext-wght-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-display:swap;font-weight:400;src:url(assets/fonts/ibm-plex-mono-latin-ext-400-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-display:swap;font-weight:500;src:url(assets/fonts/ibm-plex-mono-latin-ext-500-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
 /* Concept: o verigă de lanț. Oțel rece, un singur accent cobalt; roșu/verde doar pentru stare. */
 :root{
   --bg:#EBEFF3; --surface:#F7F9FB; --sunk:#E0E6EC; --ink:#0D1620; --mut:#546270; --line:#C5CED8;
@@ -179,6 +199,7 @@ footer{margin-top:clamp(70px,10vw,130px);border-top:1px solid var(--line);paddin
 footer b{color:var(--ink)}
 footer .mono{overflow-wrap:anywhere}
 
+.nojs{margin:0;padding:12px 16px;background:#fff3cd;color:#000}.chainbtn{min-height:40px;padding:0 16px}.wide{max-width:none}.phead2{border-top:1px solid var(--line);border-bottom:0}.h3m{font:500 .9rem var(--f-mono)}.bkm{font:400 .75rem var(--f-mono);color:var(--mut)}
 .appwin{margin:18px 0 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#1b1b1b;box-shadow:0 18px 50px rgba(0,0,0,.28)}
 .appbar{display:flex;align-items:center;gap:7px;padding:9px 12px;background:#2b2b2b;color:#9a9a9a;font:500 .78rem var(--f-mono)}
 .appbar i{width:11px;height:11px;border-radius:50%;background:#555}.appbar i:nth-child(1){background:#ff5f57}.appbar i:nth-child(2){background:#febc2e}.appbar i:nth-child(3){background:#28c840}
@@ -192,6 +213,7 @@ footer .mono{overflow-wrap:anywhere}
 </style>
 </head>
 <body>
+<noscript><p class="nojs">VERIGA: JavaScript e necesar pentru demonstrație și selectorul de limbă · JavaScript is needed for the demo and the language switcher. <a href="https://github.com/chiuta/VERIGA">GitHub</a></p></noscript>
 <a class="skip" href="#main" data-ro="Sari la conținut" data-en="Skip to content">Sari la conținut</a>
 
 <header class="bar">
@@ -227,10 +249,10 @@ footer .mono{overflow-wrap:anywhere}
   <canvas id="chain" role="img" aria-label="O verigă de lanț ruptă, ce poate fi reparată prin click"></canvas>
   <div class="stagebar">
     <div class="status" id="chainStatus" role="status" aria-live="polite"></div>
-    <button class="btn primary" id="chainBtn" style="min-height:40px;padding:0 16px"></button>
+    <button class="btn primary chainbtn" id="chainBtn"></button>
   </div>
 </div>
-<div class="facts wrap" style="max-width:none">
+<div class="facts wrap wide">
   <div><b>3</b><span data-ro="interfețe: CLI, GUI nativ, HTML single-file" data-en="interfaces: CLI, native GUI, single-file HTML">interfețe: CLI, GUI nativ, HTML single-file</span></div>
   <div><b>8</b><span data-ro="ținte în CI: Linux, Windows, macOS, x86-64 și ARM64" data-en="CI targets: Linux, Windows, macOS, x86-64 and ARM64">ținte în CI: Linux, Windows, macOS, x86-64 și ARM64</span></div>
   <div><b>0</b><span data-ro="conturi, cookie-uri de urmărire sau servicii externe" data-en="accounts, tracking cookies or external services">conturi, cookie-uri de urmărire sau servicii externe</span></div>
@@ -251,7 +273,7 @@ footer .mono{overflow-wrap:anywhere}
       </div>
       <div class="filters" id="filters" role="group" aria-label="Filtre"></div>
       <ul class="rows" id="rows"></ul>
-      <div class="phead" style="border-top:1px solid var(--line);border-bottom:0">
+      <div class="phead phead2">
         <div class="acts">
           <button class="b" id="rescan" data-ro="↻ Rescanează" data-en="↻ Rescan">↻ Rescanează</button>
           <button class="b pri" id="applyAll" data-ro="Aplică toate verificatele" data-en="Apply all verified">Aplică toate verificatele</button>
@@ -266,7 +288,7 @@ footer .mono{overflow-wrap:anywhere}
         <div class="detail" id="detail"></div>
       </div>
       <div class="panel">
-        <div class="phead"><h3 class="mono" style="font:500 .9rem var(--f-mono)">pagina-principala.html</h3><span class="mono" style="font:400 .75rem var(--f-mono);color:var(--mut)" id="bk"></span></div>
+        <div class="phead"><h3 class="mono h3m">pagina-principala.html</h3><span class="mono bkm" id="bk"></span></div>
         <pre class="src" id="src" role="region" tabindex="0" aria-label="Sursa paginii"></pre>
         <div class="log" id="log" role="log" aria-label="Jurnal"></div>
       </div>

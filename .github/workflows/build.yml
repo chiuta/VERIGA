@@ -84,6 +84,7 @@ jobs:
         run: |
           python3 web/stamp-csp.py web/veriga.html
           git diff --exit-code web/veriga.html
+          python3 web/stamp-site-csp.py index.html --check
 
   build:
     needs: [lint, test, msrv, supply-chain, web]

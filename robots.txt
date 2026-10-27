@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://veriga.chiuta.ro/sitemap.xml
