@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="VERIGA: verificator de legături în Rust, clean-room. Găsește legăturile rupte, propune reparația, o verifică live și o aplică cu copie de siguranță și anulare.">
+<meta property="og:title" content="VERIGA">
+<meta property="og:description" content="Verificator de legături în Rust: găsește, repară și anulează, cu copie de siguranță.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://veriga.chiuta.ro/">
+<link rel="canonical" href="https://veriga.chiuta.ro/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230D1620'/%3E%3Crect x='10' y='20' width='34' height='24' rx='12' fill='none' stroke='%23fff' stroke-width='6'/%3E%3Crect x='38' y='26' width='16' height='12' rx='6' fill='%2386A0FF'/%3E%3C/svg%3E">
+<meta name="color-scheme" content="light dark">
+<title>VERIGA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Concept: o verigă de lanț. Oțel rece, un singur accent cobalt; roșu/verde doar pentru stare. */
+:root{
+  --bg:#EBEFF3; --surface:#F7F9FB; --sunk:#E0E6EC; --ink:#0D1620; --mut:#546270; --line:#C5CED8;
+  --link:#2346E6; --linkfg:#FFFFFF; --ok:#10724A; --bad:#C0291A; --warn:#8A5800; --ring:#0D1620;
+  --okbg:#DDF1E8; --badbg:#F9E1DD; --warnbg:#F6EAD0; --linkbg:#E0E7FD;
+  --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --f-body:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0A1016; --surface:#111A22; --sunk:#0E151C; --ink:#E7EDF3; --mut:#93A1AF; --line:#243140;
+  --link:#86A0FF; --linkfg:#0A1016; --ok:#52D18D; --bad:#FF8070; --warn:#F2BC4B; --ring:#E7EDF3;
+  --okbg:#0F2A1F; --badbg:#33161A; --warnbg:#2F2511; --linkbg:#16213F; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0A1016; --surface:#111A22; --sunk:#0E151C; --ink:#E7EDF3; --mut:#93A1AF; --line:#243140;
+  --link:#86A0FF; --linkfg:#0A1016; --ok:#52D18D; --bad:#FF8070; --warn:#F2BC4B; --ring:#E7EDF3;
+  --okbg:#0F2A1F; --badbg:#33161A; --warnbg:#2F2511; --linkbg:#16213F; color-scheme:dark}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.6 var(--f-body);
+  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{margin:0;font-weight:800;text-wrap:balance}
+p{margin:0}
+a{color:var(--link)}
+code,pre,.mono{font-family:var(--f-mono)}
+:focus-visible{outline:3px solid var(--link);outline-offset:3px;border-radius:4px}
+.wrap{max-width:1160px;margin-inline:auto}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:8px;top:-60px;background:var(--link);color:var(--linkfg);padding:8px 14px;border-radius:6px;z-index:60}
+.skip:focus{top:calc(env(safe-area-inset-top,0px) + 8px)}
+button{font:inherit;color:inherit;cursor:pointer}
+
+/* bară de sus */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:40;background:var(--bg)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--line);margin-inline:calc(-1*max(16px,env(safe-area-inset-left,0px)));
+  padding-inline:max(16px,env(safe-area-inset-left,0px))}
+.bar .wrap{display:flex;align-items:center;gap:20px;min-height:56px;flex-wrap:wrap;padding-block:6px}
+.logo{font:900 1.55rem/1 var(--f-display);letter-spacing:.08em;text-decoration:none;color:var(--ink)}
+nav.main{display:flex;gap:4px;flex:1;flex-wrap:wrap}
+nav.main a{color:var(--mut);text-decoration:none;font-weight:600;font-size:.92rem;padding:8px 12px;border-radius:8px;min-height:40px;display:inline-flex;align-items:center}
+nav.main a:hover{color:var(--ink);background:var(--sunk)}
+.tools{display:flex;gap:8px;align-items:center}
+.chipbtn{border:1px solid var(--line);background:var(--surface);border-radius:8px;min-height:40px;min-width:40px;padding:0 12px;font-weight:600;font-size:.88rem}
+.chipbtn:hover{border-color:var(--ink)}
+.gh{background:var(--ink);color:var(--bg);border-color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;font-weight:700;font-size:.9rem;border-radius:8px;min-height:40px;padding:0 14px;border:1px solid var(--ink)}
+.gh:hover{background:var(--link);border-color:var(--link);color:var(--linkfg)}
+
+/* hero */
+.hero{padding-block:clamp(36px,7vw,84px) 0}
+.eyebrow{font:500 .8rem var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+.hero h1{font:900 clamp(4.2rem,17vw,12.5rem)/.82 var(--f-display);letter-spacing:.03em;margin-top:14px}
+.hero h1 span{color:var(--link)}
+.lede{max-width:44rem;margin-top:22px;font-size:clamp(1.05rem,2.2vw,1.35rem);line-height:1.5;color:var(--ink)}
+.lede b{font-weight:700}
+.cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}
+.btn{display:inline-flex;align-items:center;gap:8px;min-height:46px;padding:0 20px;border-radius:10px;font-weight:700;text-decoration:none;border:1px solid var(--ink);background:transparent;color:var(--ink)}
+.btn.primary{background:var(--link);border-color:var(--link);color:var(--linkfg)}
+.btn:hover{transform:translateY(-1px)}
+.stage{position:relative;margin-top:30px;border-block:1px solid var(--line);background:var(--sunk);margin-inline:calc(-1*max(16px,env(safe-area-inset-left,0px)));}
+#chain{display:block;width:100%;height:210px;touch-action:manipulation}
+.stagebar{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;pointer-events:none;
+  padding:10px max(16px,env(safe-area-inset-left,0px))}
+.stagebar > *{pointer-events:auto}
+.status{font:500 .84rem var(--f-mono);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 11px}
+.status b{color:var(--bad)} .status.fixed b{color:var(--ok)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:0;border-bottom:1px solid var(--line);margin-inline:calc(-1*max(16px,env(safe-area-inset-left,0px)))}
+.facts div{padding:18px max(16px,env(safe-area-inset-left,0px));border-right:1px solid var(--line)}
+.facts div:last-child{border-right:0}
+.facts b{display:block;font:900 2.3rem/1 var(--f-display);letter-spacing:.02em}
+.facts span{color:var(--mut);font-size:.9rem}
+
+/* secțiuni */
+section{padding-block:clamp(56px,9vw,110px) 0}
+.kick{font:500 .8rem var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--link)}
+h2{font:900 clamp(2.4rem,6vw,4.4rem)/.95 var(--f-display);letter-spacing:.02em;margin-top:10px;max-width:18ch}
+.sub{max-width:46rem;color:var(--mut);margin-top:16px;font-size:1.05rem}
+
+/* demo */
+.demo{margin-top:30px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;min-width:0;overflow:hidden}
+.phead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--line)}
+.phead h3{font:800 1.1rem var(--f-body)}
+.meter{display:flex;align-items:center;gap:10px;font:500 .82rem var(--f-mono);color:var(--mut)}
+.meter i{display:block;width:110px;height:8px;border-radius:99px;background:var(--sunk);overflow:hidden}
+.meter i u{display:block;height:100%;background:var(--ok);width:0;transition:width .5s}
+.filters{display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line)}
+.f{border:1px solid var(--line);background:transparent;border-radius:99px;min-height:32px;padding:0 12px;font-size:.84rem;font-weight:600}
+.f[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.rows{list-style:none;margin:0;padding:0}
+.row{display:grid;grid-template-columns:78px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:11px 14px;min-height:48px}
+.row:last-child{border-bottom:0}
+.row:hover{background:var(--sunk)}
+.row[aria-current="true"]{background:var(--linkbg);box-shadow:inset 3px 0 0 var(--link)}
+.pill{font:500 .74rem var(--f-mono);border-radius:6px;padding:3px 7px;text-align:center;white-space:nowrap}
+.p-ok{background:var(--okbg);color:var(--ok)} .p-bad{background:var(--badbg);color:var(--bad)}
+.p-warn{background:var(--warnbg);color:var(--warn)} .p-red{background:var(--linkbg);color:var(--link)}
+.url{font:400 .82rem var(--f-mono);overflow-wrap:anywhere;min-width:0}
+.fixmark{font-size:.78rem;color:var(--ok);font-weight:700;white-space:nowrap}
+.rowp{animation:in .35s both}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.side{display:grid;gap:18px;min-width:0}
+.detail{padding:16px 14px;display:grid;gap:12px}
+.detail h4{margin:0;font-size:1.02rem}
+.diff{font:400 .8rem/1.55 var(--f-mono);background:var(--sunk);border-radius:10px;padding:10px 12px;overflow-wrap:anywhere}
+.diff .o{color:var(--bad)} .diff .n{color:var(--ok)}
+.diff .o::before{content:"− "} .diff .n::before{content:"+ "}
+.ver{font-size:.86rem;color:var(--mut)}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.b{min-height:40px;padding:0 14px;border-radius:9px;border:1px solid var(--ink);background:transparent;font-weight:700;font-size:.9rem}
+.b.pri{background:var(--link);color:var(--linkfg);border-color:var(--link)}
+.b:disabled{opacity:.45;cursor:not-allowed}
+pre.src{margin:0;padding:12px 0;font:400 .78rem/1.7 var(--f-mono);overflow-x:auto;counter-reset:l}
+pre.src .ln{display:block;padding:0 14px 0 3.2em;position:relative;white-space:pre;min-width:max-content}
+pre.src .ln::before{counter-increment:l;content:counter(l);position:absolute;left:0;width:2.4em;text-align:right;color:var(--mut)}
+pre.src mark{background:var(--badbg);color:var(--bad);border-radius:3px;padding:0 2px}
+pre.src mark.fx{background:var(--okbg);color:var(--ok)}
+pre.src mark.sel{outline:2px solid var(--link)}
+.log{font:400 .78rem/1.6 var(--f-mono);padding:10px 14px;color:var(--mut);max-height:150px;overflow:auto}
+.log div::before{content:"› ";color:var(--link)}
+.note{font-size:.84rem;color:var(--mut);margin-top:12px}
+
+/* funcții */
+.grid{margin-top:34px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--line);gap:1px}
+.cell{background:var(--surface);padding:24px 22px;min-width:0}
+.cell h3{font:900 1.7rem/1 var(--f-display);letter-spacing:.03em}
+.cell ul{margin:14px 0 0;padding:0;list-style:none;display:grid;gap:8px}
+.cell li{padding-left:18px;position:relative;font-size:.95rem}
+.cell li::before{content:"";position:absolute;left:0;top:.62em;width:9px;height:5px;border:2px solid var(--link);border-radius:99px}
+.cmds{margin-top:30px}
+
+/* securitate */
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:28px;margin-top:30px;align-items:start}
+.badges{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.badge{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.badge b{display:block;font:900 1.6rem/1 var(--f-display);letter-spacing:.03em}
+.badge span{font-size:.82rem;color:var(--mut)}
+details.atk{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-bottom:8px}
+details.atk summary{cursor:pointer;list-style:none;padding:14px 16px;min-height:48px;font-weight:700;display:flex;gap:10px;align-items:center;justify-content:space-between}
+details.atk summary::-webkit-details-marker{display:none}
+details.atk summary::after{content:"+";font:500 1.3rem var(--f-mono);color:var(--link)}
+details.atk[open] summary::after{content:"−"}
+details.atk div{padding:0 16px 16px;color:var(--mut);font-size:.94rem}
+details.atk div b{color:var(--ink)}
+
+/* instalare */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-top:28px}
+.tab{border:1px solid var(--line);background:var(--surface);border-radius:9px;min-height:42px;padding:0 16px;font-weight:700}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.term{margin-top:12px;background:#0B1218;color:#DCE6F0;border-radius:14px;border:1px solid var(--line);overflow:hidden}
+.termhead{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #1E2B38;font:500 .78rem var(--f-mono);color:#8CA0B3}
+.term pre{margin:0;padding:16px;font:400 .86rem/1.75 var(--f-mono);overflow-x:auto}
+.term .c{color:#7C8FA3} .term .g{color:#6EE0A5}
+.copy{border:1px solid #2A3A4A;background:transparent;color:#DCE6F0;border-radius:7px;min-height:32px;padding:0 12px;font-size:.8rem}
+.copy:hover{border-color:#86A0FF}
+.targets{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.targets span{font:500 .78rem var(--f-mono);border:1px solid var(--line);border-radius:7px;padding:6px 10px;background:var(--surface)}
+
+footer{margin-top:clamp(70px,10vw,130px);border-top:1px solid var(--line);padding-block:30px 40px;display:flex;gap:24px;flex-wrap:wrap;justify-content:space-between;color:var(--mut);font-size:.92rem}
+footer b{color:var(--ink)}
+footer .mono{overflow-wrap:anywhere}
+
+@media (max-width:860px){.demo,.two{grid-template-columns:1fr}.facts div{border-right:0;border-bottom:1px solid var(--line)}}
+@media (max-width:560px){nav.main{order:3;flex-basis:100%}.row{grid-template-columns:64px minmax(0,1fr)}.row .fixmark{grid-column:2}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+@media (forced-colors:active){.f[aria-pressed="true"],.tab[aria-selected="true"]{outline:2px solid Highlight}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main" data-ro="Sari la conținut" data-en="Skip to content">Sari la conținut</a>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="VERIGA">VERIGA</a>
+    <nav class="main" aria-label="Secțiuni">
+      <a href="#demo" data-ro="Demonstrație" data-en="Demo">Demonstrație</a>
+      <a href="#functii" data-ro="Funcții" data-en="Features">Funcții</a>
+      <a href="#securitate" data-ro="Securitate" data-en="Security">Securitate</a>
+      <a href="#instalare" data-ro="Instalare" data-en="Install">Instalare</a>
+    </nav>
+    <div class="tools">
+      <button class="chipbtn" id="lang" aria-label="Limba / Language">EN</button>
+      <button class="chipbtn" id="theme" aria-label="Temă / Theme" aria-pressed="false">◐</button>
+      <a class="gh" href="https://github.com/chiuta/VERIGA" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+<div class="wrap hero" id="top">
+  <p class="eyebrow" data-ro="Verificator de legături · Rust · clean-room" data-en="Link checker · Rust · clean-room">Verificator de legături · Rust · clean-room</p>
+  <h1>VERI<span>GA</span></h1>
+  <p class="lede" data-ro="Un site este un lanț. Când o legătură cedează, cititorii ajung în gol. VERIGA găsește fiecare verigă ruptă, propune reparația, o verifică live și o aplică numai cu copie de siguranță și cale de întoarcere." data-en="A website is a chain. When a link gives way, readers fall into nothing. VERIGA finds every broken link, proposes the fix, checks it live, and applies it only with a backup and a way back.">Un site este un lanț. Când o legătură cedează, cititorii ajung în gol. VERIGA găsește fiecare verigă ruptă, propune reparația, o verifică live și o aplică numai cu copie de siguranță și cale de întoarcere.</p>
+  <div class="cta">
+    <a class="btn primary" href="#demo" data-ro="Încearcă demonstrația" data-en="Try the demo">Încearcă demonstrația</a>
+    <a class="btn" href="#instalare" data-ro="Instalează" data-en="Install">Instalează</a>
+  </div>
+</div>
+
+<div class="stage">
+  <canvas id="chain" role="img" aria-label="O verigă de lanț ruptă, ce poate fi reparată prin click"></canvas>
+  <div class="stagebar">
+    <div class="status" id="chainStatus" role="status" aria-live="polite"></div>
+    <button class="btn primary" id="chainBtn" style="min-height:40px;padding:0 16px"></button>
+  </div>
+</div>
+<div class="facts wrap" style="max-width:none">
+  <div><b>3</b><span data-ro="interfețe: CLI, GUI nativ, HTML single-file" data-en="interfaces: CLI, native GUI, single-file HTML">interfețe: CLI, GUI nativ, HTML single-file</span></div>
+  <div><b>8</b><span data-ro="ținte în CI: Linux, Windows, macOS, x86-64 și ARM64" data-en="CI targets: Linux, Windows, macOS, x86-64 and ARM64">ținte în CI: Linux, Windows, macOS, x86-64 și ARM64</span></div>
+  <div><b>0</b><span data-ro="conturi, cookie-uri de urmărire sau servicii externe" data-en="accounts, tracking cookies or external services">conturi, cookie-uri de urmărire sau servicii externe</span></div>
+  <div><b>48</b><span data-ro="teste Rust automate, plus audit de accesibilitate și de securitate" data-en="automated Rust tests, plus accessibility and security audits">teste Rust automate, plus audit de accesibilitate și de securitate</span></div>
+</div>
+
+<div class="wrap">
+<section id="demo" aria-labelledby="h-demo">
+  <p class="kick">01 · <span data-ro="Demonstrație" data-en="Demo">Demonstrație</span></p>
+  <h2 id="h-demo" data-ro="Repară un site, veriga cu veriga" data-en="Fix a site, one link at a time">Repară un site, veriga cu veriga</h2>
+  <p class="sub" data-ro="Rezultatul unei verificări pe un site de exemplu. Alege un rând, citește propunerea și aplic-o. Fișierul sursă din dreapta se schimbă, iar orice modificare poate fi anulată." data-en="The result of a check on a sample site. Pick a row, read the proposal and apply it. The source file on the right changes, and every change can be undone.">Rezultatul unei verificări pe un site de exemplu. Alege un rând, citește propunerea și aplic-o. Fișierul sursă din dreapta se schimbă, iar orice modificare poate fi anulată.</p>
+
+  <div class="demo">
+    <div class="panel">
+      <div class="phead">
+        <h3 data-ro="exemplu.ro · 10 legături" data-en="exemplu.ro · 10 links">exemplu.ro · 10 legături</h3>
+        <div class="meter"><span id="healthTxt"></span><i><u id="healthBar"></u></i></div>
+      </div>
+      <div class="filters" id="filters" role="group" aria-label="Filtre"></div>
+      <ul class="rows" id="rows"></ul>
+      <div class="phead" style="border-top:1px solid var(--line);border-bottom:0">
+        <div class="acts">
+          <button class="b" id="rescan" data-ro="↻ Rescanează" data-en="↻ Rescan">↻ Rescanează</button>
+          <button class="b pri" id="applyAll" data-ro="Aplică toate verificatele" data-en="Apply all verified">Aplică toate verificatele</button>
+          <button class="b" id="undoAll" data-ro="Anulează tot" data-en="Undo all">Anulează tot</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="panel" aria-live="polite">
+        <div class="phead"><h3 data-ro="Propunere" data-en="Proposal">Propunere</h3></div>
+        <div class="detail" id="detail"></div>
+      </div>
+      <div class="panel">
+        <div class="phead"><h3 class="mono" style="font:500 .9rem var(--f-mono)">pagina-principala.html</h3><span class="mono" style="font:400 .75rem var(--f-mono);color:var(--mut)" id="bk"></span></div>
+        <pre class="src" id="src" aria-label="Sursa paginii"></pre>
+        <div class="log" id="log" aria-label="Jurnal"></div>
+      </div>
+    </div>
+  </div>
+  <p class="note" data-ro="Date de exemplu, simulate în pagină. Aplicația reală verifică adresele pe rețea, respectă robots.txt și scrie în fișierele tale." data-en="Sample data, simulated in the page. The real application checks addresses over the network, respects robots.txt and writes to your files.">Date de exemplu, simulate în pagină. Aplicația reală verifică adresele pe rețea, respectă robots.txt și scrie în fișierele tale.</p>
+</section>
+
+<section id="functii" aria-labelledby="h-fn">
+  <p class="kick">02 · <span data-ro="Funcții" data-en="Features">Funcții</span></p>
+  <h2 id="h-fn" data-ro="Tot ce face un verificator serios, și încă ceva" data-en="Everything a serious checker does, and more">Tot ce face un verificator serios, și încă ceva</h2>
+  <p class="sub" data-ro="Replică clean-room a funcțiilor Xenu Link Sleuth, extinsă cu funcțiile pluginului Trade-Free Link Guardian: reparare, jurnal, anulare și rulări programate." data-en="A clean-room replica of the Xenu Link Sleuth feature set, extended with the Trade-Free Link Guardian plugin: repair, journal, undo and scheduled runs.">Replică clean-room a funcțiilor Xenu Link Sleuth, extinsă cu funcțiile pluginului Trade-Free Link Guardian: reparare, jurnal, anulare și rulări programate.</p>
+  <div class="grid">
+    <div class="cell"><h3 data-ro="PARCURGE" data-en="CRAWL">PARCURGE</h3><ul>
+      <li data-ro="Pagini, imagini, CSS, scripturi, cadre, media, e-mail, FTP și ancore" data-en="Pages, images, CSS, scripts, frames, media, email, FTP and anchors">Pagini, imagini, CSS, scripturi, cadre, media, e-mail, FTP și ancore</li>
+      <li data-ro="Site online sau director local, cu fișiere orfane și diferențe de majuscule" data-en="Online site or local folder, with orphan files and case mismatches">Site online sau director local, cu fișiere orfane și diferențe de majuscule</li>
+      <li data-ro="HTTP/2, reîncercări cu Retry-After, lanțuri de redirecționări" data-en="HTTP/2, retries honouring Retry-After, redirect chains">HTTP/2, reîncercări cu Retry-After, lanțuri de redirecționări</li>
+      <li data-ro="robots.txt conform RFC 9309 și pornire din sitemap" data-en="robots.txt per RFC 9309 and sitemap seeding">robots.txt conform RFC 9309 și pornire din sitemap</li>
+      <li data-ro="403 nu înseamnă rupt: se marchează pentru revizuire" data-en="A 403 is not broken: it is flagged for review">403 nu înseamnă rupt: se marchează pentru revizuire</li></ul></div>
+    <div class="cell"><h3 data-ro="REPARĂ" data-en="REPAIR">REPARĂ</h3><ul>
+      <li data-ro="Reguli locale: schemă greșită, URL lipit, parametri de urmărire, http spre https" data-en="Local rules: scheme typos, mangled URLs, tracking params, http to https">Reguli locale: schemă greșită, URL lipit, parametri de urmărire, http spre https</li>
+      <li data-ro="Redirecționări permanente verificate pe aceeași resursă, cu respingerea soft-404" data-en="Permanent redirects verified as the same resource, soft-404s rejected">Redirecționări permanente verificate pe aceeași resursă, cu respingerea soft-404</li>
+      <li data-ro="Surse HTML, Markdown, export WordPress (WXR) și sitemap" data-en="HTML, Markdown, WordPress export (WXR) and sitemap sources">Surse HTML, Markdown, export WordPress (WXR) și sitemap</li>
+      <li data-ro="Copie de siguranță, scriere atomică, jurnal și anulare pe poziție, context sau text unic" data-en="Backup, atomic writes, a journal and undo by position, context or unique text">Copie de siguranță, scriere atomică, jurnal și anulare pe poziție, context sau text unic</li>
+      <li data-ro="Dezleagă linkul sau caută arhiva în Wayback Machine, la cerere" data-en="Unlink, or look up the Wayback Machine, on request">Dezleagă linkul sau caută arhiva în Wayback Machine, la cerere</li></ul></div>
+    <div class="cell"><h3 data-ro="PRIVEȘTE" data-en="INSIGHT">PRIVEȘTE</h3><ul>
+      <li data-ro="Rapoarte HTML, CSV, TSV, JSON, text și sitemap" data-en="HTML, CSV, TSV, JSON, text and sitemap reports">Rapoarte HTML, CSV, TSV, JSON, text și sitemap</li>
+      <li data-ro="Domenii, hartă de sănătate, arbore, tendințe și conformitate" data-en="Domains, health map, tree, trends and compliance">Domenii, hartă de sănătate, arbore, tendințe și conformitate</li>
+      <li data-ro="Jurnal 404 cu sugestii și reguli .htaccess" data-en="404 log with suggestions and .htaccess rules">Jurnal 404 cu sugestii și reguli .htaccess</li>
+      <li data-ro="Deriva între verificări: legături noi, rezolvate și titluri H1 schimbate" data-en="Drift between runs: new and resolved links and changed H1 titles">Deriva între verificări: legături noi, rezolvate și titluri H1 schimbate</li>
+      <li data-ro="Rulări programate cu notificare prin webhook sau e-mail" data-en="Scheduled runs with webhook or email notification">Rulări programate cu notificare prin webhook sau e-mail</li></ul></div>
+  </div>
+  <div class="targets" aria-label="Ținte de compilare">
+    <span>Linux x86-64</span><span>Linux ARM64</span><span>Linux musl (static)</span><span>Windows x86-64</span><span>Windows ARM64</span><span>macOS Intel</span><span>macOS Apple Silicon</span><span>Docker scratch</span><span>HTML single-file</span>
+  </div>
+</section>
+
+<section id="securitate" aria-labelledby="h-sec">
+  <p class="kick">03 · <span data-ro="Securitate" data-en="Security">Securitate</span></p>
+  <h2 id="h-sec" data-ro="Un instrument care citește internetul nu are voie să-l creadă" data-en="A tool that reads the internet must not trust it">Un instrument care citește internetul nu are voie să-l creadă</h2>
+  <p class="sub" data-ro="Codul a trecut printr-un audit adversarial: am atacat propriul program, am scris testele care pică, apoi le-am reparat. Iată ce nu mai merge împotriva lui." data-en="The code went through an adversarial audit: we attacked our own program, wrote the failing tests, then fixed them. Here is what no longer works against it.">Codul a trecut printr-un audit adversarial: am atacat propriul program, am scris testele care pică, apoi le-am reparat. Iată ce nu mai merge împotriva lui.</p>
+  <div class="two">
+    <div>
+      <div class="badges">
+        <div class="badge"><b>RFC 9309</b><span data-ro="robots.txt, cu 5xx tratat ca interdicție" data-en="robots.txt, 5xx treated as disallow">robots.txt, cu 5xx tratat ca interdicție</span></div>
+        <div class="badge"><b>WCAG 2.2 AA</b><span data-ro="axe-core: 0 încălcări, temă clară și întunecată" data-en="axe-core: 0 violations, light and dark">axe-core: 0 încălcări, temă clară și întunecată</span></div>
+        <div class="badge"><b>RUST 2024</b><span data-ro="clippy strict, 48 de teste, cargo-audit curat" data-en="strict clippy, 48 tests, clean cargo-audit">clippy strict, 48 de teste, cargo-audit curat</span></div>
+        <div class="badge"><b>CSP</b><span data-ro="cu hash în pagină și în rapoartele exportate" data-en="hash-based, in the page and in exported reports">cu hash în pagină și în rapoartele exportate</span></div>
+      </div>
+      <p class="note" data-ro="Limite cunoscute, scrise în README: rebinding DNS nu este închis complet, HTML escapat în exporturile WordPress nu este scanat, iar varianta web este limitată de CORS." data-en="Known limits, listed in the README: DNS rebinding is not fully closed, escaped HTML in WordPress exports is not scanned, and the web edition is bound by CORS.">Limite cunoscute, scrise în README: rebinding DNS nu este închis complet, HTML escapat în exporturile WordPress nu este scanat, iar varianta web este limitată de CORS.</p>
+    </div>
+    <div>
+      <details class="atk" open><summary data-ro="Un site public te trimite spre rețeaua ta internă" data-en="A public site points you at your internal network">Un site public te trimite spre rețeaua ta internă</summary><div><b data-ro="Apărare:" data-en="Defence:">Apărare:</b> <span data-ro="adresele private și locale sunt blocate implicit, inclusiv după redirecționare (anti-SSRF). Se permit explicit cu --allow-private." data-en="private and local addresses are blocked by default, even after a redirect (anti-SSRF). Allow them explicitly with --allow-private.">adresele private și locale sunt blocate implicit, inclusiv după redirecționare (anti-SSRF). Se permit explicit cu --allow-private.</span></div></details>
+      <details class="atk"><summary data-ro="Parola ta ajunge la alt server printr-un redirect" data-en="Your password leaks to another server via a redirect">Parola ta ajunge la alt server printr-un redirect</summary><div><b data-ro="Apărare:" data-en="Defence:">Apărare:</b> <span data-ro="Authorization, Cookie și cheile API se trimit doar către originea internă, niciodată către alte gazde." data-en="Authorization, Cookie and API keys go only to the internal origin, never to other hosts.">Authorization, Cookie și cheile API se trimit doar către originea internă, niciodată către alte gazde.</span></div></details>
+      <details class="atk"><summary data-ro="Un server ostil îți strecoară cod în fișiere" data-en="A hostile server slips code into your files">Un server ostil îți strecoară cod în fișiere</summary><div><b data-ro="Apărare:" data-en="Defence:">Apărare:</b> <span data-ro="un URL nou cu ghilimele, paranteze unghiulare, spații, backtick sau backslash este refuzat înainte de scriere, în Rust și în varianta web." data-en="a new URL containing quotes, angle brackets, spaces, backticks or backslashes is refused before writing, in Rust and in the web edition.">un URL nou cu ghilimele, paranteze unghiulare, spații, backtick sau backslash este refuzat înainte de scriere, în Rust și în varianta web.</span></div></details>
+      <details class="atk"><summary data-ro="Fișierul se schimbă în timp ce îl repari" data-en="The file changes while you repair it">Fișierul se schimbă în timp ce îl repari</summary><div><b data-ro="Apărare:" data-en="Defence:">Apărare:</b> <span data-ro="conținutul se recitește chiar înainte de scriere; o propunere depășită este abandonată, nu aplicată pe o poziție greșită. Scrierea este atomică, păstrează permisiunile și symlink-urile." data-en="content is re-read right before writing; a stale proposal is dropped, never applied at a wrong position. Writes are atomic and keep permissions and symlinks.">conținutul se recitește chiar înainte de scriere; o propunere depășită este abandonată, nu aplicată pe o poziție greșită. Scrierea este atomică, păstrează permisiunile și symlink-urile.</span></div></details>
+      <details class="atk"><summary data-ro="Un titlu de pagină devine formulă în Excel" data-en="A page title turns into an Excel formula">Un titlu de pagină devine formulă în Excel</summary><div><b data-ro="Apărare:" data-en="Defence:">Apărare:</b> <span data-ro="exporturile CSV neutralizează celulele care încep cu =, +, - sau @." data-en="CSV exports neutralise cells that start with =, +, - or @.">exporturile CSV neutralizează celulele care încep cu =, +, - sau @.</span></div></details>
+      <details class="atk"><summary data-ro="O sesiune importată conține HTML ostil" data-en="An imported session contains hostile HTML">O sesiune importată conține HTML ostil</summary><div><b data-ro="Apărare:" data-en="Defence:">Apărare:</b> <span data-ro="tot ce vine dintr-o sesiune sau dintr-un jurnal importat este escapat, iar CSP-ul cu hash blochează orice script neprevăzut." data-en="everything from an imported session or journal is escaped, and the hash-based CSP blocks any unexpected script.">tot ce vine dintr-o sesiune sau dintr-un jurnal importat este escapat, iar CSP-ul cu hash blochează orice script neprevăzut.</span></div></details>
+    </div>
+  </div>
+</section>
+
+<section id="instalare" aria-labelledby="h-in">
+  <p class="kick">04 · <span data-ro="Instalare" data-en="Install">Instalare</span></p>
+  <h2 id="h-in" data-ro="Pornește în două minute" data-en="Running in two minutes">Pornește în două minute</h2>
+  <p class="sub" data-ro="Pe moment se compilează din sursă. Varianta HTML nu are nevoie de nimic: deschizi fișierul în browser." data-en="For now you build from source. The HTML edition needs nothing: open the file in a browser.">Pe moment se compilează din sursă. Varianta HTML nu are nevoie de nimic: deschizi fișierul în browser.</p>
+  <div class="tabs" role="tablist" id="tabs" aria-label="Moduri de utilizare">
+    <button class="tab" role="tab" id="t-build" aria-controls="tp" aria-selected="true" tabindex="0" data-k="build" data-ro="Compilează" data-en="Build">Compilează</button>
+    <button class="tab" role="tab" id="t-scan" aria-controls="tp" aria-selected="false" tabindex="-1" data-k="scan" data-ro="Verifică un site" data-en="Check a site">Verifică un site</button>
+    <button class="tab" role="tab" id="t-fix" aria-controls="tp" aria-selected="false" tabindex="-1" data-k="fix" data-ro="Repară" data-en="Repair">Repară</button>
+    <button class="tab" role="tab" id="t-watch" aria-controls="tp" aria-selected="false" tabindex="-1" data-k="watch" data-ro="Programează" data-en="Schedule">Programează</button>
+  </div>
+  <div class="term" id="tp" role="tabpanel" aria-labelledby="t-build">
+    <div class="termhead"><span id="tlabel">shell</span><button class="copy" id="copy" data-ro="Copiază" data-en="Copy">Copiază</button></div>
+    <pre id="code" tabindex="0"></pre>
+  </div>
+</section>
+</div>
+</main>
+
+<div class="wrap">
+<footer>
+  <div><b>VERIGA</b> · <span data-ro="proiect trade-free, local, fără urmărire" data-en="trade-free project, local, no tracking">proiect trade-free, local, fără urmărire</span><br><span data-ro="Licență MIT sau Apache-2.0" data-en="License MIT or Apache-2.0">Licență MIT sau Apache-2.0</span></div>
+  <div><span data-ro="Autor" data-en="Author">Autor</span>: <b>Alexio</b><br><span class="mono">alexio@trom.tf</span></div>
+  <div><a href="https://github.com/chiuta/VERIGA" target="_blank" rel="noopener">github.com/chiuta/VERIGA</a><br><a href="https://buymeacoffee.com/echo.of.the.strings" target="_blank" rel="noopener" data-ro="Susține proiectul" data-en="Support the project">Susține proiectul</a></div>
+</footer>
+</div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let LANG = ((navigator.language || 'ro') + '').toLowerCase().startsWith('en') ? 'en' : 'ro';
+const T = (ro, en) => LANG === 'en' ? en : ro;
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+
+/* ─── limbă și temă ─── */
+function applyLang() {
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-ro]').forEach(e => { e.textContent = LANG === 'en' ? e.dataset.en : e.dataset.ro; });
+  $('#lang').textContent = LANG === 'en' ? 'RO' : 'EN';
+  $('#chain').setAttribute('aria-label', T('O verigă de lanț ruptă, ce poate fi reparată prin click', 'A broken chain link that can be repaired with a click'));
+  chainText(); renderAll(); renderTab();
+}
+$('#lang').addEventListener('click', () => { LANG = LANG === 'en' ? 'ro' : 'en'; lsSet('veriga.site.lang', LANG); applyLang(); });
+(function () { const s = lsGet('veriga.site.lang'); if (s === 'ro' || s === 'en') LANG = s;
+  const th = lsGet('veriga.site.theme'); if (th === 'dark' || th === 'light') document.documentElement.dataset.theme = th; })();
+$('#theme').addEventListener('click', () => {
+  const dark = getComputedStyle(document.documentElement).colorScheme.includes('dark');
+  const n = dark ? 'light' : 'dark'; document.documentElement.dataset.theme = n; lsSet('veriga.site.theme', n);
+  $('#theme').setAttribute('aria-pressed', String(n === 'dark')); drawChain(performance.now());
+});
+
+/* ─── lanțul din hero ─── */
+const cv = $('#chain'), cx = cv.getContext('2d');
+const CH = { broken: true, gap: 0.12, flash: 0, mx: -999, my: -999, w: 0, h: 210, dpr: 1 };
+const BROKEN_IDX = 4;
+function sizeChain() {
+  CH.dpr = Math.min(2, devicePixelRatio || 1); CH.w = cv.clientWidth; CH.h = cv.clientHeight;
+  cv.width = Math.round(CH.w * CH.dpr); cv.height = Math.round(CH.h * CH.dpr);
+}
+function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+/* punct pe un contur de tip „stadion”, t din [0,1), pornind din dreapta, în sens orar */
+function stad(cxx, cyy, w, h, t) {
+  const r = h / 2, L = Math.max(0, w - h), P = 2 * L + 2 * Math.PI * r; let d = t * P;
+  const arc = Math.PI * r;
+  if (d < arc / 2) { const a = d / r; return [cxx + L / 2 + Math.cos(a) * r, cyy + Math.sin(a) * r]; }
+  d -= arc / 2;
+  if (d < L) return [cxx + L / 2 - d, cyy + r];
+  d -= L;
+  if (d < arc) { const a = Math.PI / 2 + d / r; return [cxx - L / 2 + Math.cos(a) * r, cyy + Math.sin(a) * r]; }
+  d -= arc;
+  if (d < L) return [cxx - L / 2 + d, cyy - r];
+  d -= L; const a = 1.5 * Math.PI + d / r; return [cxx + L / 2 + Math.cos(a) * r, cyy + Math.sin(a) * r];
+}
+function ring(x, y, w, h, gap, color, lw) {
+  cx.beginPath(); const n = 120, a = gap / 2, b = 1 - gap / 2;
+  for (let i = 0; i <= n; i++) { const [px, py] = stad(x, y, w, h, a + (b - a) * i / n); i ? cx.lineTo(px, py) : cx.moveTo(px, py); }
+  cx.strokeStyle = color; cx.lineWidth = lw; cx.lineCap = 'round'; cx.lineJoin = 'round'; cx.stroke();
+}
+function drawChain(now) {
+  const W = CH.w, H = CH.h; cx.setTransform(CH.dpr, 0, 0, CH.dpr, 0, 0); cx.clearRect(0, 0, W, H);
+  const ink = css('--ring'), bad = css('--bad'), bg = css('--sunk'), ok = css('--ok');
+  const step = 66, n = Math.ceil(W / step) + 2, cy = H / 2 - 12, t = now / 1000;
+  const x0 = (W - (n - 1) * step) / 2;
+  const pos = i => { const x = x0 + i * step; const dx = x - CH.mx, dy = cy - CH.my; const near = Math.max(0, 1 - Math.hypot(dx, dy) / 150);
+    const sway = reduce ? 0 : Math.sin(t * 0.9 + i * 0.55) * 4; return [x, cy + sway - near * 9]; };
+  for (let i = 0; i < n; i += 1) { if (i % 2 === 0) { // verigă văzută din față
+      const [x, y] = pos(i); const isB = i === BROKEN_IDX + 0 && (CH.broken || CH.gap > 0.002);
+      const col = isB ? bad : ink; ring(x, y, 84, 46, isB ? CH.gap : 0, col, 9);
+      if (isB && CH.gap > 0.01) { // capetele desfăcute
+        cx.fillStyle = bad; for (const s of [-1, 1]) { const [px, py] = stad(x, y, 84, 46, s > 0 ? CH.gap / 2 : 1 - CH.gap / 2); cx.beginPath(); cx.arc(px, py, 6.5, 0, 7); cx.fill(); } }
+      if (CH.flash > 0.01) { cx.strokeStyle = ok; cx.globalAlpha = CH.flash; cx.lineWidth = 3; cx.beginPath(); cx.ellipse(x, y, 62 + (1 - CH.flash) * 46, 38 + (1 - CH.flash) * 30, 0, 0, 7); cx.stroke(); cx.globalAlpha = 1; }
+    } }
+  for (let i = 1; i < n; i += 2) { const [x, y] = pos(i); // verigă văzută din profil
+    cx.fillStyle = ink; cx.strokeStyle = bg; cx.lineWidth = 3; const w = 15, h = 46, r = 7.5;
+    cx.beginPath(); cx.roundRect(x - w / 2, y - h / 2, w, h, r); cx.fill(); cx.stroke(); }
+  CH.hit = (() => { const [x, y] = pos(BROKEN_IDX); return { x, y }; })();
+}
+function chainText() {
+  const s = $('#chainStatus'), b = $('#chainBtn');
+  if (CH.broken) { s.className = 'status'; s.innerHTML = ''; const bb = document.createElement('b'); bb.textContent = T('1 verigă ruptă', '1 broken link'); s.append(bb, ' · ', T('htp://exemplu.ro/contact', 'htp://exemplu.ro/contact')); b.textContent = T('Repară veriga', 'Repair the link'); }
+  else { s.className = 'status fixed'; s.innerHTML = ''; const bb = document.createElement('b'); bb.textContent = T('Reparată', 'Repaired'); s.append(bb, ' · https://exemplu.ro/contact · HTTP 200'); b.textContent = T('Rupe-o din nou', 'Break it again'); }
+}
+function toggleChain() {
+  CH.broken = !CH.broken; chainText();
+  if (reduce) { CH.gap = CH.broken ? 0.12 : 0; CH.flash = 0; drawChain(performance.now()); return; }
+  CH.anim = { from: CH.gap, to: CH.broken ? 0.12 : 0, t0: performance.now() }; if (!CH.broken) CH.flash = 1;
+}
+$('#chainBtn').addEventListener('click', toggleChain);
+cv.addEventListener('pointermove', e => { const r = cv.getBoundingClientRect(); CH.mx = e.clientX - r.left; CH.my = e.clientY - r.top; });
+cv.addEventListener('pointerleave', () => { CH.mx = CH.my = -999; });
+cv.addEventListener('click', e => { const r = cv.getBoundingClientRect(); const x = e.clientX - r.left, y = e.clientY - r.top;
+  if (CH.hit && Math.abs(x - CH.hit.x) < 56 && Math.abs(y - CH.hit.y) < 40) toggleChain(); });
+function loop(now) {
+  if (CH.anim) { const k = Math.min(1, (now - CH.anim.t0) / 650); const e = 1 - Math.pow(1 - k, 3); CH.gap = CH.anim.from + (CH.anim.to - CH.anim.from) * e; if (k >= 1) CH.anim = null; }
+  if (CH.flash > 0) CH.flash = Math.max(0, CH.flash - 0.018);
+  drawChain(now); if (!reduce || CH.anim) requestAnimationFrame(loop);
+}
+new ResizeObserver(() => { sizeChain(); drawChain(performance.now()); }).observe(cv);
+sizeChain(); requestAnimationFrame(loop);
+
+/* ─── demonstrația ─── */
+const RULE = { scheme_typo: ['Schemă greșită', 'Scheme typo'], tracking: ['Parametri de urmărire', 'Tracking parameters'], redirect: ['Redirecționare permanentă', 'Permanent redirect'] };
+const ITEMS = [
+  { id: 1, url: '/despre', text: 'Despre noi', st: 'ok', code: '200' },
+  { id: 2, url: 'htp://exemplu.ro/contact', text: 'Contact', st: 'bad', code: 'ERR', msg: ['Schemă necunoscută: htp', 'Unknown scheme: htp'], fix: { rule: 'scheme_typo', to: 'https://exemplu.ro/contact', ver: 'HTTP 200' } },
+  { id: 3, url: 'https://exemplu.ro/blog?utm_source=newsletter&amp;utm_medium=email', text: 'Blog', st: 'warn', code: '200', msg: ['Parametri de urmărire în adresă', 'Tracking parameters in the address'], fix: { rule: 'tracking', to: 'https://exemplu.ro/blog', ver: 'HTTP 200' } },
+  { id: 4, url: 'http://partener.ro/oferta', text: 'partener', st: 'red', code: '301', msg: ['Mutată definitiv', 'Moved permanently'], fix: { rule: 'redirect', to: 'https://www.partener.ro/oferte-2026', ver: 'HTTP 200' } },
+  { id: 5, url: 'https://exemplu.ro/vechi/pagina.html', text: 'arhiva', st: 'bad', code: '404', msg: ['Pagina nu mai există', 'The page no longer exists'], nofix: true },
+  { id: 6, url: 'https://institutia.gov.ro/doc.pdf', text: 'regulament', st: 'warn', code: '403', msg: ['Serverul refuză roboții. Marcat pentru revizuire, nu rupt.', 'The server refuses robots. Flagged for review, not broken.'], review: true },
+  { id: 7, url: '/despre#echipa', text: 'echipa', st: 'warn', code: '#', msg: ['Ancora #echipa nu există în pagină', 'Anchor #echipa is missing on the page'], anchor: true },
+  { id: 8, url: 'https://cdn.exemplu.ro/img/logo.png', text: '', st: 'ok', code: '200', hidden: true },
+  { id: 9, url: 'mailto:contact@exemplu.ro', text: '', st: 'ok', code: 'OK', hidden: true },
+  { id: 10, url: 'https://exemplu.ro/', text: '', st: 'ok', code: '200', hidden: true }
+];
+/* sursa paginii: șiruri și locuri pentru legături */
+const SRC = [
+  ['<nav>'],
+  ['  ', 1],
+  ['  ', 2],
+  ['  ', 3],
+  ['</nav>'],
+  ['<p>Oferta: ', 4, '. Vezi și ', 5, ','],
+  [6, ' și ', 7, '.</p>']
+];
+const D = { sel: 2, filter: 'all', log: [], run: 0, scanning: false };
+const state = {}; ITEMS.forEach(i => state[i.id] = { cur: i.url, applied: false, unlinked: false, wayback: false });
+const filterOf = i => i.st === 'ok' ? 'ok' : (i.review || i.anchor) ? 'review' : i.st === 'red' ? 'red' : 'bad';
+const FILTERS = [['all', 'Toate', 'All'], ['bad', 'Rupte', 'Broken'], ['red', 'Redirecționări', 'Redirects'], ['review', 'De revizuit', 'To review'], ['ok', 'OK', 'OK']];
+const unesc = s => s.replace(/&amp;/g, '&');
+function isFixed(it) { const s = state[it.id]; return s.applied || s.unlinked || s.wayback; }
+function curStatus(it) { return isFixed(it) ? 'ok' : it.st; }
+function logAdd(s) { D.log.push(s); if (D.log.length > 30) D.log.shift(); const L = $('#log'); L.innerHTML = ''; D.log.forEach(x => { const d = document.createElement('div'); d.textContent = x; L.append(d); }); L.scrollTop = L.scrollHeight; }
+function pillClass(it) { const s = curStatus(it); return s === 'ok' ? 'p-ok' : s === 'bad' ? 'p-bad' : s === 'red' ? 'p-red' : 'p-warn'; }
+function renderFilters() {
+  const box = $('#filters'); box.innerHTML = '';
+  FILTERS.forEach(([k, ro, en]) => { const n = ITEMS.filter(i => k === 'all' || (isFixed(i) ? 'ok' : filterOf(i)) === k).length;
+    const b = document.createElement('button'); b.className = 'f'; b.setAttribute('aria-pressed', String(D.filter === k)); b.textContent = (LANG === 'en' ? en : ro) + ' ' + n;
+    b.addEventListener('click', () => { D.filter = k; renderAll(); }); box.append(b); });
+}
+function renderRows(animate) {
+  const ul = $('#rows'); ul.innerHTML = '';
+  const list = ITEMS.filter(i => D.filter === 'all' || (isFixed(i) ? 'ok' : filterOf(i)) === D.filter);
+  list.forEach((it, idx) => { const li = document.createElement('li'); const b = document.createElement('button'); b.className = 'row' + (animate ? ' rowp' : ''); if (animate) b.style.animationDelay = (idx * 70) + 'ms';
+    b.setAttribute('aria-current', String(D.sel === it.id)); b.setAttribute('aria-label', it.url + ', ' + (isFixed(it) ? T('reparat', 'fixed') : it.code));
+    const p = document.createElement('span'); p.className = 'pill ' + pillClass(it); p.textContent = isFixed(it) ? 'OK' : it.code;
+    const u = document.createElement('span'); u.className = 'url'; u.textContent = unesc(state[it.id].cur);
+    b.append(p, u);
+    if (isFixed(it)) { const f = document.createElement('span'); f.className = 'fixmark'; f.textContent = '✓ ' + T('reparat', 'fixed'); b.append(f); }
+    b.addEventListener('click', () => { D.sel = it.id; renderAll(); }); li.append(b); ul.append(li); });
+}
+function renderSrc() {
+  const pre = $('#src'); pre.innerHTML = '';
+  SRC.forEach(line => { const d = document.createElement('span'); d.className = 'ln';
+    line.forEach(p => { if (typeof p === 'string') { d.append(document.createTextNode(p)); return; }
+      const it = ITEMS.find(x => x.id === p), s = state[p];
+      if (s.unlinked) { d.append(document.createTextNode(it.text)); return; }
+      const m = document.createElement('mark'); const bad = !isFixed(it) && (it.st === 'bad' || it.st === 'red');
+      if (s.applied || s.wayback) m.className = 'fx'; else if (!bad) m.style.cssText = 'background:none;color:inherit;padding:0';
+      if (D.sel === p) m.classList.add('sel'); m.textContent = s.cur;
+      d.append(document.createTextNode('<a href="'), m, document.createTextNode('">' + it.text + '</a>')); });
+    pre.append(d); });
+}
+function detailBtn(label, cls, fn, dis) { const b = document.createElement('button'); b.className = 'b ' + (cls || ''); b.textContent = label; if (dis) b.disabled = true; b.addEventListener('click', fn); return b; }
+function renderDetail() {
+  const box = $('#detail'); box.innerHTML = ''; const it = ITEMS.find(x => x.id === D.sel); const s = state[it.id];
+  const h = document.createElement('h4'); h.textContent = unesc(it.url); h.className = 'url'; h.style.fontSize = '.9rem'; box.append(h);
+  const p = document.createElement('p'); p.className = 'ver';
+  if (isFixed(it)) p.textContent = T('Reparat în sursă. Copia de siguranță păstrează varianta veche.', 'Fixed in the source. The backup keeps the old version.');
+  else if (it.msg) p.textContent = it.msg[LANG === 'en' ? 1 : 0]; else p.textContent = T('Totul în ordine: răspunde cu ' + it.code + '.', 'All good: it answers with ' + it.code + '.');
+  box.append(p);
+  if (it.fix) {
+    const rl = document.createElement('p'); rl.className = 'ver'; rl.textContent = T('Regulă: ', 'Rule: ') + RULE[it.fix.rule][LANG === 'en' ? 1 : 0]; box.append(rl);
+    const df = document.createElement('div'); df.className = 'diff'; const o = document.createElement('div'); o.className = 'o'; o.textContent = unesc(it.url); const n = document.createElement('div'); n.className = 'n'; n.textContent = it.fix.to; df.append(o, n); box.append(df);
+    const v = document.createElement('p'); v.className = 'ver'; v.textContent = T('Verificat live: ', 'Verified live: ') + it.fix.ver + T(' · aceeași resursă · nu este soft-404', ' · same resource · not a soft-404'); box.append(v);
+    const a = document.createElement('div'); a.className = 'acts';
+    a.append(detailBtn(T('Aplică cu backup', 'Apply with backup'), 'pri', () => applyOne(it), s.applied), detailBtn(T('Anulează', 'Undo'), '', () => undoOne(it), !s.applied)); box.append(a);
+  } else if (it.nofix) {
+    const w = document.createElement('p'); w.className = 'ver'; w.textContent = T('Nicio înlocuire sigură. VERIGA nu ghicește: alege o acțiune.', 'No safe replacement. VERIGA does not guess: pick an action.'); box.append(w);
+    if (s.wayback) { const df = document.createElement('div'); df.className = 'diff'; const n = document.createElement('div'); n.className = 'n'; n.textContent = s.cur; df.append(n); box.append(df); }
+    const a = document.createElement('div'); a.className = 'acts';
+    a.append(detailBtn(T('Dezleagă (păstrează textul)', 'Unlink (keep the text)'), 'pri', () => { s.unlinked = true; s.wayback = false; s.cur = it.url; logAdd(T('dezlegat: ', 'unlinked: ') + unesc(it.url)); renderAll(); }, s.unlinked || s.wayback),
+      detailBtn(T('Caută în Wayback', 'Look up Wayback'), '', () => { s.wayback = true; s.unlinked = false; s.cur = 'https://web.archive.org/web/2023/' + it.url; logAdd('wayback: ' + it.url); renderAll(); }, s.unlinked || s.wayback),
+      detailBtn(T('Anulează', 'Undo'), '', () => { s.unlinked = s.wayback = false; s.cur = it.url; logAdd(T('anulat: ', 'undone: ') + unesc(it.url)); renderAll(); }, !(s.unlinked || s.wayback)));
+    box.append(a);
+  } else if (it.review || it.anchor) {
+    const w = document.createElement('p'); w.className = 'ver'; w.textContent = it.review ? T('Nu se modifică nimic. 403 înseamnă adesea că serverul respinge unelte automate, nu că pagina lipsește.', 'Nothing is changed. A 403 often means the server rejects automated tools, not that the page is missing.') : T('Ancorele lipsă se raportează, dar nu se repară automat.', 'Missing anchors are reported but not auto-fixed.'); box.append(w);
+  }
+}
+function applyOne(it) { const s = state[it.id]; if (s.applied) return; s.applied = true; s.cur = it.fix.to; D.run++; logAdd(T('aplicat ', 'applied ') + it.fix.rule + ': ' + unesc(it.url) + ' → ' + it.fix.to); renderAll(); }
+function undoOne(it) { const s = state[it.id]; if (!s.applied) return; s.applied = false; s.cur = it.url; logAdd(T('anulat ', 'undone ') + it.fix.rule + ': ' + unesc(it.url)); renderAll(); }
+$('#applyAll').addEventListener('click', () => { ITEMS.filter(i => i.fix && !state[i.id].applied).forEach(i => { const s = state[i.id]; s.applied = true; s.cur = i.fix.to; logAdd(T('aplicat ', 'applied ') + i.fix.rule + ': ' + unesc(i.url) + ' → ' + i.fix.to); }); D.run++; renderAll(); });
+$('#undoAll').addEventListener('click', () => { ITEMS.forEach(i => { const s = state[i.id]; if (s.applied || s.unlinked || s.wayback) { s.applied = s.unlinked = s.wayback = false; s.cur = i.url; } }); logAdd(T('anulat tot', 'undid everything')); renderAll(); });
+$('#rescan').addEventListener('click', () => { if (D.scanning) return; D.scanning = true; $('#rescan').disabled = true; D.filter = 'all';
+  const finish = () => { D.scanning = false; $('#rescan').disabled = false; logAdd(T('verificare încheiată: 10 legături', 'check finished: 10 links')); renderAll(false); };
+  if (reduce) { finish(); return; } logAdd(T('verificare pornită…', 'check started…')); renderFilters(); renderRows(true); setTimeout(finish, 700 + ITEMS.length * 70); });
+function renderHealth() { const good = ITEMS.filter(i => curStatus(i) === 'ok').length; const pct = Math.round(good / ITEMS.length * 100);
+  $('#healthTxt').textContent = T('sănătate ', 'health ') + pct + '%'; $('#healthBar').style.width = pct + '%'; }
+function renderAll(animate) { renderFilters(); renderRows(!!animate); renderDetail(); renderSrc(); renderHealth(); $('#bk').textContent = D.run ? '.veriga/backups/run-' + String(D.run).padStart(3, '0') + '/' : ''; }
+
+/* ─── instalare ─── */
+const CODE = {
+  build: ['shell', [['c', '# necesită Rust 1.88 sau mai nou (interfața grafică: 1.95)'], ['', 'git clone https://github.com/chiuta/VERIGA'], ['', 'cd VERIGA'], ['', 'cargo build --release'], ['c', '# rezultă target/release/veriga și veriga-gui'], ['c', '# varianta HTML: deschide web/veriga.html în browser']]],
+  scan: ['shell', [['c', '# un site online, cu raport HTML și CSV'], ['', 'veriga https://exemplu.ro -o raport.html -o rupte.csv'], ['c', '# un director local, cu fișiere orfane'], ['', 'veriga ./site --orphans ./site'], ['c', '# reverificare doar a legăturilor rupte'], ['', 'veriga --recheck sesiune.veriga -o raport.html']]],
+  fix: ['shell', [['c', '# doar propune (implicit), cu verificare live'], ['', 'veriga fix ./continut'], ['c', '# aplică, cu copie de siguranță în .veriga/'], ['', 'veriga fix ./continut --apply'], ['c', '# dezleagă un link care nu mai există'], ['', 'veriga fix ./continut --unlink https://exemplu.ro/vechi/pagina.html --apply'], ['c', '# vezi jurnalul, apoi întoarce o rulare întreagă'], ['', 'veriga undo --list'], ['', 'veriga undo --run <ID>']]],
+  watch: ['shell', [['c', '# asistent care creează veriga-guardian.json'], ['', 'veriga wizard'], ['c', '# o singură rulare, bună pentru cron sau Task Scheduler'], ['', 'veriga watch --once'], ['c', '# jurnal 404 cu sugestii și reguli .htaccess'], ['', 'veriga log404 acces.log -o redirecturi.htaccess']]]
+};
+let TAB = 'build';
+function renderTab() { const [lab, lines] = CODE[TAB]; $('#tlabel').textContent = lab; const pre = $('#code'); pre.innerHTML = '';
+  lines.forEach(([k, txt]) => { const s = document.createElement('span'); if (k === 'c') { s.className = 'c'; s.textContent = txt; } else { const g = document.createElement('span'); g.className = 'g'; g.textContent = '$ '; s.append(g, document.createTextNode(txt)); } pre.append(s, document.createTextNode('\n')); });
+  document.querySelectorAll('#tabs .tab').forEach(t => { const on = t.dataset.k === TAB; t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; });
+  $('#tp').setAttribute('aria-labelledby', 't-' + TAB); }
+$('#tabs').addEventListener('click', e => { const t = e.target.closest('.tab'); if (t) { TAB = t.dataset.k; renderTab(); } });
+$('#tabs').addEventListener('keydown', e => { const ts = [...document.querySelectorAll('#tabs .tab')]; let i = ts.indexOf(document.activeElement); if (i < 0) return;
+  if (e.key === 'ArrowRight') i = (i + 1) % ts.length; else if (e.key === 'ArrowLeft') i = (i - 1 + ts.length) % ts.length; else if (e.key === 'Home') i = 0; else if (e.key === 'End') i = ts.length - 1; else return;
+  e.preventDefault(); ts[i].focus(); ts[i].click(); });
+$('#copy').addEventListener('click', async () => { const txt = CODE[TAB][1].filter(l => l[0] !== 'c').map(l => l[1]).join('\n'); const b = $('#copy'); const old = b.textContent;
+  try { await navigator.clipboard.writeText(txt); b.textContent = T('Copiat', 'Copied'); } catch (e) { const r = document.createRange(); r.selectNodeContents($('#code')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); b.textContent = T('Selectat: Ctrl+C', 'Selected: Ctrl+C'); }
+  setTimeout(() => { b.textContent = T('Copiază', 'Copy'); }, 1600); });
+
+applyLang();
+$('#theme').setAttribute('aria-pressed', String(getComputedStyle(document.documentElement).colorScheme.includes('dark')));
+</script>
+
+</body>
+</html>
