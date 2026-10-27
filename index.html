@@ -35,7 +35,7 @@
   --okbg:#0F2A1F; --badbg:#33161A; --warnbg:#2F2511; --linkbg:#16213F; color-scheme:dark}
 
 *{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:calc(var(--barh,64px) + 14px)}
+html{scroll-behavior:smooth;scroll-padding-top:calc(var(--barh,64px) + env(safe-area-inset-top,0px) + 18px)}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.6 var(--f-body);
   padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 h1,h2,h3{margin:0;font-weight:800;text-wrap:balance}
@@ -180,7 +180,7 @@ footer b{color:var(--ink)}
 footer .mono{overflow-wrap:anywhere}
 
 @media (max-width:860px){.demo,.two{grid-template-columns:1fr}.facts div{border-right:0;border-bottom:1px solid var(--line)}}
-@media (max-width:560px){.bar{position:static}html{scroll-padding-top:14px}nav.main{order:3;flex-basis:100%}.row{grid-template-columns:64px minmax(0,1fr)}.row .fixmark{grid-column:2}}
+@media (max-width:560px){.bar .wrap{gap:6px 10px;min-height:48px;padding-block:4px}nav.main{order:3;flex-basis:100%;flex-wrap:nowrap;overflow-x:auto;gap:2px}nav.main a{padding:6px 10px;min-height:36px;white-space:nowrap}.row{grid-template-columns:64px minmax(0,1fr)}.row .fixmark{grid-column:2}}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
 @media (forced-colors:active){.f[aria-pressed="true"],.tab[aria-selected="true"]{outline:2px solid Highlight}}
 </style>
