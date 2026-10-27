@@ -35,7 +35,7 @@
   --okbg:#0F2A1F; --badbg:#33161A; --warnbg:#2F2511; --linkbg:#16213F; color-scheme:dark}
 
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;scroll-padding-top:calc(var(--barh,64px) + 14px)}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.6 var(--f-body);
   padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 h1,h2,h3{margin:0;font-weight:800;text-wrap:balance}
@@ -562,6 +562,10 @@ $('#copy').addEventListener('click', async () => { const txt = CODE[TAB][1].filt
   try { await navigator.clipboard.writeText(txt); b.textContent = T('Copiat', 'Copied'); } catch (e) { const r = document.createRange(); r.selectNodeContents($('#code')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); b.textContent = T('Selectat: Ctrl+C', 'Selected: Ctrl+C'); }
   setTimeout(() => { b.textContent = T('Copiază', 'Copy'); }, 1600); });
 
+/* titlurile nu mai rămân sub bara lipicioasă: înălțimea ei (variază pe telefon) intră în scroll-padding */
+(function () { const bar = document.querySelector('.bar'); if (!bar) return;
+  const set = () => document.documentElement.style.setProperty('--barh', bar.offsetHeight + 'px');
+  set(); if (window.ResizeObserver) new ResizeObserver(set).observe(bar); addEventListener('resize', set); })();
 applyLang();
 $('#theme').setAttribute('aria-pressed', String(getComputedStyle(document.documentElement).colorScheme.includes('dark')));
 </script>
