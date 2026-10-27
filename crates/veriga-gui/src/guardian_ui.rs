@@ -255,7 +255,7 @@ impl GuardianUi {
                                 let _ = std::fs::write(f, fixer::proposals_csv(&self.props, lang));
                             }
                         let n = self.sel.iter().filter(|b| **b).count();
-                        if ui.add_enabled(n > 0, egui::Button::new(format!("{} ({n})", t("✓ Aplică selecția (cu copie de siguranță)", "✓ Apply selection (with backup)")))).clicked() {
+                        if ui.add_enabled(n > 0, egui::Button::new(format!("{} ({n})", t("✔ Aplică selecția (cu copie de siguranță)", "✔ Apply selection (with backup)")))).clicked() {
                             let chosen: Vec<Proposal> = self.props.iter().zip(&self.sel).filter(|(_, s)| **s).map(|(p, _)| p.clone()).collect();
                             let (_, _, bk) = self.paths();
                             match self.with_log(|log| fixer::apply(&chosen, log, &ApplyOpts { backup_dir: bk, run: fixer::run_id(), allow_unverified: false })) {
@@ -367,7 +367,7 @@ impl GuardianUi {
                 Tab::Trends => {
                     let h = insights::history_load(&self.paths().0);
                     ui.horizontal(|ui| {
-                        if ui.add_enabled(session.is_some(), egui::Button::new(t("＋ Înregistrează rularea curentă", "＋ Record current run"))).clicked()
+                        if ui.add_enabled(session.is_some(), egui::Button::new(t("➕ Înregistrează rularea curentă", "➕ Record current run"))).clicked()
                             && let Some(s) = session {
                                 let _ = insights::history_append(&self.paths().0, s);
                             }

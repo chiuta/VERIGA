@@ -17,6 +17,7 @@ veriga-core = { path = "../veriga-core", version = "1.0.0" }
 tokio = { workspace = true, features = ["rt-multi-thread", "sync"] }
 anyhow.workspace = true
 eframe = { version = "0.37", default-features = false, features = ["default_fonts", "glow", "x11", "wayland"] }
+egui = { version = "0.37", default-features = false, features = ["monochrome_emoji_fonts"] }
 egui_extras = "0.37"
 rfd = { version = "0.17", default-features = false, features = ["xdg-portal"] }
 url.workspace = true

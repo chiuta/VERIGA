@@ -468,7 +468,7 @@ impl eframe::App for App {
                         Err(e) => format!("{}: {e}", self.t("Eroare", "Error")),
                     };
                 }
-                ui.menu_button(self.t("⇪ Exportă", "⇪ Export"), |ui| {
+                ui.menu_button(self.t("📤 Exportă", "📤 Export"), |ui| {
                     for (k, l) in [
                         ("html", "Raport HTML"),
                         ("csv", "CSV"),
@@ -778,7 +778,7 @@ impl eframe::App for App {
                         ui.horizontal(|ui| {
                             ui.label(RichText::new(&r.url).strong());
                             if ui
-                                .small_button("⧉")
+                                .small_button("📋")
                                 .on_hover_text(self.t("Copiază URL", "Copy URL"))
                                 .clicked()
                             {
@@ -873,6 +873,8 @@ impl eframe::App for App {
             let mut new_sort: Option<SortBy> = None;
             let mut menu_open: Option<String> = None;
 
+            // etichetele selectabile ar intercepta clicurile pe rând (selecția / meniul contextual)
+            ui.style_mut().interaction.selectable_labels = false;
             TableBuilder::new(ui)
                 .striped(true)
                 .resizable(true)
@@ -993,5 +995,17 @@ fn main() -> eframe::Result<()> {
             .with_title("VERIGA — verificator de legături"),
         ..Default::default()
     };
-    eframe::run_native("VERIGA", opts, Box::new(|_cc| Ok(Box::new(App::new()))))
+    eframe::run_native(
+        "VERIGA",
+        opts,
+        Box::new(|cc| {
+            // Ubuntu-Light nu are săgeți (→ ↶ ↳); Hack le are, deci devine rezervă și pentru textul proporțional
+            let mut fonts = egui::FontDefinitions::default();
+            if let Some(f) = fonts.families.get_mut(&egui::FontFamily::Proportional) {
+                f.push("Hack".to_owned());
+            }
+            cc.egui_ctx.set_fonts(fonts);
+            Ok(Box::new(App::new()))
+        }),
+    )
 }

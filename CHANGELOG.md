@@ -6,6 +6,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ### Securitate
 - Anti-SSRF implicit (`--allow-private`), antete sensibile limitate la originea internă, filtru de injecție pentru URL-uri inserate, CSV fără injecție de formule, CSP cu hash în varianta web și în rapoartele HTML.
+### Remedieri GUI
+- Pictogramele din butoane apăreau ca pătrățele după portarea la egui 0.37 (fonturile de emoji sunt acum activate, iar săgețile → ↶ ↳ au font de rezervă).
+- Clicul pe un rând din tabel nu selecta rândul (etichetele selectabile interceptau clicul): selecția și panoul de detalii funcționează din nou.
+### Pagina de prezentare
+- Capturi de ecran ale aplicației native (RO/EN), bară de meniu compactă și lipicioasă pe telefon, 0 încălcări axe-core.
 ### Standarde
 - Rust edition 2024, MSRV 1.88 (GUI 1.95); `clippy -D warnings` curat.
 - robots.txt conform RFC 9309 (grupuri îmbinate, normalizare procentuală, plafon 500 KiB, 5xx ⇒ interdicție totală).
