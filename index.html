@@ -180,7 +180,7 @@ footer b{color:var(--ink)}
 footer .mono{overflow-wrap:anywhere}
 
 @media (max-width:860px){.demo,.two{grid-template-columns:1fr}.facts div{border-right:0;border-bottom:1px solid var(--line)}}
-@media (max-width:560px){nav.main{order:3;flex-basis:100%}.row{grid-template-columns:64px minmax(0,1fr)}.row .fixmark{grid-column:2}}
+@media (max-width:560px){.bar{position:static}html{scroll-padding-top:14px}nav.main{order:3;flex-basis:100%}.row{grid-template-columns:64px minmax(0,1fr)}.row .fixmark{grid-column:2}}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
 @media (forced-colors:active){.f[aria-pressed="true"],.tab[aria-selected="true"]{outline:2px solid Highlight}}
 </style>
@@ -565,7 +565,7 @@ $('#copy').addEventListener('click', async () => { const txt = CODE[TAB][1].filt
 /* titlurile nu mai rămân sub bara lipicioasă: înălțimea ei (variază pe telefon) intră în scroll-padding */
 (function () { const bar = document.querySelector('.bar'); if (!bar) return;
   const set = () => document.documentElement.style.setProperty('--barh', bar.offsetHeight + 'px');
-  set(); if (window.ResizeObserver) new ResizeObserver(set).observe(bar); addEventListener('resize', set); })();
+  set(); addEventListener('load', set); if (document.fonts && document.fonts.ready) document.fonts.ready.then(set); if (window.ResizeObserver) new ResizeObserver(set).observe(bar); addEventListener('resize', set); })();
 applyLang();
 $('#theme').setAttribute('aria-pressed', String(getComputedStyle(document.documentElement).colorScheme.includes('dark')));
 </script>
