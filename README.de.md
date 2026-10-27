@@ -101,7 +101,7 @@ veriga guardian s.veriga --prev old.veriga --record -o guardian.html
 veriga compliance s.veriga --days 30 -o compliance.html
 ```
 
-GUI: die Schaltfläche **🛡 Guardian**. HTML-Edition: der Abschnitt **Guardian** (Änderungen erfolgen im Arbeitsspeicher; Sie laden die Dateien herunter oder schreiben sie in einen Ordner, wo der Browser dies erlaubt; die Live-Verifizierung ist durch CORS eingeschränkt).
+GUI: die Schaltfläche **🛡 Guardian**. HTML-Edition: der Abschnitt **Guardian** (Änderungen erfolgen im Arbeitsspeicher; du lädst die Dateien herunter oder schreibst sie in einen Ordner, wo der Browser dies erlaubt; die Live-Verifizierung ist durch CORS eingeschränkt).
 
 **Was sich von einem WordPress-Plugin nicht nachbilden lässt:** die Datenbanksuche nach dem „alten Slug“, der Speicher-Hook des Editors, WP-Cron, Multisite und `wp_mail`. Stattdessen gibt es: WXR-Import, Dateien auf der Festplatte, `watch`/cron und `sendmail`/Webhook. Die Funktionsliste wurde aus der öffentlichen Beschreibung und aus früheren Gesprächen rekonstruiert, nicht aus dem Quellcode des Plugins.
 
@@ -139,7 +139,7 @@ VERIGA verarbeitet nicht vertrauenswürdige Inhalte (Webseiten, exportierte Date
 | Bereich | Status |
 |---|---|
 | Rust | Edition **2024**, MSRV **1.88** (Kern + CLI; deren Abhängigkeiten deklarieren höchstens 1.88), GUI **1.95** (egui 0.37); `cargo clippy -- -D warnings` und `cargo fmt --check` sauber; `--locked` in CI |
-| Abhängigkeiten | reqwest 0.13 (rustls + Plattform-Verifier, HTTP/2, gzip/brotli/zstd), scraper 0.29, thiserror 2, eframe/egui 0.37, rfd 0.17; `cargo audit` 0 Schwachstellen; `cargo deny` (Advisories, Lizenzen, Quellen, Sperren) |
+| Abhängigkeiten | reqwest 0.13 (rustls + Plattform-Verifier, HTTP/2, gzip/brotli/zstd), scraper 0.29, thiserror 2, eframe/egui 0.37, rfd 0.17; `cargo audit` 0 Schwachstellen; `cargo deny` (advisories, licenses, sources, bans) |
 | robots.txt | **RFC 9309**: zusammengeführte Gruppen, exakter Abgleich mit dem Produkt-Token, Prozent-/UTF-8-Normalisierung, `*` und `$`, längste Regel gewinnt (Allow bei Gleichstand), 500-KiB-Grenze, 4xx ⇒ erlaubt, 5xx/Netzwerk ⇒ nicht erlaubt |
 | HTTP | RFC 9110: `Retry-After` (Sekunden/Datum) bei 429/503, Weiterleitungen 301/302/303/307/308, relatives `Location`, `HEAD` mit Rückfall auf `GET` |
 | URL | WHATWG URL / IDNA (UTS 46) über die `url`-Crate (mit `idna`) |

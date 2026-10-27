@@ -18,7 +18,7 @@ Las sesiones (`.veriga`, JSON) son intercambiables entre las tres formas.
 ## Qué comprueba
 
 - **Enlaces HTML**: `a`, `area`, `img` (+`srcset`, `data-src`), `source`, `video`/`audio`/`track`, `embed`, `object`/`param`,
-  `applet`, `iframe`/`frame`, `script`, `link` (style, icons, preload), `form[action]` (opcional), `input[type=image]`,
+  `applet`, `iframe`/`frame`, `script`, `link` (estilos, iconos, preload), `form[action]` (opcional), `input[type=image]`,
   `background=`, `meta refresh`, `og:image`/`twitter:image`, `cite`, SVG `image`/`use`, `<base href>`.
 - **CSS**: `url(...)` y `@import`, tanto en archivos `.css` como en `<style>` y atributos `style`.
 - **Protocolos**: HTTP/HTTPS (HEAD con respaldo a GET), `file://` y rutas locales, FTP (autenticación, `SIZE`/`CWD`),
@@ -139,7 +139,7 @@ VERIGA procesa contenido no confiable (páginas web, archivos exportados, archiv
 | Área | Estado |
 |---|---|
 | Rust | edición **2024**, MSRV **1.88** (núcleo + CLI; sus dependencias declaran como máximo 1.88), GUI **1.95** (egui 0.37); `cargo clippy -- -D warnings` y `cargo fmt --check` sin avisos; `--locked` en CI |
-| Dependencias | reqwest 0.13 (rustls + platform verifier, HTTP/2, gzip/brotli/zstd), scraper 0.29, thiserror 2, eframe/egui 0.37, rfd 0.17; `cargo audit` con 0 vulnerabilidades; `cargo deny` (avisos, licencias, fuentes, prohibiciones) |
+| Dependencias | reqwest 0.13 (rustls + platform verifier, HTTP/2, gzip/brotli/zstd), scraper 0.29, thiserror 2, eframe/egui 0.37, rfd 0.17; `cargo audit` con 0 vulnerabilidades; `cargo deny` (advisories, licenses, sources, bans) |
 | robots.txt | **RFC 9309**: grupos fusionados, coincidencia exacta con el product token, normalización percent/UTF-8, `*` y `$`, prevalece la regla más larga (Allow en caso de empate), límite de 500 KiB, 4xx ⇒ permitido, 5xx/red ⇒ no permitido |
 | HTTP | RFC 9110: `Retry-After` (segundos/fecha) en 429/503, redirecciones 301/302/303/307/308, `Location` relativo, `HEAD` con respaldo a `GET` |
 | URL | WHATWG URL / IDNA (UTS 46) mediante el crate `url` (con `idna`) |

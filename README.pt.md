@@ -24,7 +24,7 @@ As sessões (`.veriga`, JSON) são intercambiáveis entre as três formas.
 - **Protocolos**: HTTP/HTTPS (HEAD com fallback para GET), `file://` e caminhos locais, FTP (autenticação, `SIZE`/`CWD`),
   `mailto:` (sintaxe).
 - **Redirecionamentos**: cadeia completa com códigos de status, detecção de loops, limite configurável, opção "redirecionamentos são erros".
-- **Âncoras `#fragmento`**: verificadas nas páginas rastreadas (`id` e `name`).
+- **Âncoras `#fragment`**: verificadas nas páginas rastreadas (`id` e `name`).
 - **Arquivos órfãos**: arquivos no diretório do site para os quais nenhum link aponta.
 - **Diferenças de maiúsculas/minúsculas** em caminhos locais (funciona no Windows/macOS, quebra no Linux).
 - **robots.txt** (grupos, `Allow`/`Disallow` com `*` e `$`, `Crawl-delay`) e partida a partir do **sitemap.xml**.

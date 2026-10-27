@@ -7,7 +7,7 @@ Verzió: 1.0.0 · Utolsó frissítés: 2026.10.27. · Bemutatkozó oldal: https:
 Egy 64 bites Rust alkalmazás Windowsra, macOS-re és Linuxra (x86-64 és ARM64), amely bejár egy weboldalt
 vagy egy helyi mappát, és ellenőrzi a hivatkozásait. Három formában érhető el, amelyek egyetlen közös eredménymodellen osztoznak:
 
-| Form | Where | What it does |
+| Form | Hol | Mit csinál |
 |---|---|---|
 | `veriga` (CLI) | terminál, CI, konténerek (statikus musl bináris) | teljes ellenőrzés, jelentések, kilépési kód |
 | `veriga-gui` | natív asztali alkalmazás (egui) | rendezhető/szűrhető táblázat, részletek panel, szünet/leállítás, exportálás |
@@ -101,7 +101,7 @@ veriga guardian s.veriga --prev old.veriga --record -o guardian.html
 veriga compliance s.veriga --days 30 -o compliance.html
 ```
 
-GUI: a **🛡 Guardian** gomb. HTML-kiadás: a **Guardian** szakasz (a módosítások a memóriában történnek; letöltöd a fájlokat, vagy ott írod őket egy mappába, ahol a böngésző engedi; az élő ellenőrzést a CORS korlátozza).
+GUI: a **🛡 Guardian** gomb. HTML-kiadás: a **Guardian** szakasz (a módosítások a memóriában történnek; letöltöd a fájlokat, vagy egy mappába írod őket, ha a böngésző engedi; az élő ellenőrzést a CORS korlátozza).
 
 **Ami nem replikálható egy WordPress-bővítményből:** az adatbázisban az `old slug` keresés, a szerkesztő mentési hookja, a WP-Cron, a multisite és a `wp_mail`. Helyettük: WXR-import, lemezen lévő fájlok, `watch`/cron és `sendmail`/webhook. A funkciólista a nyilvános leírásból és korábbi beszélgetésekből lett rekonstruálva, nem a bővítmény forráskódjából.
 
@@ -128,23 +128,23 @@ A VERIGA nem megbízható tartalmat dolgoz fel (weboldalak, exportált fájlok, 
 
 - **Anti-SSRF:** a privát/helyi célpontok (127.0.0.0/8, RFC1918, link-local, `localhost`, `.local`, IPv6 ULA) tiltottak, átirányítás után is. Kifejezett kikapcsolás: `--allow-private` (CLI) / a GUI jelölőnégyzete. *Korlát:* a DNS rebinding az ellenőrzés és a kapcsolódás között nincs teljesen lezárva.
 - **Érzékeny fejlécek** (`Authorization`, `Cookie`, API-kulcsok) csak a belső origin felé kerülnek elküldésre, soha más gazdagépeknek vagy külső átirányítás után.
-- **Injekciószűrő a javításokhoz:** az idézőjelet, `<`, `>` jelet, szóközt, visszaidézőjelet, visszaperjelet vagy Markdownban zárójelet tartalmazó új URL-t (pl. egy rosszindulatú `Location`) elutasítja (`unsafe_url_for` / `gUnsafeUrl`).
+- **Injekciószűrő a javításokhoz:** az idézőjelet, `<`, `>` jelet, szóközt, backtick-et, visszaperjelet vagy Markdownban zárójelet tartalmazó új URL-t (pl. egy rosszindulatú `Location`) elutasítja (`unsafe_url_for` / `gUnsafeUrl`).
 - **Biztonságos írás:** egyedi biztonsági mentés, atomi írás, kooperatív zárolás, a tartalom újraellenőrzése alkalmazás előtt (TOCTOU), jogosultságok/szimbolikus linkek megőrzése; az elavult javaslatok eldobásra kerülnek, nem alkalmazódnak rossz pozíciókon.
 - **CSV-export** képletek ellen védve (`=`, `+`, `-`, `@`).
-- **Értesítések:** a `sendmail` abszolút útvonal kell legyen; ne használj nem megbízható forrásból származó konfigurációs fájlokat (egy választott bináris futtatását válthatják ki).
+- **Értesítések:** a `sendmail` értékének abszolút útvonalnak kell lennie; ne használj nem megbízható forrásból származó konfigurációs fájlokat (egy választott bináris futtatását válthatják ki).
 - **Ismert korlátok:** a WXR-ben escape-elt HTML nincs átvizsgálva (hamis negatívok); a webes kiadást a CORS korlátozza; a `lint` 2-es kóddal lép ki, ha vannak találatai.
 
 ## Szabványok és megfelelőség (ellenőrizve: 2026.10.27.)
 
-| Area | Status |
+| Terület | Állapot |
 |---|---|
 | Rust | edition **2024**, MSRV **1.88** (mag + CLI; függőségeik legfeljebb 1.88-at deklarálnak), GUI **1.95** (egui 0.37); a `cargo clippy -- -D warnings` és a `cargo fmt --check` tiszta; `--locked` a CI-ben |
-| Dependencies | reqwest 0.13 (rustls + platform verifier, HTTP/2, gzip/brotli/zstd), scraper 0.29, thiserror 2, eframe/egui 0.37, rfd 0.17; `cargo audit` 0 sebezhetőség; `cargo deny` (advisories, licenses, sources, bans) |
+| Függőségek | reqwest 0.13 (rustls + platform verifier, HTTP/2, gzip/brotli/zstd), scraper 0.29, thiserror 2, eframe/egui 0.37, rfd 0.17; `cargo audit` 0 sebezhetőség; `cargo deny` (advisories, licenses, sources, bans) |
 | robots.txt | **RFC 9309**: összevont csoportok, pontos egyezés a termék-tokenre, százalék/UTF-8 normalizálás, `*` és `$`, a leghosszabb szabály nyer (egyenlőségnél Allow), 500 KiB korlát, 4xx ⇒ engedélyezett, 5xx/hálózati hiba ⇒ tiltott |
 | HTTP | RFC 9110: `Retry-After` (másodperc/dátum) 429/503 esetén, 301/302/303/307/308 átirányítások, relatív `Location`, `HEAD` `GET`-re való visszalépéssel |
 | URL | WHATWG URL / IDNA (UTS 46) az `url` crate-en keresztül (az `idna`-val) |
 | Sitemap | sitemaps.org 0.9 (index + urlset) |
 | Web (veriga.html) | **WCAG 2.2 AA** (axe-core 4.14: 0 szabálysértés, világos/sötét téma), WAI-ARIA APG fülek billentyűzettel, `prefers-reduced-motion`, `forced-colors`, célméret ≥ 24 px, `status`/`progressbar` régiók; **CSP** hash-ekkel (szkriptekhez nincs `unsafe-inline`), `referrer: no-referrer`; az exportált jelentések saját CSP-t hordoznak |
-| Supply chain | `LICENSE` (MIT), `SECURITY.md`, `deny.toml`, Dependabot, kiadások SHA-256 összegekkel és származási igazolással (Sigstore/SLSA), harmadik féltől származó akciók nélkül a publikálásban |
+| Ellátási lánc | `LICENSE` (MIT), `SECURITY.md`, `deny.toml`, Dependabot, kiadások SHA-256 összegekkel és származási igazolással (Sigstore/SLSA), harmadik féltől származó akciók nélkül a publikálásban |
 
 Webes tesztek: `cd web/tests && npm install && npx playwright install chromium && npm test`. A `veriga.html` bármilyen módosítása után: `python3 web/stamp-csp.py web/veriga.html`.
