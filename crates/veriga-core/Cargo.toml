@@ -1,0 +1,31 @@
+[package]
+name = "veriga-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+authors.workspace = true
+description = "Motor clean-room de verificare a legăturilor (link checker) — VERIGA"
+
+[dependencies]
+tokio.workspace = true
+reqwest.workspace = true
+url.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+scraper.workspace = true
+regex.workspace = true
+walkdir.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+csv.workspace = true
+percent-encoding.workspace = true
+chrono.workspace = true
+futures.workspace = true
+mime_guess.workspace = true
+encoding_rs.workspace = true
+sha2 = "0.11.1"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["net"] }

@@ -1,0 +1,1475 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-8KexQMYB43Nnk6/nFT9UZkMR1rr+a0MdrbXmsQ7tgN4=' 'sha256-o/Hdu5nxu/qzuFkJ8XYGutrRNZuXd0vcp5idZn8QDu0='; style-src-elem 'sha256-pT+CdiRMyfWnJaSujq6Rw3TLJ8X7EW7oun5DaBBlBFU='; style-src-attr 'unsafe-inline'; img-src data: blob:; connect-src http: https: blob: data:; base-uri 'none'; form-action 'none'; object-src 'none'">
+<title>VERIGA — verificator de legături</title>
+<style>
+:root{--bg:#f6f6f2;--fg:#1c1f23;--mut:#677079;--card:#fff;--bd:#d8dce1;--ok:#17794c;--bad:#b3261e;--warn:#98660a;--acc:#2f5fd0;--accfg:#fff;--row:#f1f3f5}
+@media (prefers-color-scheme:dark){:root{--bg:#121417;--fg:#e7e9ec;--mut:#98a0aa;--card:#1b1e23;--bd:#2c3138;--ok:#5ccf93;--bad:#ff8a80;--warn:#f0b84a;--acc:#86a8ff;--accfg:#10131a;--row:#20242a}}
+*{box-sizing:border-box}
+:root{color-scheme:light dark}
+.sr-only{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.skip{position:absolute;left:8px;top:-60px;background:var(--acc);color:var(--accfg);padding:8px 14px;border-radius:8px;z-index:50}
+.skip:focus{top:8px}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+button,.btn,select,input[type=text],input[type=number],input[type=url],textarea{min-height:32px}
+input[type=checkbox]{width:20px;height:20px;margin:2px 6px 2px 0}
+.chk{display:flex;align-items:flex-start;gap:4px;cursor:pointer}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+@media (forced-colors:active){.tab[aria-selected=true],.chip[aria-pressed=true]{outline:2px solid Highlight}}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif}
+header{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--bd);background:var(--card);flex-wrap:wrap}
+header h1{margin:0;font-size:1.25rem;letter-spacing:.08em}
+header .sub{color:var(--mut);font-size:.85rem;flex:1}
+main{max-width:1280px;margin:0 auto;padding:14px 16px 40px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:12px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tab,button,.btn{font:inherit;border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:8px;padding:6px 12px;cursor:pointer}
+.tab[aria-selected=true]{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+button.primary{background:var(--acc);color:var(--accfg);border-color:var(--acc);font-weight:600}
+button:disabled{opacity:.45;cursor:not-allowed}
+input[type=text],input[type=number],textarea,select{font:inherit;width:100%;padding:7px 9px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg)}
+textarea{min-height:70px;font-family:ui-monospace,Consolas,monospace;font-size:.85rem}
+label{display:block;font-size:.85rem;color:var(--mut);margin:8px 0 3px}
+.chk{display:flex;gap:7px;align-items:center;color:var(--fg);font-size:.9rem;margin:5px 0}
+.chk input{width:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:4px 18px}
+#drop{border:2px dashed var(--bd);border-radius:12px;padding:22px;text-align:center;color:var(--mut)}
+#drop.over{border-color:var(--acc);color:var(--fg)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row.sp{justify-content:space-between}
+.bar{height:8px;background:var(--row);border-radius:999px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--acc);width:0;transition:width .2s}
+.stats{display:flex;gap:16px;flex-wrap:wrap;font-size:.9rem;color:var(--mut);margin-top:8px}
+.stats b{color:var(--fg)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border-radius:999px;padding:3px 11px;font-size:.85rem}
+.chip[aria-pressed=true]{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+#tbl{height:56vh;min-height:280px;overflow:auto;border:1px solid var(--bd);border-radius:8px;position:relative;background:var(--card)}
+#thead,.r{display:grid;grid-template-columns:170px 54px minmax(260px,1fr) 92px 78px 170px 40px 58px;gap:0;align-items:center;font-size:.85rem}
+#thead{position:sticky;top:0;background:var(--row);z-index:2;border-bottom:1px solid var(--bd);min-width:960px}
+#thead div{padding:6px 8px;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap}
+#spacer{position:relative;min-width:960px}
+.r{position:absolute;left:0;right:0;height:28px;border-bottom:1px solid var(--bd);cursor:pointer}
+.r:hover{background:var(--row)}.r.sel{background:var(--row);outline:2px solid var(--acc);outline-offset:-2px}
+.r div{padding:0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.u{font-family:ui-monospace,Consolas,monospace;font-size:.8rem}
+.s-bad{color:var(--bad);font-weight:600}.s-ok{color:var(--ok)}.s-warn{color:var(--warn)}.s-mut{color:var(--mut)}
+#detail{margin-top:10px;font-size:.9rem}
+#detail .par{display:block;color:var(--mut);font-size:.82rem;word-break:break-all}
+a{color:var(--acc)}
+.note{color:var(--mut);font-size:.82rem}
+.hide{display:none!important}
+details>summary{cursor:pointer;font-weight:600}
+.warnbox{border:1px solid var(--warn);color:var(--warn);border-radius:8px;padding:8px 10px;font-size:.85rem;margin:8px 0}
+@media (max-width:700px){main{padding:8px}.card{padding:10px}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main" data-ro="Sari la conținut" data-en="Skip to content"></a>
+<header>
+  <h1>VERIGA</h1>
+  <span class="sub" data-ro="Verificator de legături — variantă HTML single-file, 100% în browser" data-en="Link checker — single-file HTML edition, 100% in the browser"></span>
+  <button id="lang" title="RO / EN">EN</button>
+</header>
+<main id="main" tabindex="-1">
+<section class="card" id="setup">
+  <div class="tabs" role="tablist" id="tl-main" aria-label="Sursă / Source">
+    <button class="tab" role="tab" id="tab-folder" aria-controls="p-folder" tabindex="0" data-mode="folder" aria-selected="true" data-ro="📁 Folder local" data-en="📁 Local folder"></button>
+    <button class="tab" role="tab" id="tab-online" aria-controls="p-online" tabindex="-1" data-mode="online" aria-selected="false" data-ro="🌐 Site online" data-en="🌐 Online site"></button>
+    <button class="tab" role="tab" id="tab-list" aria-controls="p-list" tabindex="-1" data-mode="list" aria-selected="false" data-ro="📋 Listă de URL-uri" data-en="📋 URL list"></button>
+  </div>
+
+  <div id="p-folder" role="tabpanel" aria-labelledby="tab-folder">
+    <div id="drop">
+      <div data-ro="Trage aici folderul site-ului (rădăcina) sau" data-en="Drop the site folder (root) here or"></div>
+      <div style="margin-top:8px"><label class="btn" style="display:inline-block;margin:0;color:var(--fg)"><span data-ro="Alege folder…" data-en="Choose folder…"></span><input id="dir" type="file" webkitdirectory directory multiple hidden></label></div>
+      <div id="dirinfo" class="note" style="margin-top:8px"></div>
+    </div>
+    <label class="chk" style="margin-top:8px"><input type="checkbox" id="orph" checked><span data-ro="Caută fișiere orfane (la care nu duce niciun link)" data-en="Find orphan files (not linked from anywhere)"></span></label>
+    <label class="chk"><input type="checkbox" id="caseck" checked><span data-ro="Semnalează diferențe de majuscule (linkul merge pe Windows/macOS, dar nu pe Linux)" data-en="Flag case mismatches (works on Windows/macOS, breaks on Linux)"></span></label>
+    <label data-ro="Pagina de start (opțional; implicit index.html)" data-en="Start page (optional; default index.html)"></label>
+    <input type="text" id="entry" placeholder="index.html">
+  </div>
+
+  <div id="p-online" role="tabpanel" aria-labelledby="tab-online" class="hide">
+    <label data-ro="URL de start" data-en="Start URL"></label>
+    <input type="text" id="url" placeholder="https://exemplu.ro/">
+    <div class="warnbox" data-ro="Un browser nu poate citi codul HTTP al altor site-uri (politica CORS). Pentru rezultate complete: (1) deschide acest fișier de pe același site pe care îl verifici, (2) folosește un proxy CORS propriu (câmpul de mai jos) sau (3) folosește varianta nativă Rust. Fără acestea, linkurile externe sunt doar testate pentru accesibilitate." data-en="A browser cannot read the HTTP status of other sites (CORS policy). For complete results: (1) open this file from the same site you are checking, (2) use your own CORS proxy (field below), or (3) use the native Rust edition. Otherwise external links are only tested for reachability."></div>
+    <label data-ro="Șablon proxy CORS (opțional), ex. https://proxy.exemplu.ro/?u={url}" data-en="CORS proxy template (optional), e.g. https://proxy.example.com/?u={url}"></label>
+    <input type="text" id="proxy" placeholder="https://proxy.exemplu.ro/?u={url}">
+  </div>
+
+  <div id="p-list" role="tabpanel" aria-labelledby="tab-list" class="hide">
+    <label data-ro="URL-uri de verificat (unul pe linie)" data-en="URLs to check (one per line)"></label>
+    <textarea id="urls" placeholder="https://exemplu.ro/&#10;https://exemplu.ro/contact"></textarea>
+    <label data-ro="Sau lipește sursa HTML a unei pagini" data-en="Or paste a page's HTML source"></label>
+    <textarea id="html" placeholder="<a href=&quot;...&quot;>"></textarea>
+    <label data-ro="URL de bază pentru sursa HTML lipită" data-en="Base URL for the pasted HTML"></label>
+    <input type="text" id="base" placeholder="https://exemplu.ro/pagina.html">
+  </div>
+
+  <details style="margin-top:12px"><summary data-ro="⚙ Opțiuni" data-en="⚙ Options"></summary>
+    <div class="grid">
+      <div><label data-ro="Verificări simultane" data-en="Parallel checks"></label><input type="number" id="o-threads" value="12" min="1" max="64"></div>
+      <div><label data-ro="Timeout (secunde)" data-en="Timeout (seconds)"></label><input type="number" id="o-timeout" value="20" min="2" max="120"></div>
+      <div><label data-ro="Reîncercări" data-en="Retries"></label><input type="number" id="o-retries" value="1" min="0" max="5"></div>
+      <div><label data-ro="Adâncime maximă (gol = nelimitat)" data-en="Max depth (empty = unlimited)"></label><input type="number" id="o-depth" min="0" max="50"></div>
+      <div><label data-ro="Limită URL-uri" data-en="URL limit"></label><input type="number" id="o-max" value="20000" min="10"></div>
+      <div><label data-ro="Coduri HTTP tratate ca OK (ex. 999)" data-en="HTTP codes treated as OK (e.g. 999)"></label><input type="text" id="o-ign" placeholder="999"></div>
+    </div>
+    <div class="grid" style="margin-top:6px">
+      <label class="chk"><input type="checkbox" id="o-ext" checked><span data-ro="Verifică linkuri externe" data-en="Check external links"></span></label>
+      <label class="chk"><input type="checkbox" id="o-res" checked><span data-ro="Verifică imagini / CSS / JS / media" data-en="Check images / CSS / JS / media"></span></label>
+      <label class="chk"><input type="checkbox" id="o-mail" checked><span data-ro="Verifică mailto:" data-en="Check mailto:"></span></label>
+      <label class="chk"><input type="checkbox" id="o-frag"><span data-ro="Verifică ancore #" data-en="Check #anchors"></span></label>
+      <label class="chk"><input type="checkbox" id="o-forms"><span data-ro="Verifică acțiuni de formular" data-en="Check form actions"></span></label>
+      <label class="chk"><input type="checkbox" id="o-red"><span data-ro="Redirecționările sunt erori" data-en="Treat redirects as errors"></span></label>
+      <label class="chk"><input type="checkbox" id="o-403" checked><span data-ro="401/403 = «merită o a doua privire», nu link rupt" data-en="401/403 = “worth a second look”, not broken"></span></label>
+      <label class="chk"><input type="checkbox" id="o-dir"><span data-ro="Rămâi în directorul de start" data-en="Stay in start directory"></span></label>
+    </div>
+    <div class="grid">
+      <div><label data-ro="Exclude (regex, unul pe linie)" data-en="Exclude (regex, one per line)"></label><textarea id="o-excl"></textarea></div>
+      <div><label data-ro="Verifică, dar nu parcurge (regex)" data-en="Check but don't follow (regex)"></label><textarea id="o-nofol"></textarea></div>
+      <div><label data-ro="Gazde interne suplimentare" data-en="Extra internal hosts"></label><textarea id="o-hosts"></textarea></div>
+    </div>
+  </details>
+
+  <div class="row" style="margin-top:14px">
+    <button class="primary" id="b-start" data-ro="▶ Pornește" data-en="▶ Start"></button>
+    <button id="b-pause" disabled data-ro="⏸ Pauză" data-en="⏸ Pause"></button>
+    <button id="b-stop" disabled data-ro="■ Oprește" data-en="■ Stop"></button>
+    <button id="b-recheck" disabled data-ro="↻ Reverifică rupte" data-en="↻ Recheck broken"></button>
+    <label class="btn" style="margin:0;color:var(--fg)"><span data-ro="📂 Importă sesiune" data-en="📂 Import session"></span><input id="b-import" type="file" accept=".json,.veriga" hidden></label>
+  </div>
+</section>
+
+<section class="card hide" id="prog">
+  <div class="bar" role="progressbar" id="pbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-al-ro="Progres verificare" data-al-en="Check progress"><i id="bar"></i></div>
+  <div class="stats" role="status" aria-live="off">
+    <span><span data-ro="verificate" data-en="checked"></span>: <b id="c-done">0</b></span>
+    <span><span data-ro="în coadă" data-en="queued"></span>: <b id="c-q">0</b></span>
+    <span><span data-ro="rupte" data-en="broken"></span>: <b id="c-bad" class="s-bad">0</b></span>
+    <span><span data-ro="timp" data-en="time"></span>: <b id="c-t">0s</b></span>
+    <span id="c-phase"></span>
+  </div>
+</section>
+
+<section class="card hide" id="res">
+  <div class="row sp">
+    <div class="chips" id="chips"></div>
+    <div class="row">
+      <input type="text" id="q" style="width:220px" data-ph-ro="Caută…" data-ph-en="Search…">
+      <select id="exp" style="width:auto"></select>
+    </div>
+  </div>
+  <div id="tbl" style="margin-top:10px"><div id="thead"></div><div id="spacer"></div></div>
+  <div id="detail" class="note"></div>
+  <div id="msg" class="note" role="status" aria-live="polite"></div>
+</section>
+<section class="card" id="gd">
+  <details id="gd-det">
+    <summary data-ro="🛡 Guardian — reparații, domenii, hartă de sănătate, tendințe, 404, conformitate" data-en="🛡 Guardian — fixes, domains, health map, trends, 404s, compliance"></summary>
+    <div class="tabs" id="gd-tabs" role="tablist" aria-label="Guardian" style="margin-top:12px"></div>
+    <div id="gd-body" role="tabpanel" tabindex="0" aria-live="polite"></div>
+  </details>
+</section>
+</main>
+
+<script>
+'use strict';
+/* ───────────── utilitare ───────────── */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+let LANG = ((navigator.language || 'ro') + '').toLowerCase().startsWith('en') ? 'en' : 'ro';
+const T = (ro, en) => LANG === 'en' ? en : ro;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const trunc = (s, n) => { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n) + '…' : s; };
+const humanSize = n => { if (n == null) return ''; const u = ['B','KB','MB','GB']; let i = 0, v = n; while (v >= 1024 && i < 3) { v /= 1024; i++; } return i ? v.toFixed(1) + ' ' + u[i] : n + ' B'; };
+const siteKey = h => String(h || '').toLowerCase().replace(/^www\./, '');
+const lines = s => String(s || '').split('\n').map(x => x.trim()).filter(Boolean);
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+
+/* ───────────── stări și etichete (identice cu motorul Rust) ───────────── */
+const ST = {
+  Pending:['În așteptare','Pending'], Ok:['OK','OK'], Redirected:['Redirecționat','Redirected'],
+  NotFound:['Nu există (404)','Not found (404)'], Forbidden:['Acces interzis','Forbidden'],
+  ClientError:['Eroare client (4xx)','Client error (4xx)'], ServerError:['Eroare server (5xx)','Server error (5xx)'],
+  Timeout:['Timp depășit','Timeout'], NoConnection:['Fără conexiune','No connection'],
+  DnsFailure:['Gazdă inexistentă (DNS)','DNS failure'], TlsError:['Eroare TLS/certificat','TLS/certificate error'],
+  TooManyRedirects:['Prea multe redirecționări','Too many redirects'], BadRedirect:['Redirecționare invalidă','Bad redirect'],
+  InvalidUrl:['URL invalid','Invalid URL'], InvalidEmail:['E-mail invalid','Invalid e-mail'],
+  LocalMissing:['Fișier local lipsă','Local file missing'], FragmentMissing:['Ancoră lipsă','Anchor missing'],
+  FtpError:['Eroare FTP','FTP error'], RobotsBlocked:['Blocat de robots.txt','Blocked by robots.txt'],
+  Skipped:['Omis / neverificabil','Skipped / unverifiable'], Orphan:['Fișier orfan','Orphan file']
+};
+const ERR = new Set(['NotFound','Forbidden','ClientError','ServerError','Timeout','NoConnection','DnsFailure','TlsError','TooManyRedirects','BadRedirect','InvalidUrl','InvalidEmail','LocalMissing','FragmentMissing','FtpError']);
+const KIND = {
+  Start:['Start','Start'], Page:['Pagină','Page'], Image:['Imagine','Image'], Stylesheet:['Stil CSS','Stylesheet'], Script:['Script','Script'],
+  Frame:['Cadru','Frame'], Media:['Media','Media'], Object:['Obiect','Object'], Form:['Formular','Form'], Icon:['Pictogramă','Icon'],
+  Link:['Legătură <link>','<link>'], Anchor:['Ancoră','Anchor'], Mailto:['E-mail','E-mail'], Ftp:['FTP','FTP'], File:['Fișier','File'],
+  Sitemap:['Sitemap','Sitemap'], Other:['Altele','Other']
+};
+const stLabel = s => (ST[s] || [s, s])[LANG === 'en' ? 1 : 0];
+const kindLabel = k => (KIND[k] || [k, k])[LANG === 'en' ? 1 : 0];
+
+/* ───────────── starea aplicației ───────────── */
+const S = {
+  mode: 'folder', cfg: null, results: [], index: new Map(), queue: [], inflight: 0, hostBusy: new Map(),
+  running: false, paused: false, cancelled: false, pump: null, abort: null, done: 0, broken: 0, ignored: 0, truncated: false,
+  anchors: new Map(), fragments: [], startUrls: [], internalHosts: new Set(), dirPrefixes: [],
+  started: null, t0: 0,
+  // folder
+  files: new Map(), filesLower: new Map(), dirs: new Set(), rootName: '', rootPrefix: '',
+  view: [], filter: 'all', sort: 'order', desc: false, selected: -1, q: ''
+};
+
+/* ───────────── configurație ───────────── */
+function readCfg() {
+  const n = (id, d) => { const v = parseInt($(id).value, 10); return isNaN(v) ? d : v; };
+  const c = {
+    threads: Math.max(1, n('#o-threads', 12)), timeout: Math.max(2, n('#o-timeout', 20)), retries: Math.max(0, n('#o-retries', 1)),
+    maxDepth: $('#o-depth').value === '' ? null : n('#o-depth', 5), maxUrls: n('#o-max', 20000),
+    ignoreStatus: ($('#o-ign').value.match(/\d+/g) || []).map(Number),
+    checkExternal: $('#o-ext').checked, checkResources: $('#o-res').checked, checkMailto: $('#o-mail').checked,
+    checkFragments: $('#o-frag').checked, checkForms: $('#o-forms').checked, redirectsAsErrors: $('#o-red').checked,
+    stayInDir: $('#o-dir').checked, reviewForbidden: $('#o-403').checked,
+    exclude: [], noFollow: [], internalHosts: lines($('#o-hosts').value).map(siteKey),
+    proxy: $('#proxy').value.trim(), orphans: $('#orph').checked, caseCheck: $('#caseck').checked
+  };
+  for (const [k, id] of [['exclude', '#o-excl'], ['noFollow', '#o-nofol']]) {
+    for (const p of lines($(id).value)) { try { c[k].push(new RegExp(p)); } catch (e) { throw new Error(T('Expresie regulată invalidă: ', 'Invalid regular expression: ') + p); } }
+  }
+  return c;
+}
+const isReview = st => st === 'Forbidden' && !!(S.cfg ? S.cfg.reviewForbidden : true);
+const isBroken = st => isReview(st) ? false : (ERR.has(st) || (S.cfg && S.cfg.redirectsAsErrors && st === 'Redirected'));
+
+/* ───────────── extragere linkuri din DOM ───────────── */
+const CSS_URL = /url\(\s*(?:"([^"]*)"|'([^']*)'|([^)\s'"]+))\s*\)/gi;
+const CSS_IMPORT = /@import\s+(?:"([^"]+)"|'([^']+)')/gi;
+const BAD_SCHEME = /^(javascript:|data:|tel:|sms:|blob:|about:|whatsapp:)/i;
+
+function cssLinks(css, push, defKind) {
+  let m;
+  CSS_IMPORT.lastIndex = 0;
+  while ((m = CSS_IMPORT.exec(css))) push(m[1] || m[2], 'Stylesheet', '');
+  CSS_URL.lastIndex = 0;
+  while ((m = CSS_URL.exec(css))) {
+    const before = css.slice(Math.max(0, m.index - 8), m.index).toLowerCase().trim();
+    push(m[1] || m[2] || m[3], before.endsWith('@import') ? 'Stylesheet' : defKind, '');
+  }
+}
+
+function extractDoc(doc, pageUrl, cfg) {
+  const out = { title: null, h1: null, links: [], bad: [], anchors: new Set() };
+  let base = pageUrl;
+  const b = doc.querySelector('base[href]');
+  if (b) { try { base = resolveRaw(b.getAttribute('href'), pageUrl).href; } catch (e) {} }
+  const push = (raw, kind, text) => {
+    raw = (raw || '').trim();
+    if (!raw || BAD_SCHEME.test(raw) || /\{\{|<%|\$\{/.test(raw)) return;
+    try { out.links.push({ url: resolveRaw(raw, base), kind, text: trunc(text, 120) }); }
+    catch (e) { out.bad.push([raw, kind, T('URL ilizibil', 'Unreadable URL')]); }
+  };
+  const srcset = (v, kind) => { v = (v || '').trim(); if (v.startsWith('data:')) return; v.split(',').forEach(p => { const u = p.trim().split(/\s+/)[0]; if (u) push(u, kind, ''); }); };
+  const t = doc.querySelector('title');
+  if (t) { const x = trunc(t.textContent, 200); if (x) out.title = x; }
+  const h1 = doc.querySelector('h1'); if (h1) { const x = trunc(h1.textContent, 200); if (x) out.h1 = x; }
+  for (const el of doc.querySelectorAll('*')) {
+    const n = el.localName, a = k => el.getAttribute(k);
+    const id = a('id'); if (id) out.anchors.add(id);
+    if (n === 'a' && a('name')) out.anchors.add(a('name'));
+    if (a('style')) cssLinks(a('style'), push, 'Image');
+    if (['img', 'source', 'video', 'iframe'].includes(n)) for (const k of ['data-src', 'data-original', 'data-lazy-src']) if (a(k)) push(a(k), 'Image', a('alt') || '');
+    if (a('data-srcset')) srcset(a('data-srcset'), 'Image');
+    switch (n) {
+      case 'a': case 'area': {
+        if (a('href') != null) {
+          let text = el.textContent;
+          if (!text.trim()) { text = a('alt') || a('title') || ''; if (!text) { const im = el.querySelector('img[alt]'); if (im) text = im.getAttribute('alt'); } }
+          push(a('href'), 'Page', text);
+        }
+        break;
+      }
+      case 'link': {
+        const rel = (a('rel') || '').toLowerCase();
+        if (rel.includes('dns-prefetch') || rel.includes('preconnect')) break;
+        if (a('href') != null) {
+          let kind = 'Link';
+          if (rel.includes('stylesheet')) kind = 'Stylesheet';
+          else if (rel.includes('icon')) kind = 'Icon';
+          else if (rel.includes('preload') || rel.includes('prefetch')) kind = ({ style: 'Stylesheet', script: 'Script', image: 'Image' })[a('as')] || 'Link';
+          push(a('href'), kind, '');
+        }
+        if (a('imagesrcset')) srcset(a('imagesrcset'), 'Image');
+        break;
+      }
+      case 'img': if (a('src')) push(a('src'), 'Image', a('alt') || ''); if (a('srcset')) srcset(a('srcset'), 'Image'); break;
+      case 'source': { const pk = el.parentElement ? el.parentElement.localName : ''; const k = (pk === 'video' || pk === 'audio') ? 'Media' : 'Image'; if (a('src')) push(a('src'), k, ''); if (a('srcset')) srcset(a('srcset'), k); break; }
+      case 'video': if (a('src')) push(a('src'), 'Media', ''); if (a('poster')) push(a('poster'), 'Image', ''); break;
+      case 'audio': case 'track': if (a('src')) push(a('src'), 'Media', ''); break;
+      case 'embed': if (a('src')) push(a('src'), 'Object', ''); break;
+      case 'object': if (a('data')) push(a('data'), 'Object', ''); break;
+      case 'param': if (['movie', 'src', 'url'].includes((a('name') || '').toLowerCase()) && a('value')) push(a('value'), 'Object', ''); break;
+      case 'applet': for (const k of ['code', 'archive', 'object']) if (a(k)) push(a(k), 'Object', ''); break;
+      case 'iframe': case 'frame': if (a('src')) push(a('src'), 'Frame', ''); break;
+      case 'script': if (a('src')) push(a('src'), 'Script', ''); break;
+      case 'form': if (cfg.checkForms && a('action')) push(a('action'), 'Form', ''); break;
+      case 'input': if ((a('type') || '').toLowerCase() === 'image' && a('src')) push(a('src'), 'Image', ''); break;
+      case 'body': case 'table': case 'tr': case 'td': case 'th': if (a('background')) push(a('background'), 'Image', ''); break;
+      case 'blockquote': case 'q': case 'ins': case 'del': if (a('cite')) push(a('cite'), 'Link', ''); break;
+      case 'image': case 'use': { const h = a('href') || a('xlink:href'); if (h && !h.startsWith('#')) push(h, 'Image', ''); break; }
+      case 'meta': {
+        const he = (a('http-equiv') || '').toLowerCase(), nm = (a('name') || a('property') || '').toLowerCase(), c = a('content') || '';
+        if (he === 'refresh') { const m = /url\s*=\s*['"]?([^'";]+)/i.exec(c); if (m) push(m[1], 'Page', 'meta refresh'); }
+        else if (['og:image', 'twitter:image', 'msapplication-tileimage'].includes(nm)) push(c, 'Image', '');
+        break;
+      }
+      case 'style': cssLinks(el.textContent, push, 'Image'); break;
+    }
+  }
+  return out;
+}
+
+function extractCss(text, pageUrl) {
+  const links = [];
+  cssLinks(text, (raw, kind) => {
+    raw = (raw || '').trim();
+    if (!raw || BAD_SCHEME.test(raw)) return;
+    try { links.push({ url: resolveRaw(raw, pageUrl), kind, text: '' }); } catch (e) {}
+  }, 'Image');
+  return links;
+}
+
+/* ───────────── rezolvare URL (folder: rădăcina site-ului = folderul ales) ───────────── */
+function resolveRaw(raw, base) {
+  raw = String(raw).trim();
+  if (S.mode === 'folder' && S.rootPrefix && /^\/(?!\/)/.test(raw)) return new URL(S.rootPrefix + raw.slice(1));
+  return new URL(raw, base);
+}
+const normKey = u => { const x = new URL(u.href); x.hash = ''; return x.href; };
+
+function decodeBuf(buf, ctype) {
+  let label = null;
+  const m = /charset=([^;\s]+)/i.exec(ctype || '');
+  if (m) label = m[1].replace(/["']/g, '');
+  const u8 = new Uint8Array(buf);
+  if (!label) {
+    if (u8[0] === 0xEF && u8[1] === 0xBB && u8[2] === 0xBF) label = 'utf-8';
+    else {
+      let head = ''; for (let i = 0; i < Math.min(u8.length, 2048); i++) head += u8[i] < 128 ? String.fromCharCode(u8[i]) : ' ';
+      const mm = /charset\s*=\s*["']?([A-Za-z0-9_\-:.]+)/i.exec(head); if (mm) label = mm[1];
+    }
+  }
+  try { return new TextDecoder(label || 'utf-8').decode(buf); } catch (e) { return new TextDecoder('utf-8').decode(buf); }
+}
+
+/* ───────────── planificare / coadă ───────────── */
+function isInternal(u) {
+  if (u.protocol === 'file:') return S.mode === 'folder' && u.href.startsWith(S.rootPrefix);
+  if (u.protocol === 'http:' || u.protocol === 'https:') return S.internalHosts.has(siteKey(u.hostname));
+  return false;
+}
+const BIN_EXT = /\.(pdf|zip|rar|7z|gz|tgz|tar|bz2|xz|exe|msi|dmg|iso|apk|deb|rpm|jpe?g|png|gif|webp|avif|bmp|ico|svg|tiff?|mp3|mp4|m4a|m4v|avi|mov|mkv|webm|ogg|wav|flac|docx?|xlsx?|pptx?|od[tsp]|epub|woff2?|ttf|otf|eot|json|js|css|xml|txt|csv)$/i;
+const looksHtml = u => !BIN_EXT.test(u.pathname);
+
+function plan(u, kind, depth) {
+  const c = S.cfg;
+  const p = u.protocol;
+  if (!['http:', 'https:', 'file:', 'mailto:', 'ftp:'].includes(p)) return null;
+  if (p === 'mailto:' && !c.checkMailto) return null;
+  const internal = isInternal(u);
+  if (!internal && !c.checkExternal && kind !== 'Start') return null;
+  if (!c.checkResources && !['Start', 'Page', 'Frame'].includes(kind)) return null;
+  let parse = internal && (p === 'http:' || p === 'https:' || p === 'file:');
+  parse = parse && (kind === 'Start' || kind === 'Stylesheet' || ((kind === 'Page' || kind === 'Frame') && looksHtml(u)));
+  const key = u.href;
+  if (parse && kind !== 'Start') {
+    if (c.maxDepth != null && depth > c.maxDepth) parse = false;
+    if (c.noFollow.some(r => r.test(key))) parse = false;
+    if (c.stayInDir && p !== 'file:' && !S.dirPrefixes.some(([h, pre]) => h === siteKey(u.hostname) && u.pathname.startsWith(pre))) parse = false;
+  }
+  return { internal, parse };
+}
+
+function newResult(url, kind, depth, internal) {
+  return { url, final_url: null, http_status: null, status: 'Pending', message: '', kind, internal, depth, content_type: null, size: null,
+    last_modified: null, title: null, elapsed_ms: 0, chain: [], parents: [], parsed: false, links_found: 0 };
+}
+function addParent(r, p) {
+  if (r.parents.length < 100 && !r.parents.some(x => x.url === p.url && x.text === p.text)) r.parents.push(p);
+}
+
+function enqueue(u, kind, depth, parent) {
+  const key = normKey(u);
+  if (S.index.has(key)) { if (parent) addParent(S.results[S.index.get(key)], parent); return; }
+  const pl = plan(u, kind, depth);
+  if (!pl) return;
+  if (S.results.length >= S.cfg.maxUrls) { S.truncated = true; return; }
+  const idx = S.results.length;
+  const r = newResult(key, kind, depth, pl.internal);
+  if (parent) r.parents.push(parent);
+  S.results.push(r); S.index.set(key, idx);
+  if (u.protocol === 'ftp:') { r.status = 'Skipped'; r.message = T('FTP nu poate fi verificat din browser (folosește varianta Rust)', 'FTP cannot be checked from a browser (use the Rust edition)'); S.done++; return; }
+  S.queue.push({ url: u, key, kind, depth, parse: pl.parse, internal: pl.internal, idx });
+}
+
+function discover(links, bad, parentUrl, depth) {
+  for (const l of links) {
+    const u = new URL(l.url.href);
+    const frag = u.hash ? decodeURIComponent(u.hash.slice(1)) : '';
+    u.hash = '';
+    const key = u.href;
+    const parent = { url: parentUrl, text: l.text, kind: l.kind };
+    if (S.cfg.checkFragments && frag && ['http:', 'https:', 'file:'].includes(u.protocol) && (l.kind === 'Page' || l.kind === 'Frame')) S.fragments.push([key, frag, parent]);
+    if (key === parentUrl) continue;
+    if (S.cfg.exclude.some(r => r.test(key))) { S.ignored++; continue; }
+    enqueue(u, l.kind, depth + 1, parent);
+  }
+  for (const [raw, kind, msg] of bad) {
+    const key = 'invalid:' + raw;
+    const p = { url: parentUrl, text: '', kind };
+    if (S.index.has(key)) { addParent(S.results[S.index.get(key)], p); continue; }
+    const r = newResult(raw, kind, depth + 1, true);
+    r.status = 'InvalidUrl'; r.message = msg; r.parents.push(p);
+    S.index.set(key, S.results.length); S.results.push(r); S.done++; S.broken++;
+  }
+}
+
+/* ───────────── verificări ───────────── */
+function statusFromCode(c) {
+  if ((c >= 200 && c < 300) || c === 304) return 'Ok';
+  if (c === 401 || c === 403) return 'Forbidden';
+  if (c === 404 || c === 410) return 'NotFound';
+  if (c >= 400 && c < 500) return 'ClientError';
+  if (c >= 500) return 'ServerError';
+  return 'ClientError';
+}
+
+const EMAIL = /^[^@\s<>()\[\]\\,;:"]+@[^@\s<>()\[\]\\,;:"]+\.[^@\s<>()\[\]\\,;:".]{2,}$/;
+function checkMailto(t, r) {
+  const rest = t.url.href.replace(/^mailto:/i, '');
+  const [addr, q] = [rest.split('?')[0], rest.includes('?') ? rest.slice(rest.indexOf('?') + 1) : ''];
+  let dec = addr; try { dec = decodeURIComponent(addr); } catch (e) {}
+  if (!dec.trim()) { if (!q) { r.status = 'InvalidEmail'; r.message = T('adresă de e-mail lipsă', 'missing e-mail address'); } else { r.status = 'Ok'; r.message = T('mailto fără destinatar', 'mailto without recipient'); } return; }
+  for (let a of dec.split(',')) { a = a.trim(); if (a && !EMAIL.test(a)) { r.status = 'InvalidEmail'; r.message = T('adresă invalidă: ', 'invalid address: ') + trunc(a, 80); return; } }
+  r.status = 'Ok'; r.message = T('sintaxă validă (existența căsuței nu se verifică)', 'valid syntax (mailbox existence is not checked)');
+}
+
+/* folder local */
+function relPathOf(u) {
+  let p = decodeURIComponent(u.pathname);
+  const pre = '/' + S.rootName + '/';
+  if (p === '/' + S.rootName) return '';
+  return p.startsWith(pre) ? p.slice(pre.length) : null;
+}
+const INDEXES = ['index.html', 'index.htm', 'default.htm', 'default.html', 'index.xhtml'];
+function lookupFile(rel) {
+  if (S.files.has(rel)) return { file: S.files.get(rel), path: rel };
+  return null;
+}
+async function fsCheck(t, r) {
+  let rel;
+  try { rel = relPathOf(t.url); } catch (e) { rel = null; }
+  if (rel == null) { r.status = 'InvalidUrl'; r.message = T('în afara folderului ales', 'outside the chosen folder'); return null; }
+  let hit = null, isDir = false;
+  if (rel === '' || rel.endsWith('/') || S.dirs.has(rel.replace(/\/$/, ''))) {
+    isDir = true;
+    const d = rel.replace(/\/$/, '');
+    for (const n of INDEXES) { hit = lookupFile(d ? d + '/' + n : n); if (hit) break; }
+    if (!hit) { r.status = S.dirs.has(d) || d === '' ? 'Ok' : 'LocalMissing'; r.message = r.status === 'Ok' ? T('director (fără index)', 'directory (no index)') : T('director inexistent', 'directory not found'); return null; }
+  } else hit = lookupFile(rel);
+  if (!hit) {
+    r.status = 'LocalMissing';
+    const alt = S.cfg.caseCheck ? S.filesLower.get(rel.toLowerCase()) : null;
+    r.message = alt ? T('diferență de majuscule: există „', 'case mismatch: „') + alt + T('” — pe servere Linux linkul va eșua', '” exists — will fail on Linux servers') : T('fișierul nu există în folder', 'file not found in folder');
+    return null;
+  }
+  const f = hit.file;
+  r.status = 'Ok'; r.size = f.size;
+  r.content_type = f.type || mimeOf(hit.path);
+  if (f.lastModified) r.last_modified = new Date(f.lastModified).toUTCString();
+  if (isDir) r.final_url = S.rootPrefix + hit.path.split('/').map(encodeURIComponent).join('/');
+  if (t.parse && /\.(html?|xhtml|shtml|css)$/i.test(hit.path)) {
+    const buf = await f.arrayBuffer();
+    return { text: decodeBuf(buf.slice(0, 8 * 1024 * 1024), null), css: /\.css$/i.test(hit.path), pageUrl: new URL(r.final_url || t.key) };
+  }
+  return null;
+}
+function mimeOf(p) {
+  const e = (p.split('.').pop() || '').toLowerCase();
+  return ({ html: 'text/html', htm: 'text/html', css: 'text/css', js: 'text/javascript', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', svg: 'image/svg+xml', webp: 'image/webp', pdf: 'application/pdf', json: 'application/json', xml: 'application/xml', txt: 'text/plain', ico: 'image/x-icon', woff2: 'font/woff2', woff: 'font/woff', mp4: 'video/mp4', mp3: 'audio/mpeg' })[e] || null;
+}
+
+/* rețea */
+function proxied(url) { return S.cfg.proxy ? S.cfg.proxy.replace('{url}', encodeURIComponent(url)) : url; }
+async function timedFetch(url, opts) {
+  const ac = new AbortController();
+  const to = setTimeout(() => ac.abort('timeout'), S.cfg.timeout * 1000);
+  const onAbort = () => ac.abort('cancel');
+  if (S.abort) S.abort.signal.addEventListener('abort', onAbort, { once: true });
+  try { return await fetch(url, { ...opts, signal: ac.signal, cache: 'no-store', credentials: 'omit' }); }
+  finally { clearTimeout(to); if (S.abort) S.abort.signal.removeEventListener('abort', onAbort); }
+}
+async function netOnce(t, r) {
+  const wantBody = t.parse;
+  let method = wantBody ? 'GET' : 'HEAD';
+  let res;
+  try {
+    res = await timedFetch(proxied(t.key), { method, redirect: 'follow', mode: 'cors' });
+    if (method === 'HEAD' && res.status >= 400) res = await timedFetch(proxied(t.key), { method: 'GET', redirect: 'follow', mode: 'cors' });
+  } catch (e) {
+    if (S.cancelled) { r.status = 'Skipped'; r.message = T('oprit', 'stopped'); return { retry: false }; }
+    const timedOut = e === 'timeout' || (e && e.name === 'AbortError');
+    if (timedOut) { r.status = 'Timeout'; r.message = T('timp de răspuns depășit', 'response time exceeded'); return { retry: true }; }
+    // CORS sau eroare de rețea: încercăm „no-cors” ca să distingem
+    try {
+      await timedFetch(t.key, { method: 'GET', mode: 'no-cors', redirect: 'follow' });
+      r.status = 'Skipped';
+      r.message = T('serverul a răspuns, dar codul HTTP nu poate fi citit din browser (CORS) — neverificabil aici', 'the server answered, but its HTTP status cannot be read from a browser (CORS) — unverifiable here');
+      return { retry: false };
+    } catch (e2) {
+      r.status = 'NoConnection';
+      r.message = T('inaccesibil (DNS, conexiune refuzată sau certificat invalid)', 'unreachable (DNS, refused connection or invalid certificate)');
+      return { retry: true };
+    }
+  }
+  r.http_status = res.status;
+  r.content_type = (res.headers.get('content-type') || '').split(';')[0].trim().toLowerCase() || null;
+  r.last_modified = res.headers.get('last-modified');
+  const cl = parseInt(res.headers.get('content-length') || '', 10); if (!isNaN(cl)) r.size = cl;
+  let st = statusFromCode(res.status);
+  if (S.cfg.ignoreStatus.includes(res.status)) { st = 'Ok'; r.message = 'HTTP ' + res.status + T(' ignorat conform configurației', ' ignored per configuration'); }
+  else if (st !== 'Ok') r.message = 'HTTP ' + res.status + ' ' + (res.statusText || '');
+  if (res.redirected && res.url && !S.cfg.proxy) {
+    r.final_url = res.url;
+    if (st === 'Ok') { st = 'Redirected'; r.message = '→ ' + res.url; }
+  }
+  r.status = st;
+  const retry = [429, 502, 503, 504].includes(res.status);
+  let body = null;
+  if (wantBody && res.status < 300) {
+    const ct = r.content_type || '';
+    const isCss = ct.includes('css'), isHtml = ct.includes('html');
+    if (isCss || isHtml) {
+      const buf = await res.arrayBuffer();
+      r.size = r.size == null ? buf.byteLength : Math.max(r.size, buf.byteLength);
+      body = { text: decodeBuf(buf.slice(0, 8 * 1024 * 1024), res.headers.get('content-type')), css: isCss, pageUrl: new URL(r.final_url || t.key) };
+    }
+  } else { try { res.body && res.body.cancel(); } catch (e) {} }
+  return { retry, body };
+}
+async function netCheck(t, r) {
+  let last;
+  for (let n = 0; n <= S.cfg.retries; n++) {
+    last = await netOnce(t, r);
+    if (last.retry && n < S.cfg.retries && !S.cancelled) { await sleep(500 * (n + 1)); continue; }
+    break;
+  }
+  return last.body || null;
+}
+
+async function handle(t) {
+  const r = S.results[t.idx];
+  const t0 = performance.now();
+  let body = null;
+  try {
+    if (t.url.protocol === 'mailto:') checkMailto(t, r);
+    else if (t.url.protocol === 'file:') body = await fsCheck(t, r);
+    else body = await netCheck(t, r);
+    if (body) {
+      let links = [], bad = [];
+      if (body.css) links = extractCss(body.text, body.pageUrl);
+      else {
+        const doc = new DOMParser().parseFromString(body.text, 'text/html');
+        const ex = extractDoc(doc, body.pageUrl, S.cfg);
+        r.title = ex.title; r.h1 = ex.h1; links = ex.links; bad = ex.bad;
+        S.anchors.set(t.key, ex.anchors);
+        if (r.final_url) S.anchors.set(normKey(new URL(r.final_url)), ex.anchors);
+      }
+      r.parsed = true; r.links_found = links.length;
+      if (!S.cancelled) discover(links, bad, r.url, t.depth);
+    }
+  } catch (e) {
+    r.status = 'ClientError'; r.message = T('eroare internă: ', 'internal error: ') + trunc(e && e.message, 120);
+  }
+  r.elapsed_ms = Math.round(performance.now() - t0);
+  S.done++; if (isBroken(r.status)) S.broken++;
+}
+
+function hostOf(t) { return t.url.protocol === 'file:' ? 'file' : t.url.host; }
+function drive() {
+  return new Promise(resolve => {
+    const pump = () => {
+      if (S.cancelled) { if (S.inflight === 0) resolve(); return; }
+      const perHost = Math.max(2, Math.ceil(S.cfg.threads / 2));
+      while (!S.paused && S.inflight < S.cfg.threads && S.queue.length) {
+        let pick = -1;
+        const lim = Math.min(S.queue.length, 300);
+        for (let i = 0; i < lim; i++) { if ((S.hostBusy.get(hostOf(S.queue[i])) || 0) < perHost) { pick = i; break; } }
+        if (pick < 0) break;
+        const t = S.queue.splice(pick, 1)[0];
+        const h = hostOf(t);
+        S.hostBusy.set(h, (S.hostBusy.get(h) || 0) + 1);
+        S.inflight++;
+        handle(t).finally(() => { S.inflight--; S.hostBusy.set(h, (S.hostBusy.get(h) || 1) - 1); pump(); });
+      }
+      if (S.inflight === 0 && S.queue.length === 0) resolve();
+    };
+    S.pump = pump; pump();
+  });
+}
+
+/* ───────────── pașii finali ───────────── */
+function finalizeFragments() {
+  for (const [page, frag, parent] of S.fragments) {
+    if (!frag || frag.toLowerCase() === 'top') continue;
+    const set = S.anchors.get(page); if (!set) continue;
+    if (set.has(frag)) continue;
+    const full = page + '#' + frag, key = 'frag:' + full;
+    if (S.index.has(key)) { addParent(S.results[S.index.get(key)], parent); continue; }
+    const pi = S.index.get(page);
+    const r = newResult(full, 'Anchor', pi != null ? S.results[pi].depth : 1, true);
+    r.status = 'FragmentMissing'; r.message = T('ancora #', 'anchor #') + frag + T(' nu există în pagina țintă', ' does not exist in the target page'); r.parents.push(parent);
+    S.index.set(key, S.results.length); S.results.push(r); S.broken++;
+  }
+  S.fragments = [];
+}
+function finalizeOrphans() {
+  if (!(S.mode === 'folder' && S.cfg.orphans)) return;
+  const seen = new Set();
+  for (const r of S.results) {
+    try { const u = new URL(r.url); u.hash = ''; seen.add(u.href); u.search = ''; seen.add(u.href); } catch (e) {}
+    if (r.final_url) { try { const u = new URL(r.final_url); u.hash = ''; u.search = ''; seen.add(u.href); } catch (e) {} }
+  }
+  const ignore = [/(^|\/)\./, /(^|\/)(thumbs\.db|desktop\.ini)$/i, /(^|\/)(robots\.txt|favicon\.ico|sitemap.*\.xml)$/i];
+  const out = [];
+  for (const [path, f] of S.files) {
+    if (ignore.some(re => re.test(path))) continue;
+    const u = S.rootPrefix + path.split('/').map(encodeURIComponent).join('/');
+    let ok = seen.has(u);
+    const name = path.split('/').pop().toLowerCase();
+    if (!ok && INDEXES.includes(name)) { const d = u.slice(0, u.lastIndexOf('/') + 1); ok = seen.has(d); }
+    if (!ok) out.push([u, path, f]);
+  }
+  out.sort((a, b) => a[0] < b[0] ? -1 : 1);
+  for (const [u, path, f] of out) {
+    const r = newResult(u, 'File', 0, true);
+    r.status = 'Orphan'; r.message = path; r.size = f.size; r.content_type = f.type || mimeOf(path);
+    S.index.set('orphan:' + u, S.results.length); S.results.push(r);
+  }
+}
+
+/* ───────────── pornire ───────────── */
+async function start() {
+  if (S.running) return;
+  let cfg;
+  try { cfg = readCfg(); } catch (e) { msg(e.message); return; }
+  S.cfg = cfg; S.mode = activeMode();
+  const startUrls = [], pasted = [];
+  S.results = []; S.index = new Map(); S.queue = []; S.anchors = new Map(); S.fragments = []; S.hostBusy = new Map();
+  S.done = 0; S.broken = 0; S.ignored = 0; S.truncated = false; S.cancelled = false; S.paused = false; S.selected = -1;
+  S.internalHosts = new Set(cfg.internalHosts); S.dirPrefixes = [];
+  S.abort = new AbortController();
+
+  if (S.mode === 'folder') {
+    if (!S.files.size) { msg(T('Alege mai întâi un folder.', 'Choose a folder first.')); return; }
+    S.rootPrefix = new URL('file:///' + encodeURIComponent(S.rootName) + '/').href;
+    let entry = $('#entry').value.trim().replace(/^\.?\//, '');
+    if (!entry) entry = INDEXES.map(n => lookupFile(n)).find(Boolean) ? INDEXES.find(n => S.files.has(n)) : null;
+    if (!entry) { const first = [...S.files.keys()].find(p => /\.html?$/i.test(p)); entry = first || null; }
+    if (!entry || !S.files.has(entry)) { msg(T('Nu am găsit pagina de start (index.html).', 'Start page (index.html) not found.')); return; }
+    startUrls.push(new URL(S.rootPrefix + entry.split('/').map(encodeURIComponent).join('/')));
+  } else if (S.mode === 'online') {
+    let v = $('#url').value.trim(); if (!v) { msg(T('Introdu URL-ul de start.', 'Enter the start URL.')); return; }
+    if (!/^[a-z]+:\/\//i.test(v)) v = 'https://' + v;
+    try { const u = new URL(v); startUrls.push(u); S.internalHosts.add(siteKey(u.hostname)); S.dirPrefixes.push([siteKey(u.hostname), u.pathname.replace(/[^/]*$/, '')]); } catch (e) { msg(T('URL invalid.', 'Invalid URL.')); return; }
+  } else {
+    for (const l of lines($('#urls').value)) { try { const u = new URL(/^[a-z]+:/i.test(l) ? l : 'https://' + l); startUrls.push(u); S.internalHosts.add(siteKey(u.hostname)); } catch (e) {} }
+    const h = $('#html').value.trim();
+    if (h) {
+      let b; try { b = new URL($('#base').value.trim() || 'https://invalid.local/'); } catch (e) { msg(T('URL de bază invalid.', 'Invalid base URL.')); return; }
+      pasted.push([h, b]);
+    }
+    if (!startUrls.length && !pasted.length) { msg(T('Introdu URL-uri sau sursă HTML.', 'Enter URLs or HTML source.')); return; }
+    // în modul listă nu parcurgem site-uri: doar verificăm
+    S.cfg.maxDepth = 0;
+  }
+  S.startUrls = startUrls;
+  S.running = true; S.started = new Date().toISOString(); S.t0 = performance.now();
+  setRunning(true); show('#prog', true); show('#res', true); msg('');
+  for (const u of startUrls) {
+    const key = normKey(u);
+    if (S.index.has(key)) continue;
+    const pl = plan(u, 'Start', 0) || { internal: true, parse: S.mode !== 'list' };
+    const idx = S.results.length;
+    const r = newResult(key, 'Start', 0, pl.internal);
+    S.results.push(r); S.index.set(key, idx);
+    S.queue.push({ url: u, key, kind: 'Start', depth: 0, parse: S.mode === 'list' ? false : pl.parse, internal: pl.internal, idx });
+  }
+  for (const [h, b] of pasted) {
+    const doc = new DOMParser().parseFromString(h, 'text/html');
+    const ex = extractDoc(doc, b, S.cfg);
+    S.internalHosts.add(siteKey(b.hostname));
+    discover(ex.links, ex.bad, b.href, 0);
+  }
+  const ticker = setInterval(refreshProgress, 150);
+  await drive();
+  clearInterval(ticker);
+  if (S.cancelled) { for (const r of S.results) if (r.status === 'Pending') { r.status = 'Skipped'; r.message = T('neverificat (oprit)', 'not checked (stopped)'); } }
+  else { $('#c-phase').textContent = T('ancore și orfani…', 'anchors and orphans…'); if (S.cfg.checkFragments) finalizeFragments(); finalizeOrphans(); }
+  S.running = false; $('#c-phase').textContent = '';
+  setRunning(false); refreshProgress(true); applyView();
+  msg(`${T('Terminat', 'Finished')}: ${S.results.length} URL · ${S.results.filter(r => isBroken(r.status)).length} ${T('rupte', 'broken')}`);
+}
+function activeMode() { const t = $('#tl-main .tab[aria-selected=true]'); return t ? t.dataset.mode : 'folder'; }
+
+async function recheck() {
+  if (S.running || !S.results.length) return;
+  S.cfg = S.cfg || readCfg();
+  const todo = S.results.map((r, i) => [r, i]).filter(([r]) => isBroken(r.status) && !['Anchor', 'File'].includes(r.kind) && /^(https?|file|mailto):/i.test(r.url));
+  if (!todo.length) { msg(T('Nu există linkuri rupte de reverificat.', 'No broken links to recheck.')); return; }
+  S.running = true; S.cancelled = false; S.paused = false; S.abort = new AbortController(); S.queue = []; S.hostBusy = new Map(); S.t0 = performance.now(); S.done = 0; S.broken = 0;
+  setRunning(true); show('#prog', true);
+  for (const [r, i] of todo) {
+    r.status = 'Pending'; r.message = ''; r.http_status = null; r.final_url = null; r.chain = [];
+    const u = new URL(r.url);
+    S.queue.push({ url: u, key: r.url, kind: r.kind, depth: r.depth, parse: false, internal: r.internal, idx: i });
+  }
+  const ticker = setInterval(refreshProgress, 150);
+  await drive();
+  clearInterval(ticker);
+  S.running = false; setRunning(false); refreshProgress(true); applyView();
+  msg(T('Reverificare terminată.', 'Recheck finished.'));
+}
+
+/* ───────────── UI: progres, tabel ───────────── */
+function show(sel, on) { $(sel).classList.toggle('hide', !on); }
+function msg(t) { $('#msg').textContent = t || ''; }
+function setRunning(on) {
+  $('#b-start').disabled = on; $('#b-pause').disabled = !on; $('#b-stop').disabled = !on; $('#b-recheck').disabled = on;
+  $('#b-pause').textContent = T('⏸ Pauză', '⏸ Pause');
+}
+function refreshProgress(final) {
+  $('#c-done').textContent = S.done; $('#c-q').textContent = S.queue.length + S.inflight; $('#c-bad').textContent = S.results.filter(r => isBroken(r.status)).length;
+  $('#c-t').textContent = ((performance.now() - S.t0) / 1000).toFixed(0) + 's';
+  const total = Math.max(1, S.results.length);
+  const pct = final ? 100 : Math.min(99, (S.done / total) * 100);
+  $('#bar').style.width = pct + '%'; $('#pbar').setAttribute('aria-valuenow', String(Math.round(pct)));
+  buildChips(); if (!final) applyView(true);
+}
+
+const COLS = [['Stare', 'Status', 'status'], ['Cod', 'Code', 'code'], ['URL', 'URL', 'url'], ['Tip', 'Type', 'kind'], ['Mărime', 'Size', 'size'], ['Titlu', 'Title', 'title'], ['Niv.', 'Lvl', 'depth'], ['ms', 'ms', 'time']];
+function buildHead() {
+  $('#thead').innerHTML = COLS.map(([ro, en, k]) => `<div data-sort="${k}">${LANG === 'en' ? en : ro}${S.sort === k ? (S.desc ? ' ▼' : ' ▲') : ''}</div>`).join('');
+}
+const FILTERS = [['all', 'Toate', 'All'], ['broken', 'Rupte', 'Broken'], ['red', 'Redirecționări', 'Redirects'], ['ok', 'OK', 'OK'], ['orph', 'Orfane', 'Orphans'], ['rev', 'De verificat (403)', 'To review (403)'], ['skip', 'Neverificabile', 'Unverifiable']];
+function matchFilter(r, f) {
+  switch (f) { case 'broken': return isBroken(r.status); case 'red': return r.status === 'Redirected'; case 'ok': return r.status === 'Ok'; case 'orph': return r.status === 'Orphan'; case 'rev': return isReview(r.status); case 'skip': return r.status === 'Skipped' || r.status === 'RobotsBlocked'; default: return true; }
+}
+function buildChips() {
+  $('#chips').innerHTML = FILTERS.map(([k, ro, en]) => `<button class="chip" data-f="${k}" aria-pressed="${S.filter === k}">${LANG === 'en' ? en : ro} (${S.results.reduce((a, r) => a + (matchFilter(r, k) ? 1 : 0), 0)})</button>`).join('');
+}
+function sortKey(r, k) {
+  switch (k) { case 'status': return stLabel(r.status); case 'code': return r.http_status || 0; case 'url': return r.url; case 'kind': return r.kind; case 'size': return r.size || 0; case 'title': return r.title || ''; case 'depth': return r.depth; case 'time': return r.elapsed_ms; default: return 0; }
+}
+function applyView(soft) {
+  const q = S.q.toLowerCase();
+  let v = [];
+  for (let i = 0; i < S.results.length; i++) {
+    const r = S.results[i];
+    if (!matchFilter(r, S.filter)) continue;
+    if (q && !(r.url.toLowerCase().includes(q) || (r.title || '').toLowerCase().includes(q) || (r.message || '').toLowerCase().includes(q))) continue;
+    v.push(i);
+  }
+  if (S.sort !== 'order') { const k = S.sort; v.sort((a, b) => { const x = sortKey(S.results[a], k), y = sortKey(S.results[b], k); return x < y ? -1 : x > y ? 1 : 0; }); }
+  if (S.desc) v.reverse();
+  S.view = v; renderRows();
+}
+const RH = 28;
+function renderRows() {
+  const box = $('#tbl'), sp = $('#spacer');
+  sp.style.height = (S.view.length * RH) + 'px';
+  const top = Math.max(0, box.scrollTop - 40), h = box.clientHeight + 80;
+  const first = Math.floor(top / RH), last = Math.min(S.view.length, Math.ceil((top + h) / RH));
+  let html = '';
+  for (let i = first; i < last; i++) {
+    const idx = S.view[i], r = S.results[idx];
+    const cls = isBroken(r.status) ? 's-bad' : r.status === 'Ok' ? 's-ok' : (r.status === 'Redirected' || r.status === 'Orphan') ? 's-warn' : 's-mut';
+    html += `<div class="r${idx === S.selected ? ' sel' : ''}" data-i="${idx}" style="top:${i * RH}px"><div class="${cls}">${esc(stLabel(r.status))}</div><div>${r.http_status || ''}</div><div class="u" title="${esc(r.url)}">${esc(r.url)}</div><div>${esc(kindLabel(r.kind))}</div><div>${humanSize(r.size)}</div><div title="${esc(r.title || '')}">${esc(r.title || '')}</div><div>${r.depth}</div><div>${r.elapsed_ms || ''}</div></div>`;
+  }
+  sp.innerHTML = html;
+}
+function showDetail(i) {
+  S.selected = i; renderRows();
+  const r = S.results[i]; if (!r) { $('#detail').innerHTML = ''; return; }
+  const chain = (r.chain || []).map(h => `${h.code} ${esc(h.url)}`).join(' → ');
+  $('#detail').innerHTML = `<div><b class="u">${esc(r.url)}</b> <button data-copy="${i}">⧉</button>${/^https?:/i.test(r.url) ? ` <a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">↗</a>` : ''}</div>
+    <div>${esc(stLabel(r.status))}${r.http_status ? ' · HTTP ' + r.http_status : ''} ${esc(r.message || '')}</div>
+    ${r.final_url ? `<div>→ <span class="u">${esc(r.final_url)}</span></div>` : ''}${chain ? `<div>${chain}</div>` : ''}
+    <div style="margin-top:6px"><b>${T('Găsit pe:', 'Found on:')}</b></div>
+    ${(r.parents || []).slice(0, 50).map(p => `<span class="par">↳ ${esc(p.url)}${p.text ? ' — „' + esc(p.text) + '”' : ''}</span>`).join('') || '<span class="par">—</span>'}`;
+}
+
+/* ───────────── export ───────────── */
+function buildSession() {
+  return { version: 1, tool: 'veriga-web', started: S.started || new Date().toISOString(), finished: new Date().toISOString(),
+    config: { start: S.startUrls.map(u => u.href), lang: LANG }, results: S.results, ignored: S.ignored, truncated: S.truncated, cancelled: S.cancelled };
+}
+function download(name, mime, text) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: mime + ';charset=utf-8' }));
+  a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+const csvSafe = v => { v = String(v == null ? '' : v); return /^[=+\-@\t\r]/.test(v) ? "'" + v : v; };
+function csvCell(v, d) { v = v == null ? '' : String(v); return (v.includes(d) || /["\n\r]/.test(v)) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+function toCsv(d, onlyBroken) {
+  const rows = [['Address', 'Status-Code', 'Status', 'Type', 'Internal', 'Content-Type', 'Size', 'Title', 'Level', 'Redirected-To', 'Last-Modified', 'Time-ms', 'Message', 'Found-On']];
+  for (const r of S.results) {
+    if (onlyBroken && !isBroken(r.status)) continue;
+    const found = [...new Set(r.parents.map(p => p.url))].slice(0, 3).join(' | ');
+    rows.push([r.url, r.http_status || '', stLabel(r.status), kindLabel(r.kind), r.internal ? 'yes' : 'no', r.content_type || '', r.size == null ? '' : r.size, r.title || '', r.depth, r.final_url || '', r.last_modified || '', r.elapsed_ms, r.message || '', found]);
+  }
+  return rows.map((row, ri) => row.map(c => csvCell(ri ? csvSafe(c) : c, d)).join(d)).join('\n') + '\n';
+}
+function toText() {
+  const broken = S.results.filter(r => isBroken(r.status));
+  let o = 'VERIGA — ' + T('raport de verificare a legăturilor', 'link check report') + '\n' + S.startUrls.map(u => u.href).join(', ') + '\n';
+  o += `${T('Total', 'Total')}: ${S.results.length} | ${T('Rupte', 'Broken')}: ${broken.length}\n\n`;
+  if (!broken.length) return o + T('Nicio legătură ruptă.', 'No broken links.') + '\n';
+  const g = {}; broken.forEach(r => (g[r.status] = g[r.status] || []).push(r));
+  for (const st of Object.keys(g)) {
+    o += `-- ${stLabel(st)} (${g[st].length})\n`;
+    for (const r of g[st].sort((a, b) => a.url < b.url ? -1 : 1)) { o += r.url + '\n'; if (r.message) o += '    ' + r.message + '\n'; r.parents.slice(0, 5).forEach(p => { o += '    ↳ ' + p.url + (p.text ? ' „' + p.text + '”' : '') + '\n'; }); }
+    o += '\n';
+  }
+  return o;
+}
+function toSitemapXml() {
+  let o = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+  const seen = new Set();
+  for (const r of S.results) {
+    if (!(r.internal && r.status === 'Ok' && (r.content_type || '').includes('html') && ['Page', 'Start', 'Frame'].includes(r.kind) && /^https?:/i.test(r.url)) || seen.has(r.url)) continue;
+    seen.add(r.url);
+    const d = r.last_modified ? new Date(r.last_modified) : null;
+    o += `  <url><loc>${esc(r.url)}</loc>${d && !isNaN(d) ? `<lastmod>${d.toISOString().slice(0, 10)}</lastmod>` : ''}</url>\n`;
+  }
+  return o + '</urlset>\n';
+}
+function toTree() {
+  const ch = new Map(), roots = [];
+  S.results.forEach((r, i) => {
+    if (r.kind === 'Start') { roots.push(i); return; }
+    if (!['Page', 'Frame'].includes(r.kind) || !r.internal || !r.parents.length) return;
+    const k = r.parents[0].url; (ch.get(k) || ch.set(k, []).get(k)).push(i);
+  });
+  const seen = new Set(); let o = '';
+  const walk = (i, d) => { if (seen.has(i) || d > 12) return; seen.add(i); const r = S.results[i]; o += '  '.repeat(d) + (isBroken(r.status) ? '✗ ' : '') + r.url + (r.title ? '  — ' + r.title : '') + '\n'; (ch.get(r.url) || []).forEach(c => walk(c, d + 1)); };
+  roots.forEach(i => walk(i, 0));
+  return o;
+}
+const REPORT_CSS = ':root{--bg:#fafaf7;--fg:#1d2024;--mut:#6a717b;--card:#fff;--bd:#dcdfe3;--ok:#16794a;--bad:#b3261e;--warn:#9a6700}@media (prefers-color-scheme:dark){:root{--bg:#14161a;--fg:#e8eaed;--mut:#9aa1ab;--card:#1c1f24;--bd:#2d3239;--ok:#5ccf93;--bad:#ff8a80;--warn:#f0b84a}}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif}main{max-width:1150px;margin:0 auto;padding:20px 16px}h2{font-size:1.1rem;border-bottom:1px solid var(--bd);padding-bottom:.3em;margin-top:1.6em}table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--bd);font-size:.88rem}th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);vertical-align:top;word-break:break-word}td.u{font-family:ui-monospace,monospace;font-size:.8rem}.par{display:block;color:var(--mut);font-size:.8rem}.cards{display:flex;gap:10px;flex-wrap:wrap}.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px 16px}.card b{display:block;font-size:1.5rem}.bad b{color:var(--bad)}.ok b{color:var(--ok)}';
+function toHtmlReport() {
+  const broken = S.results.filter(r => isBroken(r.status)), red = S.results.filter(r => r.status === 'Redirected'), orph = S.results.filter(r => r.status === 'Orphan');
+  const titles = new Map(); S.results.forEach(r => { if (r.internal && r.parsed && (r.content_type || '').includes('html') && r.title) (titles.get(r.title) || titles.set(r.title, []).get(r.title)).push(r.url); });
+  const dups = [...titles].filter(([, v]) => v.length > 1);
+  const par = r => r.parents.slice(0, 5).map(p => `<span class="par">↳ ${esc(p.url)}${p.text ? ' — „' + esc(p.text) + '”' : ''}</span>`).join('');
+  let o = `<!doctype html><html lang="${LANG}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"><meta name="color-scheme" content="light dark"><title>VERIGA — ${T('raport', 'report')}</title><style>${REPORT_CSS}</style></head><body><main>`;
+  o += `<h1>VERIGA — ${T('raport de verificare a legăturilor', 'link check report')}</h1><p class="par">${esc(S.startUrls.map(u => u.href).join(', '))} · ${esc(S.started || '')}</p>`;
+  o += `<div class="cards"><div class="card"><b>${S.results.length}</b>${T('URL-uri', 'URLs')}</div><div class="card ok"><b>${S.results.filter(r => r.status === 'Ok').length}</b>OK</div><div class="card bad"><b>${broken.length}</b>${T('rupte', 'broken')}</div><div class="card"><b>${red.length}</b>${T('redirecționări', 'redirects')}</div><div class="card"><b>${orph.length}</b>${T('orfane', 'orphans')}</div></div>`;
+  o += `<h2>${T('Legături rupte', 'Broken links')}</h2>`;
+  if (!broken.length) o += `<p>${T('Nicio legătură ruptă.', 'No broken links.')}</p>`;
+  else { o += `<table><tr><th>URL</th><th>${T('Stare', 'Status')}</th><th>${T('Găsit pe', 'Found on')}</th></tr>`; broken.sort((a, b) => a.status < b.status ? -1 : a.status > b.status ? 1 : a.url < b.url ? -1 : 1).forEach(r => { o += `<tr><td class="u">${esc(r.url)}</td><td>${esc(stLabel(r.status))}${r.http_status ? ' · ' + r.http_status : ''}<span class="par">${esc(r.message)}</span></td><td>${par(r)}</td></tr>`; }); o += '</table>'; }
+  if (red.length) { o += `<h2>${T('Redirecționări', 'Redirects')} (${red.length})</h2><table>`; red.forEach(r => { o += `<tr><td class="u">${esc(r.url)}</td><td class="u">${esc(r.final_url || '')}</td></tr>`; }); o += '</table>'; }
+  if (orph.length) { o += `<h2>${T('Fișiere orfane', 'Orphan files')} (${orph.length})</h2><table>`; orph.forEach(r => { o += `<tr><td class="u">${esc(r.message)}</td><td>${humanSize(r.size)}</td></tr>`; }); o += '</table>'; }
+  if (dups.length) { o += `<h2>${T('Titluri duplicate', 'Duplicate titles')}</h2><table>`; dups.forEach(([t, u]) => { o += `<tr><td>${esc(t)}</td><td class="u">${u.map(esc).join('<br>')}</td></tr>`; }); o += '</table>'; }
+  o += `<h2>${T('Toate URL-urile', 'All URLs')} (${S.results.length})</h2><table><tr><th>URL</th><th>${T('Stare', 'Status')}</th><th>${T('Tip', 'Type')}</th></tr>`;
+  S.results.forEach(r => { o += `<tr><td class="u">${esc(r.url)}</td><td>${esc(stLabel(r.status))}</td><td>${esc(kindLabel(r.kind))}</td></tr>`; });
+  return o + `</table><p class="par">VERIGA web</p></main></body></html>`;
+}
+const EXPORTS = [['', '⇪ Exportă…', '⇪ Export…'], ['html', 'Raport HTML', 'HTML report'], ['csv', 'CSV', 'CSV'], ['csvb', 'CSV — doar rupte', 'CSV — broken only'], ['tsv', 'TSV', 'TSV'], ['json', 'Sesiune JSON (.veriga)', 'Session JSON (.veriga)'], ['txt', 'Text', 'Text'], ['xml', 'Sitemap XML', 'Sitemap XML'], ['tree', 'Arbore site', 'Site tree']];
+function doExport(k) {
+  if (!S.results.length) return;
+  switch (k) {
+    case 'html': download('veriga-raport.html', 'text/html', toHtmlReport()); break;
+    case 'csv': download('veriga.csv', 'text/csv', toCsv(',', false)); break;
+    case 'csvb': download('veriga-rupte.csv', 'text/csv', toCsv(',', true)); break;
+    case 'tsv': download('veriga.tsv', 'text/tab-separated-values', toCsv('\t', false)); break;
+    case 'json': download('sesiune.veriga', 'application/json', JSON.stringify(buildSession())); break;
+    case 'txt': download('veriga-raport.txt', 'text/plain', toText()); break;
+    case 'xml': download('sitemap.xml', 'application/xml', toSitemapXml()); break;
+    case 'tree': download('veriga-arbore.txt', 'text/plain', toTree()); break;
+  }
+}
+
+/* ───────────── import sesiune ───────────── */
+const numOrNull = v => (typeof v === 'number' && isFinite(v)) ? v : (typeof v === 'string' && /^\d{1,12}$/.test(v) ? Number(v) : null);
+const strOrNull = v => v == null ? null : String(v).slice(0, 4000);
+/* O sesiune importată este dată necontrolată: câmpurile sunt coercitate la tipuri sigure
+   (numere, șiruri, valori din liste albe) înainte de a ajunge în DOM sau în rapoarte. */
+function sanitizeResult(r) {
+  const o = newResult(String(r.url || ''), KIND[r.kind] ? r.kind : 'Page', numOrNull(r.depth) || 0, !!r.internal);
+  o.status = ST[r.status] ? r.status : 'Skipped';
+  o.http_status = numOrNull(r.http_status); o.final_url = strOrNull(r.final_url); o.message = strOrNull(r.message) || '';
+  o.content_type = strOrNull(r.content_type); o.size = numOrNull(r.size); o.last_modified = strOrNull(r.last_modified);
+  o.title = strOrNull(r.title); o.h1 = strOrNull(r.h1); o.elapsed_ms = numOrNull(r.elapsed_ms) || 0;
+  o.parsed = !!r.parsed; o.links_found = numOrNull(r.links_found) || 0;
+  o.chain = (Array.isArray(r.chain) ? r.chain : []).slice(0, 50).map(h => ({ url: String((h && h.url) || ''), code: numOrNull(h && h.code) || 0 }));
+  o.parents = (Array.isArray(r.parents) ? r.parents : []).slice(0, 500).map(p => ({ url: String((p && p.url) || ''), text: String((p && p.text) || '').slice(0, 200), kind: KIND[p && p.kind] ? p.kind : 'Page' }));
+  return o;
+}
+function importSession(text) {
+  let s; try { s = JSON.parse(text); } catch (e) { msg(T('Fișier JSON invalid.', 'Invalid JSON file.')); return; }
+  if (!s || !Array.isArray(s.results)) { msg(T('Nu este o sesiune VERIGA.', 'Not a VERIGA session.')); return; }
+  S.results = s.results.slice(0, 500000).filter(r => r && typeof r === 'object').map(sanitizeResult);
+  S.index = new Map(S.results.map((r, i) => [r.url, i]));
+  S.startUrls = ((s.config && s.config.start) || []).map(x => { try { return new URL(x); } catch (e) { return null; } }).filter(Boolean);
+  S.started = s.started; S.ignored = s.ignored || 0; S.truncated = !!s.truncated; S.cancelled = !!s.cancelled;
+  S.cfg = S.cfg || readCfg(); S.mode = 'online'; S.done = S.results.length; S.t0 = performance.now();
+  show('#prog', true); show('#res', true); refreshProgress(true); applyView();
+  $('#b-recheck').disabled = false;
+  msg(T('Sesiune încărcată: ', 'Session loaded: ') + S.results.length + ' URL');
+}
+
+/* ───────────── folder: citire fișiere ───────────── */
+function setFiles(list, rootName) {
+  S.files = new Map(); S.filesLower = new Map(); S.dirs = new Set(['']);
+  S.rootName = rootName || 'site';
+  for (const [path, f] of list) {
+    S.files.set(path, f); S.filesLower.set(path.toLowerCase(), path);
+    const parts = path.split('/'); parts.pop();
+    let acc = ''; for (const p of parts) { acc = acc ? acc + '/' + p : p; S.dirs.add(acc); }
+  }
+  const html = [...S.files.keys()].filter(p => /\.html?$/i.test(p)).length;
+  $('#dirinfo').textContent = `${S.rootName}: ${S.files.size} ${T('fișiere', 'files')}, ${html} HTML`;
+}
+function fromInput(files) {
+  const arr = [...files]; if (!arr.length) return;
+  const root = (arr[0].webkitRelativePath || '').split('/')[0] || 'site';
+  setFiles(arr.map(f => { const p = (f.webkitRelativePath || f.name).split('/'); p.shift(); return [p.join('/'), f]; }).filter(([p]) => p), root);
+}
+async function readEntries(entry, prefix, out) {
+  if (entry.isFile) { await new Promise(res => entry.file(f => { out.push([prefix + entry.name, f]); res(); }, res)); }
+  else if (entry.isDirectory) {
+    const reader = entry.createReader();
+    for (;;) {
+      const batch = await new Promise((res, rej) => reader.readEntries(res, rej));
+      if (!batch.length) break;
+      for (const e of batch) await readEntries(e, prefix + entry.name + '/', out);
+    }
+  }
+}
+async function fromDrop(dt) {
+  const items = [...dt.items].map(i => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+  if (!items.length) return;
+  const out = [];
+  if (items.length === 1 && items[0].isDirectory) {
+    const root = items[0]; const tmp = [];
+    await readEntries(root, '', tmp);
+    setFiles(tmp.map(([p, f]) => [p.slice(root.name.length + 1), f]), root.name);
+  } else { for (const e of items) await readEntries(e, '', out); setFiles(out, 'site'); }
+}
+
+/* ───────────── limbă ───────────── */
+function applyLang() {
+  document.documentElement.lang = LANG;
+  $$('[data-ro]').forEach(e => { e.textContent = LANG === 'en' ? e.dataset.en : e.dataset.ro; });
+  $$('[data-al-ro]').forEach(e => e.setAttribute('aria-label', LANG === 'en' ? e.dataset.alEn : e.dataset.alRo));
+  $$('[data-ph-ro]').forEach(e => { e.placeholder = LANG === 'en' ? e.dataset.phEn : e.dataset.phRo; });
+  $('#lang').textContent = LANG === 'en' ? 'RO' : 'EN';
+  $('#exp').innerHTML = EXPORTS.map(([k, ro, en]) => `<option value="${k}">${LANG === 'en' ? en : ro}</option>`).join('');
+  buildHead(); buildChips(); renderRows(); setRunning(S.running);
+}
+
+/* Tablist conform WAI-ARIA APG: săgeți, Home/End, tabindex rotativ */
+function tabKeys(list) {
+  list.addEventListener('keydown', e => {
+    const tabs = [...list.querySelectorAll('[role=tab]')]; const i = tabs.indexOf(document.activeElement);
+    if (i < 0) return; let n = -1;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') n = (i + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') n = (i - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') n = 0; else if (e.key === 'End') n = tabs.length - 1;
+    if (n < 0) return; e.preventDefault(); tabs[n].focus(); tabs[n].click();
+  });
+}
+/* ───────────── legare evenimente ───────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  tabKeys($('#tl-main')); tabKeys($('#gd-tabs'));
+  const saved = lsGet('veriga.lang'); if (saved === 'ro' || saved === 'en') LANG = saved;
+  $$('#tl-main .tab').forEach(t => t.addEventListener('click', () => {
+    $$('#tl-main .tab').forEach(x => { x.setAttribute('aria-selected', x === t ? 'true' : 'false'); x.tabIndex = x === t ? 0 : -1; });
+    for (const m of ['folder', 'online', 'list']) $('#p-' + m).classList.toggle('hide', m !== t.dataset.mode);
+  }));
+  $('#lang').addEventListener('click', () => { LANG = LANG === 'en' ? 'ro' : 'en'; lsSet('veriga.lang', LANG); applyLang(); });
+  $('#b-start').addEventListener('click', start);
+  $('#b-pause').addEventListener('click', () => {
+    S.paused = !S.paused;
+    $('#b-pause').textContent = S.paused ? T('⏵ Reia', '⏵ Resume') : T('⏸ Pauză', '⏸ Pause');
+    if (!S.paused && S.pump) S.pump();
+  });
+  $('#b-stop').addEventListener('click', () => { S.cancelled = true; S.paused = false; if (S.abort) S.abort.abort(); S.queue = []; if (S.pump) S.pump(); });
+  $('#b-recheck').addEventListener('click', recheck);
+  $('#b-import').addEventListener('change', async e => { const f = e.target.files[0]; if (f) importSession(await f.text()); e.target.value = ''; });
+  $('#dir').addEventListener('change', e => fromInput(e.target.files));
+  const drop = $('#drop');
+  ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => { fromDrop(e.dataTransfer); });
+  $('#chips').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (b) { S.filter = b.dataset.f; buildChips(); applyView(); } });
+  $('#q').addEventListener('input', e => { S.q = e.target.value; applyView(); });
+  $('#exp').addEventListener('change', e => { doExport(e.target.value); e.target.value = ''; });
+  $('#thead').addEventListener('click', e => { const d = e.target.closest('[data-sort]'); if (!d) return; const k = d.dataset.sort; if (S.sort === k) S.desc = !S.desc; else { S.sort = k; S.desc = false; } buildHead(); applyView(); });
+  $('#tbl').addEventListener('scroll', renderRows);
+  $('#spacer').addEventListener('click', e => { const r = e.target.closest('.r'); if (r) showDetail(parseInt(r.dataset.i, 10)); });
+  $('#detail').addEventListener('click', e => { const b = e.target.closest('[data-copy]'); if (b) { const r = S.results[parseInt(b.dataset.copy, 10)]; if (r && navigator.clipboard) navigator.clipboard.writeText(r.url).catch(() => {}); } });
+  applyLang();
+});
+</script>
+<script>
+/* ═════════════ VERIGA Guardian (web) — scanner de surse, reguli, reparator, vederi ═════════════ */
+const GD = { tab: 'fix', files: new Map(), props: [], sel: new Set(), log: [], msg: '', verify: true, upgrade: true, hits: [], prev: null, days: 30 };
+const gl = (ro, en) => LANG === 'en' ? en : ro;
+
+/* ── scanner (poziții în șir; ASCII/UTF-16 consecvent între scanare și aplicare) ── */
+const RX = {
+  attr: /\b(href|src|action|poster|data-href|data-src)\s*=\s*(?:"([^"]*)"|'([^']*)')/gid,
+  md: /!?\[([^\]\n]*)\]\(\s*<?([^)\s>]+)>?(?:\s+"[^"]*")?\s*\)/gd,
+  mdref: /^[ ]{0,3}\[[^\]\n]+\]:[ \t]*<?(\S+?)>?(?:[ \t]+["'(].*)?$/gmd,
+  auto: /<((?:https?|ftp):\/\/[^>\s]+)>/gd,
+  loc: /<loc>\s*(?:<!\[CDATA\[)?\s*([\s\S]*?)\s*(?:\]\]>)?\s*<\/loc>/gid,
+  menu: /_menu_item_url\]\]><\/wp:meta_key>\s*<wp:meta_value><!\[CDATA\[([\s\S]*?)\]\]><\/wp:meta_value>/gd,
+  title: /<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/gd
+};
+function gSkip(v) {
+  const t = v.trim(); if (!t || t[0] === '#') return true; const l = t.toLowerCase();
+  return /^(mailto:|tel:|sms:|javascript:|data:|blob:)/.test(l) || /\{\{|\{%|<\?|\$\{/.test(l)
+    || /["$\\`<>{}]/.test(t) || /'\+|\+'/.test(t) || t.startsWith("'") || t.endsWith("'");   // fragmente de cod, nu URL-uri
+}
+const gDecode = s => /&amp;|&#038;|&#38;/.test(s) ? [s.replace(/&amp;|&#038;|&#38;/g, '&'), true] : [s, false];
+const gEnc = (n, amp) => amp ? n.replace(/&/g, '&amp;') : n;
+const gPlain = s => s.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().slice(0, 120);
+function gDetect(name, head) {
+  const e = (name.split('.').pop() || '').toLowerCase();
+  if (['md', 'markdown', 'mdx'].includes(e)) return 'Markdown';
+  if (['html', 'htm', 'xhtml', 'php', 'shtml', 'vue', 'svelte', 'astro', 'njk', 'liquid'].includes(e)) return 'Html';
+  if (e === 'xml') { if (head.includes('wp:wxr_version')) return 'Wxr'; if (head.includes('<urlset') || head.includes('<sitemapindex')) return 'Sitemap'; }
+  return null;
+}
+function gScan(text, file, kind) {
+  const out = []; const mk = (g, o) => out.push(Object.assign({ file, start: g[0], end: g[1], src: kind, nav: false, text: '', page: file, amp: false }, o));
+  const htmlLike = (pageOf) => {
+    for (const m of text.matchAll(RX.attr)) {
+      const gi = m.indices[2] || m.indices[3]; const raw = m[2] != null ? m[2] : m[3];
+      if (gSkip(raw)) continue;
+      const attr = m[1].toLowerCase(); const [url, amp] = gDecode(raw.trim()); let t = '';
+      if (attr === 'href') { const tail = text.slice(gi[1], gi[1] + 600); const mm = tail.match(/^[^>]*>([\s\S]*?)<\/a>/i); if (mm) t = gPlain(mm[1]); }
+      mk(gi, { url, amp, attr, text: t, page: pageOf(gi[0]) });
+    }
+  };
+  if (kind === 'Html') htmlLike(() => file);
+  else if (kind === 'Markdown') {
+    for (const m of text.matchAll(RX.md)) { if (!gSkip(m[2])) mk(m.indices[2], { url: m[2], attr: 'md', text: m[1] }); }
+    for (const m of text.matchAll(RX.mdref)) { if (!gSkip(m[1])) mk(m.indices[1], { url: m[1], attr: 'mdref' }); }
+    for (const m of text.matchAll(RX.auto)) mk(m.indices[1], { url: m[1], attr: 'auto' });
+    htmlLike(() => file);
+  } else if (kind === 'Wxr') {
+    const titles = [...text.matchAll(RX.title)].map(m => [m.index, gPlain(m[1])]);
+    const pageOf = pos => { let lo = 0, hi = titles.length; while (lo < hi) { const mid = (lo + hi) >> 1; if (titles[mid][0] <= pos) lo = mid + 1; else hi = mid; } const t = lo > 0 ? titles[lo - 1][1] : ''; return t ? file + ' › ' + t : file; };
+    htmlLike(pageOf);
+    for (const m of text.matchAll(RX.menu)) { if (!gSkip(m[1])) mk(m.indices[1], { url: m[1].trim(), attr: 'menu', nav: true, page: file + ' › ' + gl('meniu', 'menu') }); }
+  } else if (kind === 'Sitemap') {
+    for (const m of text.matchAll(RX.loc)) { const [url, amp] = gDecode(m[1]); mk(m.indices[1], { url, amp, attr: 'loc' }); }
+  }
+  out.sort((a, b) => a.start - b.start);
+  return out.filter((o, i) => !(i && out[i - 1].start === o.start && out[i - 1].end === o.end));
+}
+/* zone în care linkurile nu sunt reale: comentarii, script/style/pre/code/textarea, PHP, cod Markdown */
+function gMasks(text, kind) {
+  const v = []; for (const m of text.matchAll(/<!--[\s\S]*?-->|<script\b[\s\S]*?<\/script\s*>|<style\b[\s\S]*?<\/style\s*>|<pre\b[\s\S]*?<\/pre\s*>|<code\b[\s\S]*?<\/code\s*>|<textarea\b[\s\S]*?<\/textarea\s*>|<\?(?:php|=)?[\s\S]*?\?>/gi)) v.push([m.index, m.index + m[0].length]);
+  if (kind === 'Markdown') {
+    let off = 0, open = null;
+    for (const line of text.split(/(?<=\n)/)) {
+      const tr = line.replace(/^ +/, ''), indent = line.length - tr.length;
+      if (indent <= 3 && (tr[0] === '`' || tr[0] === '~')) {
+        const c = tr[0]; let n = 0; while (tr[n] === c) n++;
+        if (n >= 3) { if (!open) open = [off, c, n]; else if (open[1] === c && n >= open[2] && !tr.slice(n).trim()) { v.push([open[0], off + line.length]); open = null; } }
+      }
+      off += line.length;
+    }
+    if (open) v.push([open[0], text.length]);
+    for (const m of text.matchAll(/``[^\n]+?``|`[^`\n]+`/g)) v.push([m.index, m.index + m[0].length]);
+  }
+  return v;
+}
+function gScanAll() { const all = []; for (const [name, f] of GD.files) { const k = gDetect(name, f.text.slice(0, 4000)); if (k) { const mk = gMasks(f.text, k); all.push(...gScan(f.text, name, k).filter(o => !mk.some(([a, b]) => o.start >= a && o.start < b))); } } return all; }
+
+/* ── reguli ── */
+const TRACK_EXACT = new Set('fbclid gclid gclsrc dclid msclkid yclid twclid igshid mc_eid mc_cid _hsenc _hsmi mkt_tok ref_src wbraid gbraid oly_enc_id oly_anon_id vero_id _ga _gl s_cid spm'.split(' '));
+const isTrack = k => { k = k.toLowerCase(); return k.startsWith('utm_') || TRACK_EXACT.has(k); };
+function stripTracking(url) {
+  const hi = url.indexOf('#'); const base = hi < 0 ? url : url.slice(0, hi); const frag = hi < 0 ? null : url.slice(hi + 1);
+  const qi = base.indexOf('?'); if (qi < 0) return null;
+  const path = base.slice(0, qi); const all = base.slice(qi + 1).split('&').filter(Boolean);
+  const kept = all.filter(kv => !isTrack(kv.split('=')[0]));
+  if (kept.length === all.length) return null;
+  return path + (kept.length ? '?' + kept.join('&') : '') + (frag != null ? '#' + frag : '');
+}
+const FILE_EXTS = new Set('html htm xhtml php asp aspx jsp pdf css js png jpg jpeg gif svg webp txt xml json md zip doc docx xls xlsx csv mp3 mp4'.split(' '));
+function plausibleHost(h) {
+  if (h === 'localhost' || /^\d{1,3}(\.\d{1,3}){3}$/.test(h)) return true;
+  const l = h.split('.'); if (l.length < 2 || l.some(x => !x)) return false;
+  const tld = l[l.length - 1].toLowerCase();
+  return tld.length >= 2 && /^[a-z]+$/.test(tld) && !FILE_EXTS.has(tld) && /^[\p{L}\p{N}.-]+$/u.test(h);
+}
+/* Separatorul TREBUIE să conțină „:” sau să fie exact „//” (https//a.ro); „http/pagina.html” e cale relativă. */
+function fixSchemeTypo(url) {
+  const t = url.trim(); const low = t.toLowerCase();
+  if (low.startsWith('http://') || low.startsWith('https://')) return null;
+  const m = t.match(/^(h?h?t{1,3}p{1,2}s{0,2})(:{1,2}\/{0,3}|;\/{1,2}|:\\{1,2}|\/{2})([^\/\\].*)$/i); if (!m) return null;
+  const sch = m[1].toLowerCase(); const rest = m[3];
+  if (m[2] === '//' && sch !== 'http' && sch !== 'https') return null;
+  const host = rest.split(/[\/?#]/)[0]; const hn = (host.includes('@') ? host.split('@').pop() : host).split(':')[0];
+  if (host.includes(' ') || !plausibleHost(hn)) return null;
+  const fixed = (sch.includes('s') ? 'https' : 'http') + '://' + rest.replace(/^\/+/, '');
+  return fixed.toLowerCase() === low ? null : fixed;
+}
+function unmangle(url) {
+  let s = url.trim();
+  for (const suf of ['%20', '%0A', '%0D', '%09']) { while (s.toUpperCase().endsWith(suf)) s = s.slice(0, -suf.length); while (s.toUpperCase().startsWith(suf)) s = s.slice(suf.length); }
+  const d = s.match(/^https?:\/{0,2}(https?:\/{1,2}[^\/].*)$/i); if (d) s = fixSchemeTypo(d[1]) || d[1];
+  while (s.includes('&amp;')) s = s.replace(/&amp;/g, '&');
+  for (;;) {
+    const last = s.slice(-1); let drop = false;
+    if ('.,;:!?"\'>'.includes(last)) drop = true;
+    else if (last === ')') drop = (s.split('(').length - 1) < (s.split(')').length - 1);
+    if (drop && s.length > 8) s = s.slice(0, -1); else break;
+  }
+  return s === url ? null : s;
+}
+const addMissingScheme = url => { const t = url.trim(); return /^www\./i.test(t) && t.slice(4).includes('.') && !t.includes(' ') ? 'https://' + t : null; };
+function localFix(url) {
+  let n;
+  if ((n = fixSchemeTypo(url))) return ['scheme_typo', n];
+  if ((n = unmangle(url))) return ['unmangle', n];
+  if ((n = addMissingScheme(url))) return ['missing_scheme', n];
+  if (/^http/i.test(url) && (n = stripTracking(url))) return ['tracking', n];
+  return null;
+}
+function hostParts(u) { try { const p = new URL(u); if (p.port) return null; const h = p.hostname.toLowerCase(); return { bare: h.replace(/^www\./, ''), www: h.startsWith('www.'), scheme: p.protocol.slice(0, -1) }; } catch (e) { return null; } }
+function wwwProto(occs) {
+  const by = new Map(), cnt = new Map(), out = new Map();
+  for (const o of occs) { const h = hostParts(o.url); if (!h || !/^https?$/.test(h.scheme)) continue; const e = by.get(h.bare) || { www: new Set(), sch: new Set() }; e.www.add(h.www); e.sch.add(h.scheme); by.set(h.bare, e); const k = h.bare + '|' + h.www; cnt.set(k, (cnt.get(k) || 0) + 1); }
+  for (const o of occs) {
+    const h = hostParts(o.url); if (!h) continue; const e = by.get(h.bare); if (!e) continue;
+    if (e.www.size > 1) {
+      const canonWww = (cnt.get(h.bare + '|true') || 0) >= (cnt.get(h.bare + '|false') || 0);
+      if (h.www !== canonWww) { try { const p = new URL(o.url); p.hostname = canonWww ? 'www.' + p.hostname.replace(/^www\./i, '') : p.hostname.replace(/^www\./i, ''); if (!out.has(o.url)) out.set(o.url, ['www', p.href]); } catch (e) {} }
+    }
+    if (e.sch.size > 1 && h.scheme === 'http' && !out.has(o.url)) out.set(o.url, ['protocol', 'https' + o.url.slice(4)]);
+  }
+  return out;
+}
+const RULE_LABEL = { scheme_typo: ['Greșeală în schemă', 'Scheme typo'], unmangle: ['URL deformat', 'Mangled URL'], missing_scheme: ['Fără schemă (www.…)', 'Missing scheme'], tracking: ['Parametri de urmărire', 'Tracking parameters'], protocol: ['http → https', 'http → https'], www: ['Inconsistență www', 'www inconsistency'], redirect: ['Redirecționare permanentă', 'Permanent redirect'], manual: ['Manual', 'Manual'] };
+const ruleLabel = r => (RULE_LABEL[r] || [r, r])[LANG === 'en' ? 1 : 0];
+
+/* ── verificare live (limitată de CORS: ce nu se poate citi rămâne „neverificat”) ── */
+async function gProbe(url) {
+  const px = ($('#proxy') && $('#proxy').value.trim()) || '';
+  const u = px ? px.replace('{url}', encodeURIComponent(url)) : url;
+  const ac = new AbortController(); const tm = setTimeout(() => ac.abort(), 15000);
+  try { const r = await fetch(u, { signal: ac.signal, redirect: 'follow', cache: 'no-store' }); return { ok: r.ok, code: r.status, final: px ? null : (r.url || url), redirected: !!r.redirected }; }
+  catch (e) { return { ok: false, code: 0, cors: true }; } finally { clearTimeout(tm); }
+}
+function gNorm(u) { return u.split('#')[0].replace(/\/+$/, '').toLowerCase(); }
+/* aceeași resursă: fără schemă, fără www., fără „/” final, fără fragment */
+function resKey(u) { try { const p = new URL(u); const h = p.hostname.toLowerCase().replace(/^www\./, ''); const port = p.port && !((p.protocol === 'http:' && p.port === '80') || (p.protocol === 'https:' && p.port === '443')) ? ':' + p.port : ''; return h + port + p.pathname.replace(/\/+$/, '') + '?' + p.search.slice(1); } catch (e) { return null; } }
+const LOGIN_RX = /(^|[\/_-])(log-?in|sign-?in|sso|consent|captcha|cookie-?wall|auth(entication)?|not-?found|404|error)([\/_.-]|$)/i;
+function suspiciousTarget(req, landed) {
+  try { const r = new URL(req), l = new URL(landed); const root = p => !p.pathname.replace(/\//g, '') && !p.search; if (root(l) && !root(r)) return true; return LOGIN_RX.test(l.pathname) && !LOGIN_RX.test(r.pathname); } catch (e) { return false; }
+}
+/* Când răspunsul nu se poate citi (CORS), URL-ul final e necunoscut ⇒ NU marcăm „verificat”. */
+function gAccept(old, nu, p) {
+  if (!p) return [false, gl('neverificat', 'not verified')];
+  if (p.cors) return [false, gl('neverificat (CORS / rețea)', 'not verified (CORS / network)')];
+  if (!p.ok) return [false, gl('neverificat: HTTP ', 'not verified: HTTP ') + p.code];
+  if (!p.final) return [false, gl('neverificat (URL final necunoscut prin proxy)', 'not verified (final URL unknown via proxy)')];
+  if (suspiciousTarget(old, p.final) && suspiciousTarget(nu, p.final)) return [false, gl('țintă suspectă (pagină principală / autentificare): ', 'suspicious target (home / login): ') + p.final];
+  if (resKey(nu) !== resKey(p.final)) return [false, gl('redirecționează mai departe, către ', 'redirects further to ') + p.final];
+  return [true, gl('verificat: HTTP ', 'verified: HTTP ') + p.code];
+}
+async function gPropose() {
+  const occs = gScanAll(); const wp = wwwProto(occs);
+  const pages = new Map(); occs.forEach(o => { (pages.get(o.url) || pages.set(o.url, new Set()).get(o.url)).add(o.page); });
+  const byKey = new Map(S.results.map(r => [gNorm(r.url), r]));
+  const cands = new Map();
+  for (const o of occs) {
+    if (cands.has(o.url)) continue;
+    let cur = o.url, first = null;
+    for (let i = 0; i < 4; i++) { const r = localFix(cur); if (!r) break; first = first || r[0]; cur = r[1]; }
+    if (first) { cands.set(o.url, [first, cur]); continue; }
+    if (wp.has(o.url)) { cands.set(o.url, wp.get(o.url)); continue; }
+    const res = byKey.get(gNorm(o.url));
+    if (res && res.status === 'Redirected' && res.chain && res.chain.length && res.chain.every(h => h.code === 301 || h.code === 308) && res.final_url && gNorm(res.final_url) !== gNorm(o.url)) { cands.set(o.url, ['redirect', res.final_url]); continue; }
+    if (GD.upgrade && GD.verify && /^http:\/\//i.test(o.url)) cands.set(o.url, ['protocol', 'https://' + o.url.slice(7)]);
+  }
+  const probes = new Map();
+  if (GD.verify) {
+    const news = [...new Set([...cands.values()].map(c => c[1]))]; let i = 0;
+    await Promise.all(Array.from({ length: 6 }, async () => { while (i < news.length) { const n = news[i++]; probes.set(n, await gProbe(n)); } }));
+  }
+  const out = [];
+  for (const o of occs) {
+    const c = cands.get(o.url); if (!c) continue; const v = GD.verify ? gAccept(o.url, c[1], probes.get(c[1])) : [false, gl('neverificat', 'not verified')];
+    out.push({ id: 'p' + (out.length + 1), file: o.file, page: o.page, start: o.start, end: o.end, old_raw: GD.files.get(o.file).text.slice(o.start, o.end), new_raw: gEnc(c[1], o.amp), old: o.url, new: c[1], rule: c[0], verified: v[0], nav: o.nav, pages: pages.get(o.url).size, note: v[1] });
+  }
+  return out;
+}
+const gImpact = p => p.nav || p.pages >= 3;
+/* URL-ul inserat nu are voie să „evadeze” din atribut / structura Markdown (ex. Location ostil de la un server). */
+function gUnsafeUrl(file, url) {
+  if (!url) return gl('URL gol', 'empty URL');
+  if (/[\s\u0000-\u001f"'<>`\\]/.test(url)) return gl('URL nou conține caractere nesigure (ghilimele, <, >, spații, backtick sau backslash)', 'new URL contains unsafe characters (quotes, <, >, spaces, backtick or backslash)');
+  if (/\.(md|markdown|mdx)$/i.test(file) && /[()\[\]]/.test(url)) return gl('URL nou conține paranteze, nesigur în Markdown', 'new URL contains brackets, unsafe in Markdown');
+  return null;
+}
+function gManual(old, nu) {
+  if (nu) { const bad = gScanAll().filter(o => o.url === old).map(o => gUnsafeUrl(o.file, nu)).find(Boolean); if (bad) { GD.msg = bad; return []; } }
+  const occs = gScanAll().filter(o => o.url === old); const pg = new Set(occs.map(o => o.page)).size; const out = [];
+  for (const o of occs) {
+    const text = GD.files.get(o.file).text;
+    if (nu) { out.push({ id: 'm' + (out.length + 1), file: o.file, page: o.page, start: o.start, end: o.end, old_raw: text.slice(o.start, o.end), new_raw: gEnc(nu, o.amp), old: o.url, new: nu, rule: 'manual', verified: false, nav: o.nav, pages: pg, note: 'manual' }); continue; }
+    let s = -1, e = -1, inner = '';
+    if (o.attr === 'href') { let lo = text.lastIndexOf('<a', o.start); if (lo >= 0 && (!/\s/.test(text[lo + 2] || '') || text.slice(lo, o.start).includes('>'))) lo = -1; const close = text.indexOf('</a>', o.end); const te = text.indexOf('>', o.end); if (lo >= 0 && o.start - lo < 600 && close >= 0 && close - o.end < 4000 && te >= 0 && te < close) { s = lo; e = close + 4; inner = text.slice(te + 1, close); } }
+    else if (o.attr === 'md') { const op = text.lastIndexOf('](', o.start); const lb = op >= 0 ? text.lastIndexOf('[', op - 1) : -1; const rb = text.indexOf(')', o.end); if (lb >= 0 && rb >= 0 && text[lb - 1] !== '!') { s = lb; e = rb + 1; inner = text.slice(lb + 1, op); } }
+    if (s >= 0) out.push({ id: 'u' + (out.length + 1), file: o.file, page: o.page, start: s, end: e, old_raw: text.slice(s, e), new_raw: inner, old: o.url, new: '«' + inner.slice(0, 40) + '»', rule: 'manual', verified: false, nav: o.nav, pages: pg, note: 'unlink' });
+  }
+  return out;
+}
+
+/* ── aplicare / anulare (în memorie; apoi descărcare sau scriere în folder) ── */
+const gRun = () => new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
+function gApply(props, run) {
+  const rep = { applied: 0, skipped: [] }; const by = new Map();
+  for (const p of props) { if (p.rule !== 'manual' && !p.verified) { rep.skipped.push([p.id, gl('neverificat live', 'not verified live')]); continue; } (by.get(p.file) || by.set(p.file, []).get(p.file)).push(p); }
+  for (const [file, ps] of by) {
+    const f = GD.files.get(file); const orig = f.text; let text = orig; ps.sort((a, b) => b.start - a.start); const done = []; let last = Infinity;
+    for (const p of ps) {
+      if (p.end > last) { rep.skipped.push([p.id, gl('suprapunere', 'overlap')]); continue; }
+      if (p.note !== 'unlink') { const bad = gUnsafeUrl(file, p.new_raw.replace(/&amp;/g, '&')); if (bad) { rep.skipped.push([p.id, bad]); continue; } }
+      if (!p.old_raw) { rep.skipped.push([p.id, gl('propunere incompletă', 'incomplete proposal')]); continue; }
+      if (orig.slice(p.start, p.end) !== p.old_raw) { rep.skipped.push([p.id, gl('fișier modificat între timp', 'file changed meanwhile')]); continue; }
+      text = text.slice(0, p.start) + p.new_raw + text.slice(p.end); last = p.start; done.push(p);
+    }
+    if (!done.length) continue;
+    if (!f.backup) f.backup = orig; f.text = text; f.dirty = true;
+    done.sort((a, b) => a.start - b.start); let shift = 0;
+    for (const p of done) { const ns = p.start + shift; GD.log.push({ id: run + '-' + (GD.log.length + 1), run, time: new Date().toISOString(), file, rule: p.rule, old: p.old, new: p.new, old_raw: p.old_raw, new_raw: p.new_raw, before: text.slice(Math.max(0, ns - 24), ns), pos: ns, status: 'Applied' }); shift += p.new_raw.length - p.old_raw.length; rep.applied++; }
+  }
+  gSaveLog(); return rep;
+}
+function gUndo(ids, run) {
+  const rep = { undone: 0, conflicts: 0 };
+  const list = GD.log.filter(e => e.status === 'Applied' && (!ids || ids.includes(e.id)) && (!run || e.run === run)).reverse();
+  for (const e of list) {
+    if (e.imported && !GD.trust) { rep.conflicts++; continue; }
+    const f = GD.files.get(e.file); if (!f) { e.status = 'Conflict'; rep.conflicts++; continue; }
+    let t = f.text; const ctx = e.before + e.new_raw; let pos = -1;
+    if (e.pos >= e.before.length && t.slice(e.pos - e.before.length, e.pos + e.new_raw.length) === ctx) pos = e.pos;
+    else { const i = t.indexOf(ctx); if (i >= 0 && t.indexOf(ctx, i + 1) < 0) pos = i + e.before.length; else { const j = t.indexOf(e.new_raw); if (j >= 0 && t.indexOf(e.new_raw, j + 1) < 0) pos = j; } }
+    if (pos >= 0 && t.slice(pos, pos + e.new_raw.length) === e.new_raw) { f.text = t.slice(0, pos) + e.old_raw + t.slice(pos + e.new_raw.length); f.dirty = true; e.status = 'Undone'; rep.undone++; }
+    else { e.status = 'Conflict'; rep.conflicts++; }
+  }
+  gSaveLog(); return rep;
+}
+/* Jurnalul importat este necontrolat: păstrăm doar câmpuri-șir cu forme sigure; anularea lui cere confirmare explicită. */
+function gSanitizeLog(arr) {
+  const st = new Set(['Applied', 'Undone', 'Conflict']); const str = (v, n) => String(v == null ? '' : v).slice(0, n);
+  return (Array.isArray(arr) ? arr : []).slice(0, 5000).filter(e => e && typeof e === 'object').map(e => ({
+    id: /^[\w.-]{1,60}$/.test(String(e.id)) ? String(e.id) : 'x' + Math.random().toString(36).slice(2, 10),
+    run: str(e.run, 40), time: str(e.time, 40), file: str(e.file, 500), rule: RULE_LABEL[e.rule] ? e.rule : 'manual',
+    old: str(e.old, 4000), new: str(e.new, 4000), old_raw: str(e.old_raw, 20000), new_raw: str(e.new_raw, 20000), before: str(e.before, 64),
+    pos: numOrNull(e.pos) || 0, status: st.has(e.status) ? e.status : 'Conflict', imported: true }));
+}
+function gSaveLog() { lsSet('veriga.fixlog', JSON.stringify(GD.log.filter(e => !e.imported).slice(-2000))); }
+function gLoadLog() { try { GD.log = gSanitizeLog(JSON.parse(lsGet('veriga.fixlog') || '[]')).map(e => Object.assign(e, { imported: false })); } catch (e) { GD.log = []; } }
+function gCsv(rows) { return rows.map(r => r.map(c => csvCell(csvSafe(c), ',')).join(',')).join('\n') + '\n'; }
+
+/* ── vederi pe sesiune ── */
+const hostOfUrl = u => { try { return new URL(u).host.toLowerCase(); } catch (e) { return '(?)'; } };
+function domainStats() {
+  const m = new Map();
+  for (const r of S.results) { if (r.status === 'Orphan' || r.status === 'Pending') continue; const h = hostOfUrl(r.url); const e = m.get(h) || { host: h, total: 0, broken: 0, review: 0, redirects: 0, ms: 0 }; e.total++; if (isBroken(r.status)) e.broken++; if (isReview(r.status)) e.review++; if (r.status === 'Redirected') e.redirects++; e.ms += r.elapsed_ms || 0; m.set(h, e); }
+  return [...m.values()].map(e => Object.assign(e, { avg: Math.round(e.ms / Math.max(1, e.total)), health: 100 * (e.total - e.broken) / Math.max(1, e.total) })).sort((a, b) => b.broken - a.broken || b.total - a.total);
+}
+function healthMap() {
+  const titles = new Map(S.results.map(r => [r.url, r.title])); const m = new Map();
+  for (const r of S.results) {
+    if (r.status === 'Orphan' || r.status === 'Pending') continue; const bad = isBroken(r.status), rev = isReview(r.status);
+    for (const p of (r.parents || [])) { const e = m.get(p.url) || { page: p.url, title: titles.get(p.url) || null, links: 0, broken: 0, review: 0, items: [] }; e.links++; if (bad) e.broken++; if (rev) e.review++; if (bad || rev) e.items.push({ url: r.url, text: p.text, status: r.status, message: r.message, review: rev && !bad }); m.set(p.url, e); }
+  }
+  return [...m.values()].map(e => Object.assign(e, { score: 100 * (e.links - e.broken) / Math.max(1, e.links) })).sort((a, b) => b.broken - a.broken || a.score - b.score);
+}
+function redirectsList() { return S.results.filter(r => r.status === 'Redirected' && r.chain && r.chain.length).map(r => { const codes = r.chain.map(h => h.code); return { from: r.url, to: r.final_url || '', codes, perm: codes.every(c => c === 301 || c === 308), pages: (r.parents || []).length }; }); }
+const words = s => new Set(String(s).toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w => w.length > 2));
+function similarity(a, b) { const x = words(a), y = words(b); if (!x.size && !y.size) return 1; let i = 0; x.forEach(w => { if (y.has(w)) i++; }); return i / (x.size + y.size - i); }
+function sessDiff(oldS, cur) {
+  const ob = new Set(oldS.results.filter(r => ERR.has(r.status) && r.status !== 'Forbidden').map(r => r.url)), nb = new Set(cur.filter(r => isBroken(r.status)).map(r => r.url));
+  const om = new Map(oldS.results.map(r => [r.url, r])); const drift = [];
+  for (const r of cur) { if (isBroken(r.status) || (!r.title && !r.h1)) continue; const o = om.get(r.url); if (!o || (!o.title && !o.h1)) continue; if (similarity((o.title || '') + ' ' + (o.h1 || ''), (r.title || '') + ' ' + (r.h1 || '')) < 0.34) drift.push({ url: r.url, o, n: r }); }
+  return { nu: [...nb].filter(u => !ob.has(u)), resolved: [...ob].filter(u => !nb.has(u)), drift };
+}
+function snapshot() { const rs = S.results.filter(r => r.status !== 'Orphan' && r.status !== 'Pending'); const broken = rs.filter(r => isBroken(r.status)).length; return { time: new Date().toISOString(), start: S.startUrls.map(u => u.href).join(', '), total: rs.length, broken, review: rs.filter(r => isReview(r.status)).length, redirects: rs.filter(r => r.status === 'Redirected').length, orphans: S.results.filter(r => r.status === 'Orphan').length, health: rs.length ? 100 * (rs.length - broken) / rs.length : 100 }; }
+const histLoad = () => { try { return JSON.parse(lsGet('veriga.history') || '[]'); } catch (e) { return []; } };
+function trendSvg(h) {
+  if (h.length < 2) return `<p class="note">${gl('Sunt necesare cel puțin două rulări pentru tendință.', 'At least two runs are needed for a trend.')}</p>`;
+  const w = 700, ht = 180, pad = 28, max = Math.max(1, ...h.map(s => s.broken));
+  const pts = h.map((s, i) => `${(pad + (w - 2 * pad) * i / (h.length - 1)).toFixed(1)},${(ht - pad - (ht - 2 * pad) * s.broken / max).toFixed(1)}`).join(' ');
+  return `<svg viewBox="0 0 ${w} ${ht}" role="img" aria-label="${gl('Link-uri rupte în timp', 'Broken links over time')}" style="width:100%;max-width:720px"><polyline fill="none" stroke="var(--acc)" stroke-width="2" points="${pts}"/><text x="${pad}" y="14" fill="var(--mut)" font-size="11">max ${max}</text></svg>`;
+}
+
+/* ── 404 din jurnale de acces ── */
+const LOGRX = /\[([^\]]+)\]\s+"(?:GET|HEAD)\s+(\S+)\s+HTTP\/[\d.]+"\s+(\d{3})\s+\S+(?:\s+"([^"]*)"\s+"([^"]*)")?/;
+const isBot = ua => /bot|spider|crawl|slurp|curl\/|wget|python-requests|scanner/i.test(ua || '');
+function lev(a, b) { const p = Array.from({ length: b.length + 1 }, (_, i) => i); for (let i = 0; i < a.length; i++) { let prev = p[0]; p[0] = i + 1; for (let j = 0; j < b.length; j++) { const t = p[j + 1]; p[j + 1] = Math.min(prev + (a[i] !== b[j] ? 1 : 0), p[j + 1] + 1, p[j] + 1); prev = t; } } return p[b.length]; }
+function closest(path, known) {
+  const p = path.split('?')[0].replace(/\/+$/, '').toLowerCase(); const last = x => x.split('/').pop(); const pl = last(p); let best = null;
+  for (const k of known) { const kk = k.replace(/\/+$/, '').toLowerCase(); if (kk === p) continue; const full = lev(p, kk), seg = lev(pl, last(kk)); const segOk = pl && seg * 100 <= Math.max(pl.length, last(kk).length) * 25; const fullOk = full * 100 <= Math.max(p.length, kk.length) * 35; if (segOk || fullOk) { const sc = [segOk ? seg : 99, full]; if (!best || sc[0] < best[0][0] || (sc[0] === best[0][0] && sc[1] < best[0][1])) best = [sc, k]; } }
+  return best ? best[1] : null;
+}
+function parse404(text, ignoreBots, known) {
+  const m = new Map();
+  for (const line of text.split('\n')) { const c = LOGRX.exec(line); if (!c || c[3] !== '404') continue; if (ignoreBots && isBot(c[5])) continue; const e = m.get(c[2]) || { path: c[2], count: 0, last: '', refs: new Map() }; e.count++; e.last = c[1]; if (c[4] && c[4] !== '-') e.refs.set(c[4], (e.refs.get(c[4]) || 0) + 1); m.set(c[2], e); }
+  return [...m.values()].sort((a, b) => b.count - a.count).map(e => ({ path: e.path, count: e.count, last: e.last, referers: [...e.refs].sort((a, b) => b[1] - a[1]).slice(0, 5), suggestion: closest(e.path, known) }));
+}
+
+/* ── conformitate (HTML descărcabil) ── */
+function complianceHtml(days) {
+  const cut = days ? Date.now() - days * 864e5 : 0; const inP = t => !cut || new Date(t).getTime() >= cut; const sn = snapshot();
+  const runs = histLoad().filter(h => inP(h.time)), fixes = GD.log.filter(e => e.status === 'Applied' && inP(e.time)), undone = GD.log.filter(e => e.status === 'Undone' && inP(e.time)).length;
+  const open = S.results.filter(r => isBroken(r.status));
+  let o = `<!doctype html><html lang="${LANG}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"><meta name="color-scheme" content="light dark"><title>VERIGA — ${gl('raport de conformitate', 'compliance report')}</title><style>${REPORT_CSS}</style></head><body><main>`;
+  o += `<h1>${gl('Raport de conformitate — întreținerea legăturilor', 'Compliance report — link maintenance')}</h1><p class="par">${esc(sn.start)} · ${days ? gl('ultimele ', 'last ') + days + gl(' zile', ' days') : gl('toată perioada', 'all time')}</p>`;
+  o += `<div class="cards"><div class="card"><b>${runs.length}</b>${gl('verificări în perioadă', 'checks in period')}</div><div class="card ok"><b>${fixes.length}</b>${gl('reparații aplicate', 'fixes applied')}</div><div class="card bad"><b>${sn.broken}</b>${gl('rupte acum', 'broken now')}</div><div class="card"><b>${sn.review}</b>${gl('de verificat manual', 'to review')}</div><div class="card"><b>${sn.health.toFixed(1)}%</b>${gl('sănătate', 'health')}</div></div>`;
+  o += `<p>${gl('Reparații anulate în perioadă: ', 'Fixes undone in period: ')}${undone}.</p>`;
+  if (runs.length) { o += `<h2>${gl('Verificări', 'Checks')}</h2><table><tr><th>${gl('Data', 'Date')}</th><th>Total</th><th>${gl('Rupte', 'Broken')}</th><th>${gl('Sănătate', 'Health')}</th></tr>` + runs.slice(-50).reverse().map(h => `<tr><td>${esc(h.time)}</td><td>${h.total}</td><td>${h.broken}</td><td>${h.health.toFixed(1)}%</td></tr>`).join('') + '</table>'; }
+  if (fixes.length) { o += `<h2>${gl('Reparații', 'Fixes')}</h2><table><tr><th>${gl('Data', 'Date')}</th><th>${gl('Regulă', 'Rule')}</th><th>${gl('Înainte', 'Before')}</th><th>${gl('După', 'After')}</th></tr>` + fixes.slice(-500).reverse().map(e => `<tr><td>${esc(e.time)}</td><td>${esc(ruleLabel(e.rule))}</td><td class="u">${esc(e.old)}</td><td class="u">${esc(e.new)}</td></tr>`).join('') + '</table>'; }
+  if (open.length) { o += `<h2>${gl('Probleme deschise', 'Open issues')} (${open.length})</h2><table><tr><th>URL</th><th>${gl('Stare', 'Status')}</th><th>${gl('Pagini', 'Pages')}</th></tr>` + open.slice(0, 500).map(r => `<tr><td class="u">${esc(r.url)}</td><td>${esc(stLabel(r.status))}</td><td>${new Set((r.parents || []).map(p => p.url)).size}</td></tr>`).join('') + '</table>'; }
+  return o + '</main></body></html>';
+}
+function guardianHtml() {
+  const sn = snapshot(); let o = `<!doctype html><html lang="${LANG}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"><meta name="color-scheme" content="light dark"><title>VERIGA Guardian</title><style>${REPORT_CSS}</style></head><body><main><h1>VERIGA Guardian</h1><p class="par">${esc(sn.start)}</p>`;
+  o += `<div class="cards"><div class="card"><b>${sn.total}</b>${gl('verificate', 'checked')}</div><div class="card bad"><b>${sn.broken}</b>${gl('rupte', 'broken')}</div><div class="card"><b>${sn.review}</b>403</div><div class="card"><b>${sn.redirects}</b>${gl('redirecționate', 'redirected')}</div><div class="card ok"><b>${sn.health.toFixed(1)}%</b>${gl('sănătate', 'health')}</div></div>`;
+  if (GD.prev) { const d = sessDiff(GD.prev, S.results); o += `<h2>${gl('Față de rularea anterioară', 'Since previous run')}</h2><p>${gl('noi rupte', 'newly broken')}: <b>${d.nu.length}</b> · ${gl('rezolvate', 'resolved')}: <b>${d.resolved.length}</b> · ${gl('derivă de conținut', 'content drift')}: <b>${d.drift.length}</b></p>`; }
+  o += `<h2>${gl('Tendințe', 'Trends')}</h2>${trendSvg(histLoad())}<h2>${gl('După domeniu', 'By domain')}</h2><table><tr><th>${gl('Gazdă', 'Host')}</th><th>Total</th><th>${gl('Rupte', 'Broken')}</th><th>403</th><th>ms</th><th>${gl('Sănătate', 'Health')}</th></tr>` + domainStats().slice(0, 300).map(d => `<tr><td>${esc(d.host)}</td><td>${d.total}</td><td>${d.broken}</td><td>${d.review}</td><td>${d.avg}</td><td>${d.health.toFixed(0)}%</td></tr>`).join('') + '</table>';
+  o += `<h2>${gl('Harta de sănătate', 'Health map')}</h2><table><tr><th>${gl('Pagină', 'Page')}</th><th>${gl('Linkuri', 'Links')}</th><th>${gl('Rupte', 'Broken')}</th><th>${gl('Scor', 'Score')}</th></tr>` + healthMap().slice(0, 500).map(p => `<tr><td class="u">${esc(p.page)}<span class="par">${esc(p.title || '')}</span></td><td>${p.links}</td><td>${p.broken}</td><td>${p.score.toFixed(0)}%</td></tr>`).join('') + '</table>';
+  o += `<h2>${gl('Vedere «carte»', 'Book view')}</h2>` + healthMap().filter(p => p.items.length).slice(0, 300).map(p => `<details><summary>${esc(p.title || p.page)} — ${p.items.length}</summary><table>` + p.items.map(i => `<tr><td>${esc(i.text)}</td><td class="u">${esc(i.url)}</td><td>${esc(stLabel(i.status))}<span class="par">${esc(i.message || '')}</span></td></tr>`).join('') + '</table></details>').join('');
+  return o + '</main></body></html>';
+}
+
+/* ── interfață ── */
+const GD_TABS = [['fix', 'Reparații', 'Fixes'], ['log', 'Jurnal / anulare', 'Log / undo'], ['dom', 'Domenii', 'Domains'], ['health', 'Hartă / carte', 'Health / book'], ['redir', 'Redirecționări', 'Redirects'], ['trend', 'Tendințe', 'Trends'], ['l404', '404 din jurnal', '404 from logs'], ['comp', 'Conformitate', 'Compliance']];
+function gdTabs() {
+  const had = $('#gd-tabs').contains(document.activeElement);
+  $('#gd-tabs').innerHTML = GD_TABS.map(([k, ro, en]) => `<button class="tab" role="tab" id="gt-${k}" aria-controls="gd-body" tabindex="${GD.tab === k ? 0 : -1}" data-gt="${k}" aria-selected="${GD.tab === k}">${LANG === 'en' ? en : ro}</button>`).join('');
+  if (had) { const c = $(`#gt-${GD.tab}`); if (c) c.focus(); }
+}
+const needSess = () => S.results.length ? '' : `<p class="note">${gl('Rulează sau importă mai întâi o verificare.', 'Run or import a check first.')}</p>`;
+function gdRender() {
+  gdTabs(); const b = $('#gd-body'); let h = '';
+  const tbl = (head, rows) => `<div style="overflow:auto;max-height:50vh"><table style="width:100%;border-collapse:collapse;font-size:.85rem"><tr>${head.map(x => `<th scope="col" style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--bd)">${x === '' ? '<span class="sr-only">' + gl('Acțiune', 'Action') + '</span>' : x}</th>`).join('')}</tr>${rows.join('')}</table></div>`;
+  const td = (v, c) => `<td class="${c || ''}" style="padding:3px 8px;border-bottom:1px solid var(--bd);vertical-align:top;word-break:break-all">${v}</td>`;
+  if (GD.tab === 'fix') {
+    h += `<p class="note">${gl('Încarcă fișierele-sursă (HTML, Markdown, export WordPress .xml, sitemap). Modificările se fac în memorie; apoi descarci fișierele sau le scrii direct într-un folder. Nimic nu pleacă din browser.', 'Load source files (HTML, Markdown, WordPress export .xml, sitemap). Changes happen in memory; then download the files or write them straight into a folder. Nothing leaves the browser.')}</p>`;
+    h += `<div class="row"><label class="btn" style="margin:0;color:var(--fg)">${gl('📄 Alege fișiere…', '📄 Choose files…')}<input id="gd-files" type="file" multiple hidden></label><label class="btn" style="margin:0;color:var(--fg)">${gl('📂 Alege folder…', '📂 Choose folder…')}<input id="gd-dir" type="file" webkitdirectory multiple hidden></label><span class="note">${GD.files.size} ${gl('fișiere', 'files')} (${[...GD.files.values()].filter(f => f.dirty).length} ${gl('modificate', 'modified')})</span></div>`;
+    h += `<label class="chk"><input type="checkbox" id="gd-upg" ${GD.upgrade ? 'checked' : ''}><span>${gl('Propune https:// pentru orice http:// (doar dacă https răspunde la aceeași resursă)', 'Propose https:// for any http:// (only if https answers with the same resource)')}</span></label>`;
+    h += `<label class="chk"><input type="checkbox" id="gd-verify" ${GD.verify ? 'checked' : ''}><span>${gl('Verifică live URL-ul nou (limitat de CORS; ce nu se poate citi rămâne neverificat și nu se aplică automat)', 'Verify new URL live (CORS-limited; unreadable stays unverified and is not auto-applied)')}</span></label>`;
+    h += `<div class="row"><button class="primary" id="gd-scan">${gl('🔍 Analizează', '🔍 Analyze')}</button><span class="note">${esc(GD.msg)}</span></div>`;
+    h += `<div class="row" style="margin-top:8px"><input type="text" id="gd-mo" placeholder="URL" style="flex:1;min-width:200px"><input type="text" id="gd-mn" placeholder="${gl('URL nou (gol = dezleagă)', 'new URL (empty = unlink)')}" style="flex:1;min-width:200px"><button id="gd-madd">${gl('Adaugă propunere manuală', 'Add manual proposal')}</button></div>`;
+    h += tbl(['', '', gl('Regulă', 'Rule'), '★', gl('Vechi → Nou', 'Old → New'), gl('Pagină', 'Page')], GD.props.map(p => `<tr>${td(`<input type="checkbox" data-ps="${esc(p.id)}" ${GD.sel.has(p.id) ? 'checked' : ''}>`)}${td(p.verified ? '✔' : '?')}${td(esc(ruleLabel(p.rule)))}${td(gImpact(p) ? '★' : '')}${td(esc(p.old) + '<br>→ ' + esc(p.new), 'u')}${td(esc(p.page))}</tr>`));
+    h += `<div class="row" style="margin-top:8px"><button id="gd-selv">${gl('Selectează verificate', 'Select verified')}</button><button class="primary" id="gd-apply" ${GD.sel.size ? '' : 'disabled'}>${gl('✓ Aplică selecția', '✓ Apply selection')} (${GD.sel.size})</button><button id="gd-pcsv">${gl('CSV propuneri', 'Proposals CSV')}</button><button id="gd-dl">${gl('⬇ Descarcă fișierele modificate', '⬇ Download modified files')}</button>${window.showDirectoryPicker ? `<button id="gd-write">${gl('💾 Scrie în folder…', '💾 Write to folder…')}</button>` : ''}</div>`;
+  } else if (GD.tab === 'log') {
+    if (GD.log.some(e => e.imported)) h += `<div class="warnbox"><label class="chk"><input type="checkbox" id="gd-trust" ${GD.trust ? 'checked' : ''}><span>${gl('Am verificat jurnalul importat: anularea scrie în fișiere textele „înainte” din jurnal.', 'I reviewed the imported log: undo writes the log’s “before” texts into the files.')}</span></label></div>`;
+    h += `<div class="row"><button id="gd-undo-last">${gl('↶ Anulează ultima rulare', '↶ Undo last run')}</button><button id="gd-lcsv">${gl('CSV jurnal', 'Log CSV')}</button><button id="gd-ljson">${gl('Descarcă jurnal (.json)', 'Download log (.json)')}</button><label class="btn" style="margin:0;color:var(--fg)">${gl('Importă jurnal', 'Import log')}<input id="gd-limp" type="file" accept=".json" hidden></label><span class="note">${esc(GD.msg)}</span></div><p class="note">${gl('Pentru a anula o rulare dintr-o sesiune anterioară: importă jurnalul, încarcă fișierele modificate (tab Reparații) și apasă anulare.', 'To undo a run from an earlier session: import the log, load the modified files (Fixes tab) and press undo.')}</p>`;
+    h += tbl(['Run', gl('Regulă', 'Rule'), gl('Stare', 'Status'), gl('Modificare', 'Change'), ''], [...GD.log].reverse().map(e => `<tr>${td(esc(e.run))}${td(esc(ruleLabel(e.rule)))}${td(esc(String(e.status)))}${td(esc(e.old) + '<br>→ ' + esc(e.new), 'u')}${td(e.status === 'Applied' ? `<button data-undo="${esc(e.id)}">↶</button>` : '')}</tr>`));
+  } else if (GD.tab === 'dom') {
+    h += needSess() || tbl([gl('Gazdă', 'Host'), 'Total', gl('Rupte', 'Broken'), '403', gl('Redir.', 'Redir.'), 'ms', gl('Sănătate', 'Health')], domainStats().map(d => `<tr>${td(esc(d.host))}${td(d.total)}${td(d.broken)}${td(d.review)}${td(d.redirects)}${td(d.avg)}${td(`<div class="bar"><i style="width:${d.health}%"></i></div>${d.health.toFixed(0)}%`)}</tr>`));
+  } else if (GD.tab === 'health') {
+    h += needSess() || healthMap().slice(0, 400).map(p => p.items.length ? `<details><summary>${p.score.toFixed(0)}% · ${p.broken}/${p.links} — ${esc(p.title || p.page)}</summary>${p.items.map(i => `<div class="u">${i.review ? '⚠' : '✖'} [${esc(stLabel(i.status))}] ${esc(i.url)}</div>`).join('')}</details>` : `<div>${p.score.toFixed(0)}% · 0/${p.links} — ${esc(p.title || p.page)}</div>`).join('');
+  } else if (GD.tab === 'redir') {
+    h += needSess() || tbl([gl('De la', 'From'), gl('La', 'To'), gl('Tip', 'Type'), gl('Pagini', 'Pages')], redirectsList().map(r => `<tr>${td(esc(r.from), 'u')}${td(esc(r.to), 'u')}${td(r.codes.join('→') + ' ' + (r.perm ? gl('permanent', 'permanent') : gl('temporar', 'temporary')))}${td(r.pages)}</tr>`));
+  } else if (GD.tab === 'trend') {
+    const hist = histLoad();
+    h += `<div class="row"><button id="gd-rec" ${S.results.length ? '' : 'disabled'}>${gl('＋ Înregistrează rularea curentă', '＋ Record current run')}</button><label class="btn" style="margin:0;color:var(--fg)">${gl('Încarcă sesiune anterioară', 'Load previous session')}<input id="gd-prev" type="file" accept=".json,.veriga" hidden></label><button id="gd-gh" ${S.results.length ? '' : 'disabled'}>${gl('Raport Guardian (HTML)', 'Guardian report (HTML)')}</button><button id="gd-hclr">${gl('Șterge istoricul', 'Clear history')}</button></div>`;
+    if (GD.prev && S.results.length) { const d = sessDiff(GD.prev, S.results); h += `<p>${gl('noi rupte', 'newly broken')}: <b>${d.nu.length}</b> · ${gl('rezolvate', 'resolved')}: <b>${d.resolved.length}</b> · ${gl('derivă de conținut', 'content drift')}: <b>${d.drift.length}</b></p>` + d.drift.map(x => `<div class="u">${esc(x.url)}<span class="par">${esc((x.o.title || '') + ' | ' + (x.o.h1 || ''))} → ${esc((x.n.title || '') + ' | ' + (x.n.h1 || ''))}</span></div>`).join(''); }
+    h += trendSvg(hist) + tbl([gl('Data', 'Date'), 'Total', gl('Rupte', 'Broken'), gl('Sănătate', 'Health')], [...hist].reverse().map(x => `<tr>${td(esc(x.time))}${td(x.total)}${td(x.broken)}${td(x.health.toFixed(1) + '%')}</tr>`));
+  } else if (GD.tab === 'l404') {
+    h += `<p class="note">${gl('Încarcă un jurnal de acces Apache/nginx (format common/combined). Sugestiile folosesc paginile OK din verificarea curentă.', 'Load an Apache/nginx access log (common/combined). Suggestions use the OK pages from the current check.')}</p><div class="row"><label class="btn" style="margin:0;color:var(--fg)">${gl('📄 Alege jurnal…', '📄 Choose log…')}<input id="gd-log" type="file" hidden></label><label class="chk"><input type="checkbox" id="gd-bots"><span>${gl('include boții', 'include bots')}</span></label><button id="gd-hcsv" ${GD.hits.length ? '' : 'disabled'}>CSV</button><button id="gd-hta" ${GD.hits.length ? '' : 'disabled'}>.htaccess</button><span class="note">${esc(GD.msg)}</span></div>`;
+    h += tbl(['#', 'Path', gl('Referer', 'Referrer'), gl('Sugestie', 'Suggestion')], GD.hits.slice(0, 500).map(x => `<tr>${td(x.count)}${td(esc(x.path), 'u')}${td(esc((x.referers[0] || [''])[0]), 'u')}${td(esc(x.suggestion || ''), 'u')}</tr>`));
+  } else if (GD.tab === 'comp') {
+    h += needSess() + `<div class="row"><label>${gl('Perioadă (zile)', 'Period (days)')}</label><input type="number" id="gd-days" value="${GD.days}" min="1" style="width:100px"><button class="primary" id="gd-cr" ${S.results.length ? '' : 'disabled'}>${gl('Raport de conformitate', 'Compliance report')}</button><button id="gd-cra" ${S.results.length ? '' : 'disabled'}>${gl('Tot istoricul', 'All time')}</button></div><p class="note">${gl('Pentru rulări programate folosește aplicația CLI (`veriga wizard`, `veriga watch`) — o pagină web nu poate rula în fundal.', 'For scheduled runs use the CLI (`veriga wizard`, `veriga watch`) — a web page cannot run in the background.')}</p>`;
+  }
+  b.innerHTML = h;
+}
+async function gdLoadFiles(list) {
+  for (const f of list) { if (f.size > 20e6) continue; const rel = f.webkitRelativePath || f.name; const k = gDetect(rel, ''); const txt = await f.text(); if (!k && !(rel.toLowerCase().endsWith('.xml'))) continue; GD.files.set(rel, { text: txt, backup: null, dirty: false }); }
+  GD.msg = GD.files.size + gl(' fișiere încărcate', ' files loaded'); gdRender();
+}
+function gdDownloadModified() { for (const [n, f] of GD.files) if (f.dirty) download(n.split('/').pop(), 'text/plain', f.text); }
+async function gdWriteFolder() {
+  try { const root = await window.showDirectoryPicker({ mode: 'readwrite' }); let n = 0;
+    for (const [rel, f] of GD.files) { if (!f.dirty) continue; const parts = rel.split('/'); if (parts.length > 1) parts.shift(); let dir = root; for (const p of parts.slice(0, -1)) dir = await dir.getDirectoryHandle(p); const fh = await dir.getFileHandle(parts[parts.length - 1]); const w = await fh.createWritable(); await w.write(f.text); await w.close(); n++; }
+    GD.msg = n + gl(' fișiere scrise', ' files written'); } catch (e) { GD.msg = String(e.message || e); } gdRender();
+}
+document.addEventListener('DOMContentLoaded', () => {
+  gLoadLog(); gdRender();
+  $('#gd-tabs').addEventListener('click', e => { const b = e.target.closest('[data-gt]'); if (b) { GD.tab = b.dataset.gt; GD.msg = ''; gdRender(); } });
+  const body = $('#gd-body');
+  body.addEventListener('change', async e => {
+    const t = e.target;
+    if (t.id === 'gd-files' || t.id === 'gd-dir') { await gdLoadFiles([...t.files]); t.value = ''; }
+    else if (t.id === 'gd-verify') GD.verify = t.checked;
+    else if (t.id === 'gd-upg') GD.upgrade = t.checked;
+    else if (t.id === 'gd-trust') { GD.trust = t.checked; gdRender(); }
+    else if (t.dataset && t.dataset.ps) { t.checked ? GD.sel.add(t.dataset.ps) : GD.sel.delete(t.dataset.ps); gdRender(); }
+    else if (t.id === 'gd-limp') { try { GD.log = gSanitizeLog(JSON.parse(await t.files[0].text())); GD.trust = false; gSaveLog(); GD.msg = GD.log.length + gl(' intrări (importate — bifează confirmarea înainte de anulare)', ' entries (imported — tick the confirmation before undoing)'); } catch (er) { GD.msg = gl('Jurnal invalid.', 'Invalid log.'); } gdRender(); }
+    else if (t.id === 'gd-prev') { try { GD.prev = JSON.parse(await t.files[0].text()); } catch (er) { GD.prev = null; } gdRender(); }
+    else if (t.id === 'gd-log') {
+      const txt = await t.files[0].text(); const known = [...new Set(S.results.filter(r => !isBroken(r.status)).map(r => { try { return new URL(r.url).pathname; } catch (er) { return null; } }).filter(Boolean))];
+      GD.hits = parse404(txt, !$('#gd-bots').checked, known); GD.msg = GD.hits.length + ' 404'; gdRender();
+    } else if (t.id === 'gd-days') GD.days = Math.max(1, parseInt(t.value, 10) || 30);
+  });
+  body.addEventListener('click', async e => {
+    const id = e.target.id; const un = e.target.closest('[data-undo]');
+    if (un) { const r = gUndo([un.dataset.undo]); GD.msg = gl('Anulate: ', 'Undone: ') + r.undone + gl(' · conflicte: ', ' · conflicts: ') + r.conflicts; gdRender(); return; }
+    if (id === 'gd-scan') { GD.msg = gl('Scanez și verific…', 'Scanning and verifying…'); gdRender(); GD.props = await gPropose(); GD.sel = new Set(GD.props.filter(p => p.verified).map(p => p.id)); GD.msg = GD.props.length + gl(' propuneri', ' proposals'); gdRender(); }
+    else if (id === 'gd-madd') { const o = $('#gd-mo').value.trim(), n = $('#gd-mn').value.trim(); if (o) { const add = gManual(o, n); add.forEach(p => { p.id = 'x' + (GD.props.length + 1); GD.props.push(p); GD.sel.add(p.id); }); gdRender(); } }
+    else if (id === 'gd-selv') { GD.sel = new Set(GD.props.filter(p => p.verified).map(p => p.id)); gdRender(); }
+    else if (id === 'gd-apply') { const r = gApply(GD.props.filter(p => GD.sel.has(p.id)), gRun()); GD.msg = gl('Aplicate: ', 'Applied: ') + r.applied + gl(' · omise: ', ' · skipped: ') + r.skipped.length; GD.props = []; GD.sel = new Set(); gdRender(); }
+    else if (id === 'gd-pcsv') download('propuneri.csv', 'text/csv', gCsv([['id', 'file', 'page', 'rule', 'old', 'new', 'verified', 'impact', 'pages', 'note'], ...GD.props.map(p => [p.id, p.file, p.page, p.rule, p.old, p.new, p.verified ? 'da' : 'nu', gImpact(p) ? 'da' : 'nu', p.pages, p.note])]));
+    else if (id === 'gd-dl') gdDownloadModified();
+    else if (id === 'gd-write') gdWriteFolder();
+    else if (id === 'gd-undo-last') { const last = [...GD.log].reverse().find(x => x.status === 'Applied'); if (last) { const r = gUndo(null, last.run); GD.msg = gl('Anulate: ', 'Undone: ') + r.undone + gl(' · conflicte: ', ' · conflicts: ') + r.conflicts; gdRender(); } }
+    else if (id === 'gd-lcsv') download('jurnal-reparatii.csv', 'text/csv', gCsv([['id', 'run', 'time', 'file', 'rule', 'old', 'new', 'status'], ...GD.log.map(x => [x.id, x.run, x.time, x.file, x.rule, x.old, x.new, x.status])]));
+    else if (id === 'gd-ljson') download('veriga-fixlog.json', 'application/json', JSON.stringify(GD.log, null, 1));
+    else if (id === 'gd-rec') { const h = histLoad(); h.push(snapshot()); lsSet('veriga.history', JSON.stringify(h.slice(-1000))); gdRender(); }
+    else if (id === 'gd-hclr') { lsSet('veriga.history', '[]'); gdRender(); }
+    else if (id === 'gd-gh') download('guardian.html', 'text/html', guardianHtml());
+    else if (id === 'gd-hcsv') download('404.csv', 'text/csv', gCsv([['path', 'count', 'last', 'top_referer', 'suggested_redirect'], ...GD.hits.map(x => [x.path, x.count, x.last, (x.referers[0] || [''])[0], x.suggestion || ''])]));
+    else if (id === 'gd-hta') download('redirect.htaccess', 'text/plain', '# generat de VERIGA — verificați înainte de a folosi\n' + GD.hits.filter(x => x.suggestion && /^[\x21-\x7e]+$/.test(x.path.split('?')[0])).map(x => `Redirect 301 ${x.path.split('?')[0]} ${x.suggestion}`).join('\n') + '\n');
+    else if (id === 'gd-cr') download('conformitate.html', 'text/html', complianceHtml(GD.days));
+    else if (id === 'gd-cra') download('conformitate.html', 'text/html', complianceHtml(0));
+  });
+  $('#lang').addEventListener('click', () => setTimeout(gdRender, 0));
+  $('#gd-det').addEventListener('toggle', gdRender);
+});
+</script>
+</body>
+</html>

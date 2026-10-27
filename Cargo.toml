@@ -1,0 +1,35 @@
+[workspace]
+resolver = "2"
+members = ["crates/veriga-core", "crates/veriga-cli", "crates/veriga-gui"]
+
+[workspace.package]
+version = "1.0.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT OR Apache-2.0"
+authors = ["Alexio"]
+
+[workspace.dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "fs", "io-util", "net"] }
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "charset", "http2", "system-proxy", "gzip", "brotli", "zstd", "deflate", "cookies", "socks"] }
+url = { version = "2", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+scraper = "0.29"
+regex = "1"
+walkdir = "2"
+anyhow = "1"
+thiserror = "2"
+clap = { version = "4", features = ["derive"] }
+csv = "1"
+percent-encoding = "2"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
+futures = "0.3"
+mime_guess = "2"
+encoding_rs = "0.8"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 4
+strip = true
