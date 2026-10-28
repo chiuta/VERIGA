@@ -66,6 +66,15 @@ cargo test --workspace
 Der Workflow `.github/workflows/build.yml` erzeugt Archive für: Windows x64/ARM64, macOS Intel/Apple Silicon,
 Linux x64/ARM64 (glibc, mit GUI) und Linux x64/ARM64 (musl, statische CLI). Das `Dockerfile` baut ein minimales Image mit der CLI.
 
+## Portable Ausgabe (PortableApps.com)
+
+VERIGA gibt es auch als **PortableApps.com-Format-3.9**-Paket, `VERIGAPortable_<Version>_Multilingual.zip` (Release-Dateien). Entpacke es beliebig (USB-Stick, synchronisierter Ordner) und starte `VERIGAPortable.exe`.
+
+- Alles, was die App erzeugt, bleibt in `Data\` (Guardian-Zustand in `Data\.veriga`); in die Registrierung oder nach `%APPDATA%` wird nichts geschrieben. `Data\` zu löschen ist unbedenklich: Der Ordner wird neu angelegt.
+- Der Launcher wählt die x64- oder ARM64-Version nach der nativen Architektur; `VERIGAPortable.exe sitzung.veriga` öffnet eine gespeicherte Sitzung (Dateizuordnung `.veriga`).
+- Die CLI ist `App\VERIGA\veriga.exe`. Die Struktur wird in der CI mit `portableapps/validate.py` geprüft; der Launcher-Quellcode liegt in `crates/veriga-launcher`.
+- Der offizielle `.paf.exe`-Installer wird mit dem PortableApps.com Installer (Windows-Werkzeug) gebaut; der Ordner hat bereits die geforderte Struktur.
+
 ## Die Single-File-HTML-Edition
 
 `web/veriga.html` läuft zu 100 % im Browser, ohne Server:

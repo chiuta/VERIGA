@@ -66,6 +66,15 @@ cargo test --workspace
 A `.github/workflows/build.yml` munkafolyamat archívumokat készít a következőkhöz: Windows x64/ARM64, macOS Intel/Apple Silicon,
 Linux x64/ARM64 (glibc, GUI-val) és Linux x64/ARM64 (musl, statikus CLI). A `Dockerfile` minimális, CLI-t tartalmazó image-et épít.
 
+## Hordozható kiadás (PortableApps.com)
+
+A VERIGA **PortableApps.com Format 3.9** csomagként is elérhető: `VERIGAPortable_<verzió>_Multilingual.zip` (a kiadás fájljai). Csomagold ki bárhová (pendrive, szinkronizált mappa), és indítsd el a `VERIGAPortable.exe`-t.
+
+- Minden, amit az alkalmazás létrehoz, a `Data\` mappában marad (a Guardian állapota a `Data\.veriga` mappában); a rendszerleíró adatbázisba és az `%APPDATA%` mappába nem ír semmit. A `Data\` törlése biztonságos: újra létrejön.
+- Az indító a natív architektúra szerint az x64-es vagy az ARM64-es változatot választja; a `VERIGAPortable.exe munkamenet.veriga` egy mentett munkamenetet nyit meg (`.veriga` fájltársítás).
+- A CLI az `App\VERIGA\veriga.exe`. A szerkezetet a CI a `portableapps/validate.py` szkripttel ellenőrzi; az indító forrása a `crates/veriga-launcher`.
+- A hivatalos `.paf.exe` telepítőt a PortableApps.com Installerrel (Windows-eszköz) kell építeni; a mappa már a megkövetelt szerkezetű.
+
 ## Az egyfájlos HTML-kiadás
 
 A `web/veriga.html` 100%-ban a böngészőben fut, szerver nélkül:

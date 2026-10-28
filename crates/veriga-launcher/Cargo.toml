@@ -1,0 +1,15 @@
+[package]
+name = "veriga-launcher"
+description = "Lansator portabil (PortableApps.com) pentru VERIGA: păstrează datele în Data\\, nu scrie în registru"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+publish = false
+
+[[bin]]
+name = "VERIGAPortable"
+path = "src/main.rs"
+
+[dependencies]

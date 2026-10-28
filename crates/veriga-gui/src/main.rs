@@ -79,6 +79,21 @@ struct App {
 }
 
 impl App {
+    /// Încarcă o sesiune `.veriga`: rezultate + start; setările de securitate rămân cele curente.
+    fn open_session(&mut self, p: &std::path::Path) {
+        match Session::load(p) {
+            Ok(mut s) => {
+                self.results = s.results.clone();
+                self.start = s.config.start.join("\n");
+                self.adopt_security(&mut s.config);
+                self.cfg = s.config.clone();
+                self.session = Some(s);
+                self.status_line = format!("{} {}", self.t("Încărcat:", "Loaded:"), p.display());
+            }
+            Err(e) => self.status_line = format!("{}: {e}", self.t("Eroare", "Error")),
+        }
+    }
+
     fn new() -> Self {
         Self {
             start: String::new(),
@@ -477,18 +492,7 @@ impl eframe::App for App {
                         .add_filter("VERIGA", &["veriga", "json"])
                         .pick_file()
                 {
-                    match Session::load(&p) {
-                        Ok(mut s) => {
-                            self.results = s.results.clone();
-                            self.start = s.config.start.join("\n");
-                            self.adopt_security(&mut s.config);
-                            self.cfg = s.config.clone();
-                            self.session = Some(s);
-                            self.status_line =
-                                format!("{} {}", self.t("Încărcat:", "Loaded:"), p.display());
-                        }
-                        Err(e) => self.status_line = format!("{}: {e}", self.t("Eroare", "Error")),
-                    }
+                    self.open_session(&p);
                 }
                 if ui
                     .button(self.t("💾 Salvează sesiune", "💾 Save session"))
@@ -1049,7 +1053,16 @@ fn main() -> eframe::Result<()> {
                 f.push("Hack".to_owned());
             }
             cc.egui_ctx.set_fonts(fonts);
-            Ok(Box::new(App::new()))
+            let mut app = App::new();
+            // asocierea de fișiere (PortableApps.com / dublu clic pe .veriga): primul argument = sesiune
+            if let Some(p) = std::env::args_os()
+                .nth(1)
+                .map(std::path::PathBuf::from)
+                .filter(|p| p.is_file())
+            {
+                app.open_session(&p);
+            }
+            Ok(Box::new(app))
         }),
     )
 }

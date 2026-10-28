@@ -167,9 +167,36 @@ jobs:
           path: veriga-${{ matrix.target }}.${{ matrix.ext }}
           if-no-files-found: error
 
+  portable:
+    # pachet PortableApps.com Format 3.9: lansator Rust + arhivele Windows x64/ARM64
+    needs: build
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - run: rustup toolchain install stable --profile minimal && rustup default stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --locked -p veriga-launcher
+      - run: cargo build --release --locked -p veriga-launcher
+      - uses: actions/download-artifact@v8
+        with: { path: in, pattern: "veriga-*-pc-windows-msvc", merge-multiple: true }
+      - name: Asamblează și validează
+        shell: bash
+        run: |
+          ver=$(grep -m1 '^version = ' Cargo.toml | cut -d'"' -f2)
+          python portableapps/build.py --launcher target/release/VERIGAPortable.exe \
+            --x64 in/veriga-x86_64-pc-windows-msvc.zip --arm64 in/veriga-aarch64-pc-windows-msvc.zip \
+            --out "dist/VERIGAPortable_${ver}_Multilingual.zip"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: VERIGAPortable
+          path: dist/*.zip
+          if-no-files-found: error
+
   release:
     if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
-    needs: build
+    needs: [build, portable]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:

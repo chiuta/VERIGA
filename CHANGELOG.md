@@ -28,6 +28,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ### Securitate
 - Anti-SSRF implicit (`--allow-private`), antete sensibile limitate la originea internă, filtru de injecție pentru URL-uri inserate, CSV fără injecție de formule, CSP cu hash în varianta web și în rapoartele HTML.
+### Portabil (PortableApps.com Format 3.9)
+- Pachet `VERIGAPortable_<versiune>_Multilingual.zip` în release: lansator Rust (`crates/veriga-launcher`) care păstrează totul în `Data\`, alege x64/ARM64 după arhitectura nativă și nu atinge registrul; `appinfo.ini`, pictograme (ico + png), `help.html` în 8 limbi, `installer.ini`.
+- GUI: primul argument din linia de comandă deschide o sesiune `.veriga` (asociere de fișiere).
+- CI: jobul `portable` asamblează și validează pachetul (`portableapps/validate.py`).
 ### Remedieri GUI
 - Pictogramele din butoane apăreau ca pătrățele după portarea la egui 0.37 (fonturile de emoji sunt acum activate, iar săgețile → ↶ ↳ au font de rezervă).
 - Clicul pe un rând din tabel nu selecta rândul (etichetele selectabile interceptau clicul): selecția și panoul de detalii funcționează din nou.

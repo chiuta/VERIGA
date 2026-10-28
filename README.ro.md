@@ -66,6 +66,15 @@ cargo test --workspace
 Fluxul `.github/workflows/build.yml` produce arhive pentru: Windows x64/ARM64, macOS Intel/Apple Silicon,
 Linux x64/ARM64 (glibc, cu GUI) și Linux x64/ARM64 (musl, CLI static). `Dockerfile` construiește o imagine minimă cu CLI-ul.
 
+## Varianta portabilă (PortableApps.com)
+
+VERIGA vine și ca pachet **PortableApps.com Format 3.9**, `VERIGAPortable_<versiune>_Multilingual.zip` (fișiere ale release-ului). Dezarhivează-l oriunde (stick USB, folder sincronizat) și pornește `VERIGAPortable.exe`.
+
+- Tot ce produce aplicația rămâne în `Data\` (starea Guardian în `Data\.veriga`); nu se scrie nimic în registru sau în `%APPDATA%`. Ștergerea `Data\` este sigură: se recreează.
+- Lansatorul alege versiunea x64 sau ARM64 după arhitectura nativă; `VERIGAPortable.exe sesiune.veriga` deschide o sesiune salvată (asociere de fișiere `.veriga`).
+- CLI-ul este `App\VERIGA\veriga.exe`. Structura este verificată în CI cu `portableapps/validate.py`; sursa lansatorului este `crates/veriga-launcher`.
+- Instalatorul oficial `.paf.exe` se construiește cu PortableApps.com Installer (unealtă pentru Windows); folderul are deja structura cerută.
+
 ## Varianta HTML single-file
 
 `web/veriga.html` rulează 100% în browser, fără server:
