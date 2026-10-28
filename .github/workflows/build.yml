@@ -44,7 +44,16 @@ jobs:
         with: { persist-credentials: false }
       - run: rustup toolchain install stable --profile minimal && rustup default stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo test --workspace --locked
+      - name: cargo test
+        shell: bash
+        run: |
+          set -o pipefail
+          cargo test --workspace --locked 2>&1 | tee test.log || {
+            # rezumatul eșecurilor devine adnotare (vizibilă și fără accesul la jurnal)
+            msg=$(grep -E "^test .*FAILED|panicked at|^---- |assertion|left:|right:|error(\[|:)" test.log | head -25 | tr '\n' '|' | cut -c1-1500)
+            echo "::error title=cargo test::${msg}"
+            exit 1
+          }
 
   msrv:
     # core + CLI trebuie să compileze pe versiunea minimă declarată (rust-version)
@@ -76,6 +85,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
       - run: npm install --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
       - run: npm test
