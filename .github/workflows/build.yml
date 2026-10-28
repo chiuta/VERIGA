@@ -5,6 +5,11 @@ on:
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Etichetă de lansare (ex. v1.0.0-alpha.1): creează eticheta și lansarea; cu sufix = ciornă + pre-lansare"
+        required: false
+        default: ""
   schedule:
     - cron: "17 4 * * 1"   # audit săptămânal al dependențelor (advisories noi)
 
@@ -163,7 +168,7 @@ jobs:
           if-no-files-found: error
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -180,9 +185,11 @@ jobs:
       - uses: actions/attest-build-provenance@v4
         with: { subject-path: "dist/*" }
       - name: Publică release (fără acțiuni terțe)
-        env: { GH_TOKEN: "${{ github.token }}" }
+        env: { GH_TOKEN: "${{ github.token }}", TAG: "${{ inputs.release_tag || github.ref_name }}" }
         run: |
           # etichetele cu sufix (v1.0.0-alpha.1) devin ciornă + pre-lansare; le publici tu după verificare
+          tag="$TAG"
+          case "$tag" in v[0-9]*) ;; *) echo "::error::eticheta trebuie să înceapă cu v și o cifră"; exit 1 ;; esac
           flags=""
-          case "${{ github.ref_name }}" in *-*) flags="--draft --prerelease" ;; esac
-          gh release create "${{ github.ref_name }}" dist/* --repo "${{ github.repository }}" --generate-notes $flags
+          case "$tag" in *-*) flags="--draft --prerelease" ;; esac
+          gh release create "$tag" dist/* --repo "${{ github.repository }}" --target "${{ github.sha }}" --generate-notes $flags
