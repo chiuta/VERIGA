@@ -89,7 +89,15 @@ jobs:
         with: { node-version: 24 }
       - run: npm install --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
-      - run: npm test
+      - name: npm test
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee web.log || {
+            msg=$(grep -E "EXCEP|Error|FAIL|nu a |lipsește|eșec|EȘEC|✗|not ok" web.log | head -15 | tr '\n' '|' | cut -c1-1500)
+            echo "::error title=npm test::${msg}"
+            exit 1
+          }
       - name: CSP actualizat?
         working-directory: .
         run: |

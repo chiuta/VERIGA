@@ -1086,6 +1086,8 @@ mod tests {
         let mut cfg = Config::with_start(dir.join("index.html").to_string_lossy().to_string());
         cfg.start = vec![dir.join("index.html").to_string_lossy().to_string()];
         let sh = Shared::new(Arc::new(cfg)).unwrap();
+        // rădăcina e canonică (macOS: /private/var, Windows: nume lungi): construim căile din ea
+        let dir = sh.file_roots[0].clone();
         assert_eq!(
             sh.case_mismatch(&dir.join("Img").join("logo.png"))
                 .await
