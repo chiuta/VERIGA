@@ -60,7 +60,8 @@ const ok = (c, m) => { if (!c) { fails++; console.log('FAIL:', m); } else consol
   ok(w.eval('toTree()').includes('index.html'), 'arbore generat');
   const sess = JSON.parse(w.eval('JSON.stringify(buildSession())'));
   ok(sess.results.length === R.length && sess.version === 1 && 'ignored' in sess && 'truncated' in sess && 'cancelled' in sess, 'sesiune JSON conform schemei Rust');
-  fs.writeFileSync('/tmp/claude-0/jt/web-session.veriga', JSON.stringify(sess));
+  const SESS = require('path').join(require('os').tmpdir(), 'veriga-web-session-' + process.pid + '.veriga');
+  fs.writeFileSync(SESS, JSON.stringify(sess));
   const first = sess.results[0];
   ['url','final_url','http_status','status','message','kind','internal','depth','content_type','size','last_modified','title','elapsed_ms','chain','parents','parsed','links_found'].forEach(k => { if (!(k in first)) { fails++; console.log('FAIL: câmp lipsă în rezultat', k); } });
 
@@ -109,7 +110,7 @@ const ok = (c, m) => { if (!c) { fails++; console.log('FAIL:', m); } else consol
   await w2.eval('recheck')(); await waitDone(w2);
   ok(w2.eval('S.results.filter(r=>isBroken(r.status)).length') === before, 'reverificare: același număr de rupte (' + before + ')');
   // import sesiune creată de varianta web (compat.)
-  w2.eval('importSession')(fs.readFileSync('/tmp/claude-0/jt/web-session.veriga', 'utf8'));
+  w2.eval('importSession')(fs.readFileSync(SESS, 'utf8'));
   ok(w2.eval('S.results.length') === sess.results.length, 'import sesiune');
 
   // ---------- 3. mod listă / HTML lipit ----------
