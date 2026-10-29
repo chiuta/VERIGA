@@ -52,7 +52,8 @@ files["manifest.webmanifest"] = (json.dumps({
 
 shell = ["./", "index.html", "pwa.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png"]
 h = hashlib.sha256()
-for k in sorted(files): h.update(k.encode() + files[k])
+for k in sorted(files):
+    if not k.endswith(".png"): h.update(k.encode() + files[k])  # PNG-urile diferă între versiuni Pillow
 cache = f"veriga-{ver}-{h.hexdigest()[:10]}"
 files["sw.js"] = f"""'use strict';
 // Generat de web/build-pwa.py — nu editați manual.
@@ -71,7 +72,10 @@ bad = 0
 for k, v in files.items():
     p = os.path.join(OUT, k)
     if "--check" in sys.argv:
-        if not os.path.exists(p) or open(p, "rb").read() != v: print("diferă:", k); bad = 1
+        if not os.path.exists(p): print("lipsește:", k); bad = 1
+        elif k.endswith(".png"):  # codarea PNG depinde de versiunea Pillow: comparăm doar dimensiunile
+            if Image.open(p).size != Image.open(io.BytesIO(v)).size: print("dimensiune diferită:", k); bad = 1
+        elif open(p, "rb").read() != v: print("diferă:", k); bad = 1
     else:
         os.makedirs(OUT, exist_ok=True); open(p, "wb").write(v)
 print("OK" if not bad else "PWA învechit: rulați python3 web/build-pwa.py"); sys.exit(bad)

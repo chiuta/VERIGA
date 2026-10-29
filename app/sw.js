@@ -1,6 +1,6 @@
 'use strict';
 // Generat de web/build-pwa.py — nu editați manual.
-const CACHE = 'veriga-1.0.0-5b0001cbb2', SHELL = ["./", "index.html", "pwa.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png"];
+const CACHE = 'veriga-1.0.0-5a53e66585', SHELL = ["./", "index.html", "pwa.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png"];
 addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => skipWaiting())));
 addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => clients.claim())));
 addEventListener('fetch', e => {
