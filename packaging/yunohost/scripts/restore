@@ -1,0 +1,15 @@
+#!/bin/bash
+source _common.sh
+source /usr/share/yunohost/helpers
+
+ynh_script_progression "Restoring the app main directory..."
+ynh_restore "$install_dir"
+ynh_restore "$data_dir"
+chown -R "$app:$app" "$install_dir" "$data_dir"
+
+ynh_script_progression "Restoring system configurations..."
+ynh_config_add_nginx
+export guardian_url
+veriga_guardian
+
+ynh_script_progression "Restoration completed for $app"

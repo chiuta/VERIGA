@@ -81,6 +81,10 @@ VERIGA también se distribuye como paquete **PortableApps.com Format 3.9**, `VER
 - La CLI es `App\VERIGA\veriga.exe`. La estructura se comprueba en CI con `portableapps/validate.py`; el código del lanzador es `crates/veriga-launcher`.
 - El instalador oficial `.paf.exe` se construye con PortableApps.com Installer (herramienta para Windows); la carpeta ya tiene la estructura requerida.
 
+## Paquetes para móvil y servidor
+
+PWA (instalable, sin conexión): <https://veriga.chiuta.ro/app/> · Termux: `packaging/termux/install.sh` · Docker: `docker run --rm ghcr.io/chiuta/veriga check https://example.org` · temporizador systemd, `.deb`/`.rpm`, CronJob de Kubernetes y paquete **YunoHost**: ver [`packaging/`](packaging/README.md). No se ofrece un APK nativo de Android.
+
 ## La edición HTML de archivo único
 
 `web/veriga.html` se ejecuta al 100 % en el navegador, sin servidor:

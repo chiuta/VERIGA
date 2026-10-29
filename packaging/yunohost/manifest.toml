@@ -1,0 +1,72 @@
+packaging_format = 2
+
+id = "veriga"
+name = "VERIGA"
+description.en = "Link checker (Xenu-like): finds broken links, redirects and slow pages; includes the single-file HTML edition and an optional scheduled Link Guardian."
+description.fr = "Vérificateur de liens (type Xenu) : liens cassés, redirections et pages lentes ; édition HTML autonome et Link Guardian planifié en option."
+description.ro = "Verificator de legături (tip Xenu): legături rupte, redirecționări și pagini lente; ediția HTML dintr-un singur fișier și Link Guardian programat, opțional."
+
+version = "1.0.0~ynh1"
+
+maintainers = ["chiuta"]
+
+[upstream]
+license = "MIT"
+website = "https://veriga.chiuta.ro"
+demo = "https://veriga.chiuta.ro/#demo"
+code = "https://github.com/chiuta/VERIGA"
+userdoc = "https://veriga.chiuta.ro"
+cpe = ""
+fund = ""
+
+[integration]
+yunohost = ">= 12.0.0"
+helpers_version = "2.1"
+architectures = ["amd64", "arm64"]
+multi_instance = false
+ldap = "not_relevant"
+sso = "not_relevant"
+disk = "50M"
+ram.build = "50M"
+ram.runtime = "20M"
+
+[install]
+    [install.domain]
+    type = "domain"
+
+    [install.path]
+    type = "path"
+    default = "/veriga"
+
+    [install.init_main_permission]
+    type = "group"
+    default = "visitors"
+
+    [install.guardian_url]
+    ask.en = "Site to monitor daily with Link Guardian (leave empty to disable)"
+    ask.fr = "Site à surveiller chaque jour avec Link Guardian (vide = désactivé)"
+    ask.ro = "Site monitorizat zilnic de Link Guardian (gol = dezactivat)"
+    help.en = "Example: https://example.org/ — it can be changed later in /home/yunohost.app/veriga/guardian.json"
+    type = "string"
+    optional = true
+    default = ""
+
+[resources]
+    [resources.sources.main]
+    amd64.url = "https://github.com/chiuta/VERIGA/releases/download/v1.0.0/veriga-x86_64-unknown-linux-musl.tar.gz"
+    amd64.sha256 = "19b2b6500beb7724d3ced5328883c7a2d050722f23c320b410c6b962bb054151"
+    arm64.url = "https://github.com/chiuta/VERIGA/releases/download/v1.0.0/veriga-aarch64-unknown-linux-musl.tar.gz"
+    arm64.sha256 = "847dc8b2d255ca6acc14a9bcf1215270c6ae80bae3f8524cf90fa092dae69d94"
+
+    autoupdate.strategy = "latest_github_release"
+    autoupdate.asset.amd64 = "^veriga-x86_64-unknown-linux-musl\\.tar\\.gz$"
+    autoupdate.asset.arm64 = "^veriga-aarch64-unknown-linux-musl\\.tar\\.gz$"
+
+    [resources.system_user]
+
+    [resources.install_dir]
+
+    [resources.data_dir]
+
+    [resources.permissions]
+    main.url = "/"

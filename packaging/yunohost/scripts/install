@@ -1,0 +1,17 @@
+#!/bin/bash
+source _common.sh
+source /usr/share/yunohost/helpers
+
+ynh_script_progression "Setting up source files..."
+ynh_setup_source --dest_dir="$install_dir"
+veriga_layout
+
+ynh_script_progression "Configuring NGINX web server..."
+ynh_config_add_nginx
+
+ynh_script_progression "Configuring Link Guardian..."
+export guardian_url
+veriga_guardian_conf
+veriga_guardian
+
+ynh_script_progression "Installation of $app completed"

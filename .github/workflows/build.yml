@@ -110,6 +110,11 @@ jobs:
           python3 web/stamp-csp.py web/veriga.html
           git diff --exit-code web/veriga.html
           python3 web/stamp-site-csp.py index.html --check
+      - name: PWA la zi?
+        working-directory: .
+        run: |
+          python3 -m pip install --break-system-packages pillow
+          python3 web/build-pwa.py --check
 
   build:
     needs: [lint, test, msrv, supply-chain, web]
@@ -195,9 +200,85 @@ jobs:
           path: dist/*.zip
           if-no-files-found: error
 
+  packaging:
+    # verificări statice ale pachetelor (YunoHost, Termux, K8s, compose) + pachete .deb/.rpm din binarele musl
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - name: Verificări statice
+        run: |
+          python3 packaging/yunohost/check.py
+          sh -n packaging/termux/install.sh
+          python3 -m pip install --break-system-packages pyyaml
+          python3 -c "import yaml,sys; [list(yaml.safe_load_all(open(f))) for f in ('packaging/k8s/cronjob.yaml','packaging/docker/docker-compose.yml')]"
+          python3 -c "import json; json.load(open('packaging/systemd/guardian.example.json'))"
+      - uses: actions/download-artifact@v8
+        with: { path: in, pattern: "veriga-*-unknown-linux-musl", merge-multiple: true }
+      - name: Construiește .deb și .rpm
+        run: |
+          sudo apt-get update && sudo apt-get install -y rpm
+          ver=$(sed -n 's/^version = "\([0-9][0-9.]*\)".*/\1/p' Cargo.toml | head -1)
+          for t in x86_64-unknown-linux-musl aarch64-unknown-linux-musl; do
+            tar xzf in/veriga-$t.tar.gz -C in
+            packaging/deb/build.sh "$ver" "$t" "in/veriga-$t/veriga" dist
+          done
+          ls -l dist
+      - name: Instalează și rulează .deb (amd64)
+        run: |
+          sudo dpkg -i dist/veriga_*_amd64.deb
+          veriga --version
+          test -f /usr/lib/systemd/system/veriga-watch.timer
+          sudo mkdir -p /etc/veriga && sudo cp packaging/systemd/guardian.example.json /etc/veriga/guardian.json
+          systemd-analyze verify /usr/lib/systemd/system/veriga-watch.service /usr/lib/systemd/system/veriga-watch.timer
+          sudo dpkg -r veriga
+      - name: Verifică .rpm
+        run: rpm -qpl dist/veriga-*.x86_64.rpm && rpm -qpi dist/veriga-*.aarch64.rpm | head -5
+      - uses: actions/upload-artifact@v7
+        with: { name: packages, path: dist/*, if-no-files-found: error }
+
+  docker:
+    # imagine multi-arch (amd64+arm64) din binarele musl; publicată pe GHCR doar la lansări
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: actions/download-artifact@v8
+        with: { path: in, pattern: "veriga-*-unknown-linux-musl", merge-multiple: true }
+      - name: Pregătește binarele
+        run: |
+          mkdir -p ctx/bin/amd64 ctx/bin/arm64
+          tar xzf in/veriga-x86_64-unknown-linux-musl.tar.gz -C in && cp in/veriga-x86_64-unknown-linux-musl/veriga ctx/bin/amd64/
+          tar xzf in/veriga-aarch64-unknown-linux-musl.tar.gz -C in && cp in/veriga-aarch64-unknown-linux-musl/veriga ctx/bin/arm64/
+      - name: Construiește și încearcă imaginea (amd64)
+        run: |
+          docker buildx build --load --platform linux/amd64 -f packaging/docker/Dockerfile.release -t veriga:test ctx
+          docker run --rm veriga:test --version
+          test "$(docker image inspect veriga:test --format '{{.Config.User}}')" = "65532:65532"
+          docker run --rm --read-only --cap-drop ALL veriga:test --help | head -3
+      - name: Publică pe GHCR (multi-arch)
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
+        env: { TAG: "${{ inputs.release_tag || github.ref_name }}", GH_TOKEN: "${{ github.token }}" }
+        run: |
+          case "$TAG" in v[0-9]*) ;; *) echo "::error::etichetă invalidă"; exit 1 ;; esac
+          ver=${TAG#v}
+          repo=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/veriga
+          echo "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          tags="-t $repo:$ver"
+          case "$TAG" in *-*) ;; *) tags="$tags -t $repo:latest" ;; esac   # `latest` doar pentru versiuni finale
+          docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg VERSION="$ver" \
+            --provenance=true --sbom=true -f packaging/docker/Dockerfile.release $tags ctx
+
   release:
     if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
-    needs: [build, portable]
+    needs: [build, portable, packaging, docker]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:

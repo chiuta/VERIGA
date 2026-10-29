@@ -1,0 +1,41 @@
+[Unit]
+Description=VERIGA Link Guardian — o verificare a legăturilor (veriga watch --once)
+Documentation=https://veriga.chiuta.ro
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/etc/veriga/guardian.json
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/veriga watch --once --config /etc/veriga/guardian.json
+# Rulează ca utilizator dinamic; starea (istoric, copii de siguranță) rămâne în /var/lib/veriga.
+DynamicUser=yes
+StateDirectory=veriga
+WorkingDirectory=/var/lib/veriga
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=2h
+# Consolidare
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+# Pentru reparații automate pe fișiere locale: ReadWritePaths= într-un drop-in
+#   systemctl edit veriga-watch  →  [Service]\n ReadWritePaths=/var/www/site

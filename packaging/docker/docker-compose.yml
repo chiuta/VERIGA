@@ -1,0 +1,21 @@
+# Verificare periodică cu imaginea oficială (GHCR). Pornire:  docker compose run --rm veriga check https://example.org
+# Mod programat (Guardian):  docker compose up -d guardian
+services:
+  veriga:
+    image: ghcr.io/chiuta/veriga:latest
+    profiles: ["cli"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    volumes:
+      - ./data:/data
+  guardian:
+    image: ghcr.io/chiuta/veriga:latest
+    restart: unless-stopped
+    # `watch` fără --once rulează la fiecare every_hours din fișierul de configurare
+    command: ["watch", "--config", "/data/guardian.json"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    volumes:
+      - ./data:/data        # aici: guardian.json + starea (state: "/data/state")

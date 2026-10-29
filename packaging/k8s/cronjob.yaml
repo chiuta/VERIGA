@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: veriga-guardian }
+data:
+  guardian.json: |
+    {"start":["https://example.org/"],"sources":[],"state":"/state","every_hours":24,
+     "max_depth":null,"check_external":true,"auto_fix":[],"webhook":null,"sendmail":null,
+     "email_to":null,"notify_only_new":true,"lang":"en"}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata: { name: veriga-guardian }
+spec:
+  schedule: "17 4 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          securityContext: { runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, fsGroup: 65532, seccompProfile: { type: RuntimeDefault } }
+          containers:
+            - name: veriga
+              image: ghcr.io/chiuta/veriga:1.0.0
+              args: ["watch", "--once", "--config", "/etc/veriga/guardian.json"]
+              securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ALL] } }
+              resources: { requests: { cpu: 50m, memory: 64Mi }, limits: { memory: 256Mi } }
+              volumeMounts:
+                - { name: cfg, mountPath: /etc/veriga, readOnly: true }
+                - { name: state, mountPath: /state }
+          volumes:
+            - { name: cfg, configMap: { name: veriga-guardian } }
+            - { name: state, emptyDir: {} }   # înlocuiți cu un PVC pentru istoric persistent

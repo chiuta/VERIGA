@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+### Împachetare mobil și server / Mobile & server packaging
+- PWA instalabilă offline (`app/`, generată de `web/build-pwa.py`, verificată în CI) și script Termux cu verificare SHA-256.
+- Docker: imagine non-root (65532) cu volum `/data`, multi-arch (amd64+arm64) publicată pe GHCR la lansări; `docker-compose.yml`; CronJob Kubernetes.
+- systemd: `veriga-watch.service` (oneshot, `DynamicUser`, consolidat) + `.timer`; pachete `.deb` și `.rpm` (amd64/arm64) construite în CI.
+- Pachet **YunoHost** (format v2) în `packaging/yunohost/`: ediția HTML la un URL ales, CLI și Link Guardian opțional. Verificat static; încă nerulat prin `package_check` pe o instanță YunoHost.
+
 ## [1.0.0] — 2026-10-29
 
 ### Pagina web / Website

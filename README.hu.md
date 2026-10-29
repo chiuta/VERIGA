@@ -81,6 +81,10 @@ A VERIGA **PortableApps.com Format 3.9** csomagként is elérhető: `VERIGAPorta
 - A CLI az `App\VERIGA\veriga.exe`. A szerkezetet a CI a `portableapps/validate.py` szkripttel ellenőrzi; az indító forrása a `crates/veriga-launcher`.
 - A hivatalos `.paf.exe` telepítőt a PortableApps.com Installerrel (Windows-eszköz) kell építeni; a mappa már a megkövetelt szerkezetű.
 
+## Csomagolás mobilra és szerverre
+
+PWA (telepíthető, offline): <https://veriga.chiuta.ro/app/> · Termux: `packaging/termux/install.sh` · Docker: `docker run --rm ghcr.io/chiuta/veriga check https://example.org` · systemd időzítő, `.deb`/`.rpm`, Kubernetes CronJob és **YunoHost**-csomag: lásd [`packaging/`](packaging/README.md). Natív Android APK nincs.
+
 ## Az egyfájlos HTML-kiadás
 
 A `web/veriga.html` 100%-ban a böngészőben fut, szerver nélkül:

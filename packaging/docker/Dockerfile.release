@@ -1,0 +1,21 @@
+# Imagine multi-arhitectură din binarele musl DEJA compilate de CI (fără compilare sub QEMU).
+#   bin/amd64/veriga și bin/arm64/veriga sunt extrase din arhivele veriga-*-unknown-linux-musl.tar.gz
+FROM --platform=$BUILDPLATFORM alpine:3.22 AS prep
+RUN apk add --no-cache ca-certificates && mkdir /data
+
+FROM scratch
+ARG TARGETARCH
+ARG VERSION=dev
+LABEL org.opencontainers.image.title="VERIGA" \
+      org.opencontainers.image.description="Verificator de legături (Xenu-like) — CLI static" \
+      org.opencontainers.image.source="https://github.com/chiuta/VERIGA" \
+      org.opencontainers.image.url="https://veriga.chiuta.ro" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.version="${VERSION}"
+COPY --from=prep /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=prep --chown=65532:65532 /data /data
+COPY bin/${TARGETARCH}/veriga /veriga
+USER 65532:65532
+WORKDIR /data
+VOLUME ["/data"]
+ENTRYPOINT ["/veriga"]

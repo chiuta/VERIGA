@@ -1,0 +1,28 @@
+[Unit]
+Description=VERIGA Link Guardian for __APP__
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=__APP__
+Group=__APP__
+WorkingDirectory=__DATA_DIR__
+ExecStart=__INSTALL_DIR__/veriga watch --once --config __DATA_DIR__/guardian.json
+Nice=10
+TimeoutStartSec=2h
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=__DATA_DIR__
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
