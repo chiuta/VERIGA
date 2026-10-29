@@ -25,7 +25,7 @@ spec:
           securityContext: { runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, fsGroup: 65532, seccompProfile: { type: RuntimeDefault } }
           containers:
             - name: veriga
-              image: ghcr.io/chiuta/veriga:1.0.0
+              image: ghcr.io/chiuta/veriga:1.0.1
               args: ["watch", "--once", "--config", "/etc/veriga/guardian.json"]
               securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ALL] } }
               resources: { requests: { cpu: 50m, memory: 64Mi }, limits: { memory: 256Mi } }

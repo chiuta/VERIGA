@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+## [1.0.1] — 2026-10-29
+
 ### Împachetare mobil și server / Mobile & server packaging
 - PWA instalabilă offline (`app/`, generată de `web/build-pwa.py`, verificată în CI) și script Termux cu verificare SHA-256.
 - Docker: imagine non-root (65532) cu volum `/data`, multi-arch (amd64+arm64) publicată pe GHCR la lansări; `docker-compose.yml`; CronJob Kubernetes.

@@ -6,7 +6,7 @@ description.en = "Link checker (Xenu-like): finds broken links, redirects and sl
 description.fr = "Vérificateur de liens (type Xenu) : liens cassés, redirections et pages lentes ; édition HTML autonome et Link Guardian planifié en option."
 description.ro = "Verificator de legături (tip Xenu): legături rupte, redirecționări și pagini lente; ediția HTML dintr-un singur fișier și Link Guardian programat, opțional."
 
-version = "1.0.0~ynh1"
+version = "1.0.1~ynh1"
 
 maintainers = ["chiuta"]
 
@@ -53,10 +53,10 @@ ram.runtime = "20M"
 
 [resources]
     [resources.sources.main]
-    amd64.url = "https://github.com/chiuta/VERIGA/releases/download/v1.0.0/veriga-x86_64-unknown-linux-musl.tar.gz"
-    amd64.sha256 = "19b2b6500beb7724d3ced5328883c7a2d050722f23c320b410c6b962bb054151"
-    arm64.url = "https://github.com/chiuta/VERIGA/releases/download/v1.0.0/veriga-aarch64-unknown-linux-musl.tar.gz"
-    arm64.sha256 = "847dc8b2d255ca6acc14a9bcf1215270c6ae80bae3f8524cf90fa092dae69d94"
+    amd64.url = "https://github.com/chiuta/VERIGA/releases/download/v1.0.1/veriga-x86_64-unknown-linux-musl.tar.gz"
+    amd64.sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+    arm64.url = "https://github.com/chiuta/VERIGA/releases/download/v1.0.1/veriga-aarch64-unknown-linux-musl.tar.gz"
+    arm64.sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
 
     autoupdate.strategy = "latest_github_release"
     autoupdate.asset.amd64 = "^veriga-x86_64-unknown-linux-musl\\.tar\\.gz$"

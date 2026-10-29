@@ -4107,7 +4107,7 @@ dependencies = [
 
 [[package]]
 name = "veriga-cli"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4122,7 +4122,7 @@ dependencies = [
 
 [[package]]
 name = "veriga-core"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4145,7 +4145,7 @@ dependencies = [
 
 [[package]]
 name = "veriga-gui"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "anyhow",
  "eframe",
@@ -4159,7 +4159,7 @@ dependencies = [
 
 [[package]]
 name = "veriga-launcher"
-version = "1.0.0"
+version = "1.0.1"
 
 [[package]]
 name = "version_check"
