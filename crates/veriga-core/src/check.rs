@@ -390,7 +390,9 @@ fn classify_error(e: &reqwest::Error) -> (Status, String, bool) {
     if e.is_builder() {
         return (Status::InvalidUrl, short(&chain), false);
     }
-    let msg = if l.contains("connection refused") {
+    let msg = if l.contains("socks") || l.contains("proxy") {
+        "proxy-ul nu răspunde sau refuză conexiunea (pornit? adresă/port corecte? pentru Tor/WARP vezi --list-proxy-presets)".to_string()
+    } else if l.contains("connection refused") {
         "conexiune refuzată de server".to_string()
     } else if l.contains("connection reset") || l.contains("broken pipe") {
         "conexiune resetată de server".to_string()
