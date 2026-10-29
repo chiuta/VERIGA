@@ -40,6 +40,10 @@ külső hivatkozások igen/nem, „maradj a könyvtárban”, kizárás / ne kö
 OK-nak tekintett HTTP-kódok (pl. 999), User-Agent, proxy (HTTP/SOCKS), Basic hitelesítés (csak belső gazdagépekhez),
 fejlécek és sütik, érvénytelen tanúsítványok, késleltetés a kérések között.
 
+## Ingyenes, etikus proxyk
+
+Válassz előbeállítást a `--proxy-preset tor|tor-browser|warp` kapcsolóval (lista: `--list-proxy-presets`), vagy a grafikus felületen az „Ingyenes etikus proxy…” menüből. Mind helyi SOCKS5-végpont (`socks5h://127.0.0.1:…`): a neveket a proxy oldja fel, nem a rendszered. Az ajánlott választás a Tor (önkéntesek, nonprofit, nyílt forrás); az ellenőrzés 4 szálra és szerverenként 2 kapcsolatra korlátozott, és egyes oldalak tiltják a Tor kilépőket, ezért téves „törött linkek” előfordulhatnak. A Cloudflare WARP ingyenes, de zárt kliensű kereskedelmi szolgáltatás. A nyílt nyilvános proxylistákat szándékosan nem tartalmazza: gyakran feltörtek, vagy lehallgatják a forgalmat. A saját proxy továbbra is használható a `--proxy` kapcsolóval.
+
 ## Jelentések
 
 Önálló HTML (bárhol megnyitható), CSV, TSV, JSON, szöveg, sitemap.xml, oldalfa, egy `.veriga` munkamenet.

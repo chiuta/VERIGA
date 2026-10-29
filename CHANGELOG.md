@@ -6,7 +6,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Unreleased]
 
+### Adăugat
+- Proxy gratuite și etice ca opțiuni: `--proxy-preset tor|tor-browser|warp`, `--list-proxy-presets` și o listă în GUI. Toate sunt `socks5h://` locale; Tor și Tor Browser coboară verificarea la 4 fire și 2 conexiuni per server. Listele de proxy-uri publice deschise sunt excluse intenționat.
+
 ### Securitate
+- Cu un proxy `socks5h://`, verificarea anti-SSRF nu mai rezolvă numele local (scurgere DNS); rămâne verificarea literalelor și a numelor locale.
 - Anti-SSRF: un punct de start local (`file://`) sau privat nu mai dezactivează protecția; se exceptează doar gazda privată dată explicit ca start.
 
 ### Reparat

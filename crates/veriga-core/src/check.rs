@@ -70,6 +70,8 @@ pub struct Shared {
     file_roots: Vec<PathBuf>,
     /// Anti-SSRF activ (start public + `block_private`).
     pub block_private: bool,
+    /// Proxy cu rezolvare DNS la distanță (`socks5h://`): nu rezolvăm local, ca să nu scurgem DNS.
+    remote_dns: bool,
     /// Gazdele private date explicit ca punct de start: singurele adrese private permise.
     start_hosts: HashSet<String>,
     priv_cache: std::sync::Mutex<HashMap<String, bool>>,
@@ -90,7 +92,11 @@ impl Shared {
         if let Some(v) = self.priv_cache.lock().unwrap().get(&key) {
             return *v;
         }
-        let v = crate::netguard::host_is_private(h, u.port_or_known_default().unwrap_or(80)).await;
+        let v = if self.remote_dns {
+            crate::netguard::host_is_private_syntactic(h)
+        } else {
+            crate::netguard::host_is_private(h, u.port_or_known_default().unwrap_or(80)).await
+        };
         self.priv_cache.lock().unwrap().insert(key, v);
         v
     }
@@ -129,6 +135,7 @@ impl Shared {
         let block_private = cfg.block_private;
         Ok(Self {
             block_private,
+            remote_dns: crate::proxy::resolves_remotely(cfg.proxy.as_deref()),
             start_hosts,
             priv_cache: std::sync::Mutex::new(HashMap::new()),
             client: b.build()?,

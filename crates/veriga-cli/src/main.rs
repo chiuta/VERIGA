@@ -127,6 +127,12 @@ struct Cli {
     /// Proxy (http://, https://, socks5://)
     #[arg(long)]
     proxy: Option<String>,
+    /// Proxy gratuit și etic dintr-un preset: tor, tor-browser, warp (vezi --list-proxy-presets)
+    #[arg(long, value_name = "PRESET", conflicts_with = "proxy")]
+    proxy_preset: Option<String>,
+    /// Afișează presetele de proxy, cerințele și avertismentele lor, apoi iese
+    #[arg(long)]
+    list_proxy_presets: bool,
     /// Autentificare Basic pentru gazdele interne: utilizator:parolă
     #[arg(long, value_name = "USER:PAROLA")]
     auth: Option<String>,
@@ -198,6 +204,20 @@ fn build_config(c: &Cli) -> Result<Config> {
     cfg.block_private = !c.allow_private;
     cfg.cookies = !c.no_cookies;
     cfg.proxy = c.proxy.clone();
+    if let Some(id) = &c.proxy_preset {
+        let p = veriga_core::proxy::preset(id).ok_or_else(|| {
+            let ids: Vec<_> = veriga_core::proxy::PRESETS.iter().map(|p| p.id).collect();
+            anyhow!(
+                "preset de proxy necunoscut „{id}”; disponibile: {}",
+                ids.join(", ")
+            )
+        })?;
+        veriga_core::proxy::apply(&mut cfg, p);
+        eprintln!(
+            "Proxy: {} ({}). {} {}",
+            p.label, p.url, p.requires_ro, p.caveat_ro
+        );
+    }
     if let Some(a) = &c.auth {
         let (u, p) = a
             .split_once(':')
@@ -285,6 +305,18 @@ async fn main() -> Result<()> {
         argv.remove(1);
     }
     let cli = Cli::parse_from(argv);
+    if cli.list_proxy_presets {
+        for p in veriga_core::proxy::PRESETS {
+            println!(
+                "{}\t{}\t{}\n  {}\n  {}",
+                p.id, p.url, p.label, p.requires_ro, p.caveat_ro
+            );
+        }
+        println!(
+            "\nListele de proxy-uri publice deschise nu sunt incluse: sunt adesea mașini compromise sau intercepteaz\u{103} traficul."
+        );
+        return Ok(());
+    }
     if cli.recheck.is_none() && cli.start.is_empty() {
         bail!("indică cel puțin un URL, fișier sau director de start (vezi --help)");
     }
@@ -419,6 +451,24 @@ async fn main() -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn proxy_preset_conflicts_with_manual_proxy() {
+        assert!(
+            Cli::try_parse_from([
+                "veriga",
+                "--proxy-preset",
+                "tor",
+                "--proxy",
+                "http://x:1",
+                "u"
+            ])
+            .is_err()
+        );
+        let cli = Cli::try_parse_from(["veriga", "--proxy-preset", "tor", "https://example.org"])
+            .unwrap();
+        assert_eq!(cli.proxy_preset.as_deref(), Some("tor"));
+    }
+
     use super::*;
     use clap::CommandFactory;
 
