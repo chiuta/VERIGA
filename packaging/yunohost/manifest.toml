@@ -6,7 +6,7 @@ description.en = "Link checker (Xenu-like): finds broken links, redirects and sl
 description.fr = "Vérificateur de liens (type Xenu) : liens cassés, redirections et pages lentes ; édition HTML autonome et Link Guardian planifié en option."
 description.ro = "Verificator de legături (tip Xenu): legături rupte, redirecționări și pagini lente; ediția HTML dintr-un singur fișier și Link Guardian programat, opțional."
 
-version = "1.0.2~ynh1"
+version = "1.0.3~ynh1"
 
 maintainers = ["chiuta"]
 
@@ -53,9 +53,9 @@ ram.runtime = "20M"
 
 [resources]
     [resources.sources.main]
-    amd64.url = "https://github.com/chiuta/VERIGA/releases/download/v1.0.2/veriga-x86_64-unknown-linux-musl.tar.gz"
+    amd64.url = "https://github.com/chiuta/VERIGA/releases/download/v1.0.3/veriga-x86_64-unknown-linux-musl.tar.gz"
     amd64.sha256 = "89d2443a9f645ce11deaa2cd503d96b1f15f79440827242f6542da1b32899e89"
-    arm64.url = "https://github.com/chiuta/VERIGA/releases/download/v1.0.2/veriga-aarch64-unknown-linux-musl.tar.gz"
+    arm64.url = "https://github.com/chiuta/VERIGA/releases/download/v1.0.3/veriga-aarch64-unknown-linux-musl.tar.gz"
     arm64.sha256 = "a2ca1777b15211e90d16855b69ba3336f3f08393b60a2683841f9362fcd5ae2a"
 
     autoupdate.strategy = "latest_github_release"

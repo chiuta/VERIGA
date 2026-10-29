@@ -4,7 +4,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
-## [Unreleased]
+## [1.0.3] — 2026-10-30
+
+Remedieri din auditul adversarial al versiunii 1.0.2 (recenzie cu reproduceri video) și proxy-uri etice.
 
 ### Adăugat
 - Proxy gratuite și etice ca opțiuni: `--proxy-preset tor|tor-browser|warp`, `--list-proxy-presets` și o listă în GUI. Toate sunt `socks5h://` locale; Tor și Tor Browser coboară verificarea la 4 fire și 2 conexiuni per server. Listele de proxy-uri publice deschise sunt excluse intenționat.

@@ -2,9 +2,9 @@
 
 [English](README.md) · [Română](README.ro.md) · **Français** · [Italiano](README.it.md) · [Español](README.es.md) · [Português](README.pt.md) · [Deutsch](README.de.md) · [Magyar](README.hu.md)
 
-**Téléchargement:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.0.2
+**Téléchargement:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.0.3
 
-Version : 1.0.2 · Dernière mise à jour : 29.10.2026 · Site de présentation : https://veriga.chiuta.ro
+Version : 1.0.3 · Dernière mise à jour : 30.10.2026 · Site de présentation : https://veriga.chiuta.ro
 
 Une application Rust 64 bits pour Windows, macOS et Linux (x86-64 et ARM64) qui explore un site web
 ou un dossier local et vérifie ses liens. Elle existe sous trois formes qui partagent un même modèle de résultats :
