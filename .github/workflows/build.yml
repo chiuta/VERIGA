@@ -279,6 +279,7 @@ jobs:
           case "$TAG" in v[0-9]*) ;; *) echo "::error::etichetă invalidă"; exit 1 ;; esac
           ver=${TAG#v}
           repo=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/veriga
+          docker buildx create --name multi --driver docker-container --use   # multi-platform + atestări cer driverul docker-container
           echo "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           tags="-t $repo:$ver"
           case "$TAG" in *-*) ;; *) tags="$tags -t $repo:latest" ;; esac   # `latest` doar pentru versiuni finale
