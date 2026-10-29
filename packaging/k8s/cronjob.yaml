@@ -34,4 +34,4 @@ spec:
                 - { name: state, mountPath: /state }
           volumes:
             - { name: cfg, configMap: { name: veriga-guardian } }
-            - { name: state, emptyDir: {} }   # înlocuiți cu un PVC pentru istoric persistent
+            - { name: state, emptyDir: {} }   # ATENȚIE: istoricul se pierde la fiecare rulare; pentru „doar noi” și tendințe folosiți un PVC

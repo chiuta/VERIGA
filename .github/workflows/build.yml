@@ -278,6 +278,8 @@ jobs:
         run: |
           case "$TAG" in v[0-9]*) ;; *) echo "::error::etichetă invalidă"; exit 1 ;; esac
           ver=${TAG#v}
+          cv=$(sed -n 's/^version = "\([0-9][0-9.]*\)".*/\1/p' Cargo.toml | head -1)
+          case "$TAG" in "v$cv"|"v$cv-"*) ;; *) echo "::error::eticheta $TAG nu corespunde versiunii $cv din Cargo.toml (nimic nu a fost publicat)"; exit 1 ;; esac
           repo=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/veriga
           docker buildx create --name multi --driver docker-container --use   # multi-platform + atestări cer driverul docker-container
           echo "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin

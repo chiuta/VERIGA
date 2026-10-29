@@ -1087,14 +1087,29 @@ mod tests {
         // start privat ⇒ se exceptează DOAR acea gazdă (intranet legitim), nu toate adresele private
         let local = Shared::new(Arc::new(Config::with_start("http://localhost:8080/"))).unwrap();
         assert!(local.block_private);
-        assert!(!local.is_private_target(&Url::parse("http://localhost:9/x").unwrap()).await);
-        for u in ["http://127.0.0.1/", "http://169.254.169.254/", "http://10.0.0.5/", "http://[::1]/"] {
-            assert!(local.is_private_target(&Url::parse(u).unwrap()).await, "{u}");
+        assert!(
+            !local
+                .is_private_target(&Url::parse("http://localhost:9/x").unwrap())
+                .await
+        );
+        for u in [
+            "http://127.0.0.1/",
+            "http://169.254.169.254/",
+            "http://10.0.0.5/",
+            "http://[::1]/",
+        ] {
+            assert!(
+                local.is_private_target(&Url::parse(u).unwrap()).await,
+                "{u}"
+            );
         }
         // start file:// ⇒ nu exceptează nimic (F1)
         let f = Shared::new(Arc::new(Config::with_start("/tmp/x/index.html"))).unwrap();
         assert!(f.block_private);
-        assert!(f.is_private_target(&Url::parse("http://127.0.0.1:9/").unwrap()).await);
+        assert!(
+            f.is_private_target(&Url::parse("http://127.0.0.1:9/").unwrap())
+                .await
+        );
         // și poate fi oprită explicit
         let mut c = Config::with_start("https://example.com/");
         c.block_private = false;

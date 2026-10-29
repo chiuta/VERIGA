@@ -8,7 +8,10 @@ veriga_layout() {
         mv -f "$install_dir/veriga.html" "$install_dir/www/index.html"
     fi
     chmod 755 "$install_dir/veriga"
-    chown -R "$app:$app" "$install_dir" "$data_dir"
+    # binarul și conținutul web aparțin root (aplicația nu își poate modifica propriul executabil);
+    # doar directorul de date este al utilizatorului aplicației
+    chown -R root:root "$install_dir"
+    chown -R "$app:$app" "$data_dir"
     # conținutul web este doar citit de nginx (www-data)
     chmod -R o+rX "$install_dir/www"
     chmod o+x "$install_dir"
@@ -21,9 +24,9 @@ veriga_guardian() {
     systemctl daemon-reload
     if [ -n "${guardian_url:-}" ]; then
         systemctl enable --now "$app-watch.timer"
-    else
-        systemctl disable --now "$app-watch.timer" 2>/dev/null || true
     fi
+    # fără guardian_url nu schimbăm starea cronometrului (la upgrade/restaurare nu dezactivăm
+    # ce a activat administratorul manual); la instalare rămâne neactivat
 }
 
 veriga_guardian_conf() {

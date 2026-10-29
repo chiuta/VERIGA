@@ -61,8 +61,8 @@ cache = f"veriga-{ver}-{h.hexdigest()[:10]}"
 files["sw.js"] = f"""'use strict';
 // Generat de web/build-pwa.py — nu editați manual.
 const CACHE = '{cache}', SHELL = {json.dumps(shell)};
-addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => skipWaiting())));
-addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => clients.claim())));
+addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, {{ cache: 'reload' }})))).then(() => skipWaiting())));
+addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('veriga-') && k !== CACHE).map(k => caches.delete(k)))).then(() => clients.claim())));
 addEventListener('fetch', e => {{
   const u = new URL(e.request.url);
   // doar fișierele aplicației; verificările de linkuri (alte origini) merg direct la rețea

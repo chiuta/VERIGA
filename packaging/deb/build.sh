@@ -46,7 +46,22 @@ set -e
 [ -d /run/systemd/system ] && systemctl daemon-reload || true
 exit 0
 PI
-chmod 0755 "$d/DEBIAN/postinst"
+cat > "$d/DEBIAN/prerm" <<'PR'
+#!/bin/sh
+set -e
+# la dezinstalare oprim cronometrul Guardian (altfel ar rămâne activ fără binar)
+if [ "$1" = remove ] || [ "$1" = purge ]; then
+  [ -d /run/systemd/system ] && systemctl disable --now veriga-watch.timer 2>/dev/null || true
+fi
+exit 0
+PR
+cat > "$d/DEBIAN/postrm" <<'PO'
+#!/bin/sh
+set -e
+[ -d /run/systemd/system ] && systemctl daemon-reload || true
+exit 0
+PO
+chmod 0755 "$d/DEBIAN/postinst" "$d/DEBIAN/prerm" "$d/DEBIAN/postrm"
 find "$d" -type d -exec chmod 0755 {} +
 dpkg-deb --root-owner-group --build "$d" "$out/veriga_${ver}_${darch}.deb" >/dev/null
 echo "$out/veriga_${ver}_${darch}.deb"
@@ -68,6 +83,12 @@ AutoReqProv: no
 %global __strip /bin/true
 %description
 Finds broken links, redirects and slow pages; static binary, no dependencies.
+%post
+[ -d /run/systemd/system ] && systemctl daemon-reload >/dev/null 2>&1 || :
+%preun
+if [ "\$1" = 0 ] && [ -d /run/systemd/system ]; then systemctl disable --now veriga-watch.timer >/dev/null 2>&1 || :; fi
+%postun
+[ -d /run/systemd/system ] && systemctl daemon-reload >/dev/null 2>&1 || :
 %install
 cp -a $r/stage/. %{buildroot}/
 %files

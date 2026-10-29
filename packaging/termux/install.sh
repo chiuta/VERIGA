@@ -1,5 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/sh
 # Instalează VERIGA (CLI static aarch64) în Termux, cu verificarea sumei SHA-256.
+#   (script nefixat de pe main: citiți-l înainte sau descărcați-l de la o etichetă)
 #   curl -fsSL https://raw.githubusercontent.com/chiuta/VERIGA/main/packaging/termux/install.sh | sh
 #   sau cu versiune fixată:  VERIGA_VERSION=v1.0.2 sh install.sh
 set -eu
@@ -23,6 +24,12 @@ tar xzf "veriga-$T.tar.gz"
 install -m 0755 "veriga-$T/veriga" "$PREFIX/bin/veriga"
 mkdir -p "$HOME/veriga"; cp "veriga-$T/veriga.html" "$HOME/veriga/veriga.html"
 echo "OK: $("$PREFIX/bin/veriga" --version)"
+# autotest de rețea: binarul este static (musl) și pe unele dispozitive Android nu găsește DNS/certificatele
+if ! "$PREFIX/bin/veriga" https://example.org --depth 0 --no-external --retries 0 -o "$TMP/t.json" >/dev/null 2>&1; then
+  echo "ATENȚIE: autotestul de rețea a eșuat (DNS/TLS). Pe Termux, binarul static poate cere:" >&2
+  echo "  pkg install proot && termux-chroot   (oferă /etc/resolv.conf și /etc/ssl), apoi rulați din nou veriga." >&2
+  echo "  Alternativ folosiți ediția web (veriga.html) sau PWA, care nu depind de acestea." >&2
+fi
 echo "Ediția web: $HOME/veriga/veriga.html (deschideți-o în browser sau instalați PWA de pe https://veriga.chiuta.ro/app/)"
 echo "Programare zilnică: pkg install cronie termux-services && sv-enable crond && crontab -e"
 echo "  17 4 * * * veriga watch --once --config \$HOME/veriga/guardian.json"

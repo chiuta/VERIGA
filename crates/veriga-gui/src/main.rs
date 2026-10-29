@@ -436,7 +436,8 @@ impl eframe::App for App {
         let ctx = &ctx;
         self.poll();
         if self.running() {
-            ctx.request_repaint_after(std::time::Duration::from_millis(100));
+            // 4 fps: suficient pentru progres; 10 fps ținea un nucleu ocupat la randare software
+            ctx.request_repaint_after(std::time::Duration::from_millis(250));
         }
         let lang = self.lang();
         {
@@ -1046,7 +1047,40 @@ impl eframe::App for App {
     }
 }
 
-fn main() -> eframe::Result<()> {
+fn main() -> std::process::ExitCode {
+    match std::env::args().nth(1).as_deref() {
+        Some("--version" | "-V") => {
+            println!("veriga-gui {}", env!("CARGO_PKG_VERSION"));
+            return std::process::ExitCode::SUCCESS;
+        }
+        Some("--help" | "-h") => {
+            println!(
+                "VERIGA GUI {}\nUtilizare: veriga-gui [fișier.veriga]\n  --version  afișează versiunea\n  --help     acest mesaj\nInterfața grafică are nevoie de un mediu desktop (afișaj). Pentru terminal/server folosiți `veriga` (CLI).",
+                env!("CARGO_PKG_VERSION")
+            );
+            return std::process::ExitCode::SUCCESS;
+        }
+        _ => {}
+    }
+    match run() {
+        Ok(()) => std::process::ExitCode::SUCCESS,
+        Err(e) => {
+            let e = e.to_string();
+            let e = e.split(" at /").next().unwrap_or(&e); // fără căi din mediul de compilare
+            let e = if e.contains("DISPLAY") {
+                "nu există afișaj (DISPLAY/WAYLAND_DISPLAY)"
+            } else {
+                e
+            };
+            eprintln!(
+                "veriga-gui: nu s-a putut porni interfața grafică ({e}).\nDacă nu există afișaj (server, SSH), folosiți CLI-ul: veriga --help"
+            );
+            std::process::ExitCode::from(1)
+        }
+    }
+}
+
+fn run() -> eframe::Result<()> {
     let opts = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1180.0, 760.0])

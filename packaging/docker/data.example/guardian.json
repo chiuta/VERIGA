@@ -1,0 +1,14 @@
+{
+  "start": ["https://example.org/"],
+  "sources": [],
+  "state": "/data/state",
+  "every_hours": 24,
+  "max_depth": null,
+  "check_external": true,
+  "auto_fix": [],
+  "webhook": null,
+  "sendmail": null,
+  "email_to": null,
+  "notify_only_new": true,
+  "lang": "en"
+}
