@@ -7,6 +7,13 @@ data:
      "max_depth":null,"check_external":true,"auto_fix":[],"webhook":null,"sendmail":null,
      "email_to":null,"notify_only_new":true,"lang":"en"}
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: veriga-state }
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: { requests: { storage: 100Mi } }   # istoricul și starea Guardian (clasa implicită de stocare)
+---
 apiVersion: batch/v1
 kind: CronJob
 metadata: { name: veriga-guardian }
@@ -34,4 +41,4 @@ spec:
                 - { name: state, mountPath: /state }
           volumes:
             - { name: cfg, configMap: { name: veriga-guardian } }
-            - { name: state, emptyDir: {} }   # ATENȚIE: istoricul se pierde la fiecare rulare; pentru „doar noi” și tendințe folosiți un PVC
+            - { name: state, persistentVolumeClaim: { claimName: veriga-state } }

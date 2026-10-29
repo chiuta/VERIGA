@@ -307,6 +307,12 @@ fn decode(buf: &[u8], ct: Option<&str>) -> String {
             }
         }
     }
+    // BOM UTF-16/UTF-8 are prioritate: altfel un fișier UTF-16 ar fi citit ca UTF-8 și ignorat
+    if let Some((enc, _)) = encoding_rs::Encoding::for_bom(buf)
+        && enc != encoding_rs::UTF_8
+    {
+        return enc.decode(buf).0.into_owned();
+    }
     if label.is_none() {
         if buf.starts_with(&[0xEF, 0xBB, 0xBF]) {
             label = Some("utf-8".into());
@@ -637,6 +643,14 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
                             break;
                         }
                     }
+                }
+                // corp mai scurt decât Content-Length declarat (și fără compresie, deci comparabil)
+                if !truncated
+                    && !headers.contains_key(reqwest::header::CONTENT_ENCODING)
+                    && a.size.is_some_and(|d| (buf.len() as u64) < d)
+                    && buf.len() < cfg.max_body_bytes
+                {
+                    truncated = true;
                 }
                 if truncated {
                     // nu raportăm mărimea declarată ca fiind cea primită
@@ -1114,6 +1128,15 @@ mod tests {
         let mut c = Config::with_start("https://example.com/");
         c.block_private = false;
         assert!(!Shared::new(Arc::new(c)).unwrap().block_private);
+    }
+
+    #[test]
+    fn utf16_pages_are_decoded_via_bom() {
+        let mut b = vec![0xFF, 0xFE];
+        for u in "<a href=\"/x\">ă</a>".encode_utf16() {
+            b.extend_from_slice(&u.to_le_bytes());
+        }
+        assert!(decode(&b, None).contains("href=\"/x\""));
     }
 
     #[test]

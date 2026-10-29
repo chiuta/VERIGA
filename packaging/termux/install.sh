@@ -26,7 +26,7 @@ mkdir -p "$HOME/veriga"; cp "veriga-$T/veriga.html" "$HOME/veriga/veriga.html"
 echo "OK: $("$PREFIX/bin/veriga" --version)"
 # autotest de rețea: binarul este static (musl) și pe unele dispozitive Android nu găsește DNS/certificatele
 if ! "$PREFIX/bin/veriga" https://example.org --depth 0 --no-external --retries 0 -o "$TMP/t.json" >/dev/null 2>&1; then
-  echo "ATENȚIE: autotestul de rețea a eșuat (DNS/TLS). Pe Termux, binarul static poate cere:" >&2
+  echo "ATENȚIE: autotestul de rețea a eșuat (fără internet, DNS sau TLS). Pe Termux, binarul static poate cere:" >&2
   echo "  pkg install proot && termux-chroot   (oferă /etc/resolv.conf și /etc/ssl), apoi rulați din nou veriga." >&2
   echo "  Alternativ folosiți ediția web (veriga.html) sau PWA, care nu depind de acestea." >&2
 fi

@@ -12,7 +12,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 ### Reparat
 - `veriga watch --once` iese cu cod ≠ 0 când rularea eșuează (systemd, CronJob, cron văd eșecul); un start gol este respins.
 - Răspunsurile HTTP trunchiate sunt semnalate (mărime primită, nu cea declarată); erorile de conexiune apar în română.
-- Linkurile din `<noscript>` sunt acum parcurse.
+- Linkurile din `<noscript>` sunt acum parcurse; paginile UTF-16 (cu BOM) sunt decodate corect; corpul mai scurt decât `Content-Length` este semnalat.
+- K8s: starea Guardian pe un PVC, nu pe `emptyDir`.
 - Site: titlul și meta description urmează limba aleasă; insigna de teste actualizată; abaterea de la RFC 9309 (robots.txt cu 5xx) este menționată.
 - GUI: `--help`/`--version`, mesaj curat fără afișaj, repaint mai rar în timpul scanării.
 - Ambalare: serviciul `guardian` din compose pornește numai cu profil și cu config de exemplu; YunoHost (`ProtectHome=read-only`, binarul aparține root, instrucțiuni de instalare corecte); deb cu prerm/postrm și rpm cu scriptlet-uri; PWA reîncarcă shell-ul ocolind cache-ul HTTP și șterge doar propriile cache-uri; GHCR verifică eticheta față de Cargo.toml înainte de publicare; Termux cu autotest de rețea.
