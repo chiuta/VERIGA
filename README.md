@@ -40,6 +40,10 @@ external links yes/no, "stay in the directory", exclude / don't-follow / only-th
 HTTP codes treated as OK (e.g. 999), User-Agent, proxy (HTTP/SOCKS), Basic authentication (internal hosts only),
 headers and cookies, invalid certificates, delay between requests.
 
+## Free, ethical proxies
+
+Pick a preset with `--proxy-preset tor|tor-browser|warp` (list them with `--list-proxy-presets`), or in the GUI under "Free ethical proxy…". All presets are local SOCKS5 endpoints (`socks5h://127.0.0.1:…`), so names are resolved by the proxy, not by your system. Tor (volunteer, non-profit, open source) is the recommended choice; the check is capped at 4 threads and 2 connections per server and some sites block Tor exits, so expect false "broken links". Cloudflare WARP is free but a commercial service with a closed-source client. Lists of open public proxies are deliberately not included: they are often compromised or intercept traffic. Your own proxy is still available with `--proxy`.
+
 ## Reports
 
 Self-contained HTML (opens anywhere), CSV, TSV, JSON, text, sitemap.xml, a site tree, a `.veriga` session.

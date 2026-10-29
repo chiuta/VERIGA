@@ -11,6 +11,7 @@ pub mod fixer;
 pub mod insights;
 pub mod model;
 pub mod netguard;
+pub mod proxy;
 pub mod report;
 pub mod robots;
 pub mod rules;

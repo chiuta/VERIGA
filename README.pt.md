@@ -40,6 +40,10 @@ ligações externas sim/não, "ficar no diretório", excluir / não seguir / ape
 códigos HTTP tratados como OK (por exemplo, 999), User-Agent, proxy (HTTP/SOCKS), autenticação Basic (apenas hosts internos),
 cabeçalhos e cookies, certificados inválidos, intervalo entre pedidos.
 
+## Proxies gratuitos e éticos
+
+Escolha uma predefinição com `--proxy-preset tor|tor-browser|warp` (lista: `--list-proxy-presets`) ou, na GUI, em «Proxy gratuito ético…». Todas são pontos SOCKS5 locais (`socks5h://127.0.0.1:…`): os nomes são resolvidos pelo proxy, não pelo seu sistema. O Tor (voluntários, sem fins lucrativos, código aberto) é a escolha recomendada; a verificação fica limitada a 4 threads e 2 ligações por servidor, e alguns sites bloqueiam as saídas Tor, por isso podem surgir falsos «links quebrados». O Cloudflare WARP é gratuito, mas é um serviço comercial com cliente fechado. As listas de proxies públicos abertos ficam de fora de propósito: costumam estar comprometidos ou intercetar o tráfego. O seu próprio proxy continua disponível com `--proxy`.
+
 ## Relatórios
 
 HTML autónomo (abre em qualquer sítio), CSV, TSV, JSON, texto, sitemap.xml, árvore do site, sessão `.veriga`.

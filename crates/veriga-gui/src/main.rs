@@ -748,6 +748,35 @@ impl eframe::App for App {
                     if ui.text_edit_singleline(&mut p).changed() {
                         c.proxy = if p.trim().is_empty() { None } else { Some(p) };
                     }
+                    let en = lang == "en";
+                    let current = veriga_core::proxy::PRESETS
+                        .iter()
+                        .find(|x| c.proxy.as_deref() == Some(x.url));
+                    egui::ComboBox::from_id_salt("proxy_preset")
+                        .selected_text(match current {
+                            Some(x) => x.label.to_string(),
+                            None => {
+                                if en {
+                                    "Free ethical proxy…".into()
+                                } else {
+                                    "Proxy gratuit etic…".into()
+                                }
+                            }
+                        })
+                        .show_ui(ui, |ui| {
+                            for x in veriga_core::proxy::PRESETS.iter() {
+                                if ui
+                                    .selectable_label(current.map(|y| y.id) == Some(x.id), x.label)
+                                    .clicked()
+                                {
+                                    veriga_core::proxy::apply(c, x);
+                                }
+                            }
+                        });
+                    if let Some(x) = current {
+                        ui.small(if en { x.requires_en } else { x.requires_ro });
+                        ui.small(if en { x.caveat_en } else { x.caveat_ro });
+                    }
                     ui.label(if lang == "en" {
                         "Basic auth (user:password)"
                     } else {
