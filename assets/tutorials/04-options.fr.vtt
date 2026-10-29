@@ -1,0 +1,22 @@
+WEBVTT
+
+1
+00:00:00.450 --> 00:00:04.184
+Le bouton « Options » ouvre le panneau des réglages.
+
+2
+00:00:04.684 --> 00:00:10.002
+Les curseurs règlent threads, connexions par hôte, délai et nouvelles tentatives.
+
+3
+00:00:14.184 --> 00:00:20.270
+Les cases règlent ce qui est vérifié : liens externes, ressources, mailto, robots.txt, protection SSRF.
+
+4
+00:00:24.176 --> 00:00:28.390
+Cochez « Check # anchors » et relancez l’analyse.
+
+5
+00:00:35.638 --> 00:00:39.708
+Désormais les ancres manquantes apparaissent aussi comme erreurs.
+

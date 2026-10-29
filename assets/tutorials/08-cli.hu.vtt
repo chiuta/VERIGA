@@ -1,0 +1,30 @@
+WEBVTT
+
+1
+00:00:00.750 --> 00:00:06.596
+Ugyanaz az eszköz parancssorból: ugyanaz a motor, mint a GUI-ban. Az üzenetek románul vannak.
+
+2
+00:00:07.283 --> 00:00:13.033
+Adj meg egy webhelyet vagy mappát; a jelentések formátumát a kiterjesztés dönti el.
+
+3
+00:00:13.750 --> 00:00:18.060
+A törött hivatkozások a tartalmazó oldallal együtt jelennek meg.
+
+4
+00:00:18.750 --> 00:00:25.076
+A „lint” offline elemzi a fájlokat: sémahibák, követőparaméterek, https helyett http.
+
+5
+00:00:25.750 --> 00:00:30.133
+A „fix” javításokat javasol. --apply nélkül semmi sem íródik.
+
+6
+00:00:30.617 --> 00:00:40.933
+Az --apply a módosítást biztonsági másolattal és naplóbejegyzéssel írja ki.
+
+7
+00:00:41.350 --> 00:00:48.400
+Az „undo” bájtról bájtra visszaállítja az eredeti fájlokat.
+

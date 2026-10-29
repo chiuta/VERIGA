@@ -1,0 +1,22 @@
+WEBVTT
+
+1
+00:00:00.450 --> 00:00:04.184
+Die Schaltfläche „Options“ öffnet das Einstellungsfeld.
+
+2
+00:00:04.684 --> 00:00:10.002
+Regler stellen Threads, Verbindungen pro Host, Timeout und Wiederholungen ein.
+
+3
+00:00:14.184 --> 00:00:20.270
+Die Kontrollkästchen steuern die Prüfung: externe Links, Ressourcen, mailto, robots.txt, SSRF-Schutz.
+
+4
+00:00:24.176 --> 00:00:28.390
+Haken Sie „Check # anchors“ an und starten Sie den Scan erneut.
+
+5
+00:00:35.638 --> 00:00:39.708
+Jetzt erscheinen auch fehlende Anker als Fehler.
+

@@ -1,0 +1,26 @@
+WEBVTT
+
+1
+00:00:00.450 --> 00:00:06.008
+Vizualizările Guardian se bazează pe rezultatele ultimei verificări: rulează întâi o verificare.
+
+2
+00:00:06.509 --> 00:00:13.363
+Domenii: pe fiecare gazdă vezi totalul, linkurile rupte, 403, redirecționările și un scor de sănătate.
+
+3
+00:00:16.864 --> 00:00:21.942
+Hartă / carte: paginile ordonate după sănătate, ca să știi de unde începi reparațiile.
+
+4
+00:00:27.315 --> 00:00:34.025
+Tendințe: înregistrează rularea curentă și compară-o cu o sesiune anterioară ca să vezi ce e nou și ce s-a rezolvat.
+
+5
+00:00:35.673 --> 00:00:42.575
+404 din jurnal: importă un jurnal Apache sau nginx ca să afli ce pagini lipsă ating cu adevărat vizitatorii.
+
+6
+00:00:43.075 --> 00:00:49.545
+Conformitate: generează un raport pe o perioadă, de exemplu ultimele 30 de zile, din istoricul păstrat.
+

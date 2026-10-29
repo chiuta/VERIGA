@@ -1,0 +1,22 @@
+WEBVTT
+
+1
+00:00:00.450 --> 00:00:05.000
+Geben Sie im Feld Start eine Website-Adresse oder einen lokalen Ordner ein.
+
+2
+00:00:05.500 --> 00:00:11.106
+Klicken Sie auf „Start“. VERIGA durchsucht Seiten, Bilder, Stylesheets und Anker.
+
+3
+00:00:13.203 --> 00:00:18.809
+Die Tabelle füllt sich: Status, Code, URL, Typ, Größe, Titel, Ebene und Antwortzeit.
+
+4
+00:00:22.867 --> 00:00:26.985
+Rote Zeilen sind defekte Links; grüne funktionieren.
+
+5
+00:00:28.860 --> 00:00:34.274
+Die Statusleiste fasst zusammen: wie viele URLs, wie viele defekt, wie viele Weiterleitungen.
+

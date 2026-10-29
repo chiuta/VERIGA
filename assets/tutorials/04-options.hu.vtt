@@ -1,0 +1,22 @@
+WEBVTT
+
+1
+00:00:00.450 --> 00:00:04.184
+Az „Options” gomb megnyitja a beállítások panelt.
+
+2
+00:00:04.684 --> 00:00:10.002
+A csúszkák a szálakat, gazdánkénti kapcsolatokat, időkorlátot és újrapróbálkozást állítják.
+
+3
+00:00:14.184 --> 00:00:20.270
+A jelölőnégyzetek szabályozzák az ellenőrzést: külső linkek, erőforrások, mailto, robots.txt, SSRF-védelem.
+
+4
+00:00:24.176 --> 00:00:28.390
+Jelöld be a „Check # anchors” opciót, és indítsd újra a vizsgálatot.
+
+5
+00:00:35.638 --> 00:00:39.708
+Mostantól a hiányzó horgonyok is hibaként jelennek meg.
+

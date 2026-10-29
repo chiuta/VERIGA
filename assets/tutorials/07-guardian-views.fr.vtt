@@ -1,0 +1,26 @@
+WEBVTT
+
+1
+00:00:00.450 --> 00:00:06.008
+Les vues de Guardian reposent sur votre dernière analyse : lancez d’abord une analyse.
+
+2
+00:00:06.509 --> 00:00:13.363
+Domaines : pour chaque hôte, totaux, liens cassés, 403, redirections et un score de santé.
+
+3
+00:00:16.864 --> 00:00:21.942
+Santé / livre : pages classées par état de santé pour savoir par où commencer.
+
+4
+00:00:27.315 --> 00:00:34.025
+Tendances : enregistrez l’analyse actuelle et comparez-la à une session précédente pour voir le nouveau et le résolu.
+
+5
+00:00:35.673 --> 00:00:42.575
+404 des journaux : importez un journal Apache ou nginx pour voir quelles pages manquantes visitent vraiment les internautes.
+
+6
+00:00:43.075 --> 00:00:49.545
+Conformité : générez un rapport sur une période, par exemple 30 jours, à partir de l’historique conservé.
+

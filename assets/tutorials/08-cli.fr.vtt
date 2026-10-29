@@ -1,0 +1,30 @@
+WEBVTT
+
+1
+00:00:00.750 --> 00:00:06.596
+Le même outil en ligne de commande : même moteur que l’interface. Les messages sont en roumain.
+
+2
+00:00:07.283 --> 00:00:13.033
+Donnez-lui un site ou un dossier ; le format de chaque rapport dépend de l’extension.
+
+3
+00:00:13.750 --> 00:00:18.060
+Les liens cassés sont listés avec la page qui les contient.
+
+4
+00:00:18.750 --> 00:00:25.076
+« lint » analyse les fichiers hors ligne : fautes de schéma, paramètres de suivi, http au lieu de https.
+
+5
+00:00:25.750 --> 00:00:30.133
+« fix » propose des corrections. Sans --apply, rien n’est écrit.
+
+6
+00:00:30.617 --> 00:00:40.933
+Avec --apply, la modification est écrite avec une sauvegarde et une entrée de journal.
+
+7
+00:00:41.350 --> 00:00:48.400
+« undo » restaure les fichiers d’origine, octet pour octet.
+

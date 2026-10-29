@@ -1,0 +1,30 @@
+WEBVTT
+
+1
+00:00:00.750 --> 00:00:06.596
+The same tool on the command line: same engine as the GUI. Messages are in Romanian.
+
+2
+00:00:07.283 --> 00:00:13.033
+Give it a site or a folder; each report’s format is chosen by its extension.
+
+3
+00:00:13.750 --> 00:00:18.060
+Broken links are listed together with the page that contains each one.
+
+4
+00:00:18.750 --> 00:00:25.076
+“lint” analyses files offline: scheme typos, tracking parameters, http instead of https.
+
+5
+00:00:25.750 --> 00:00:30.133
+“fix” proposes repairs. Without --apply nothing is written.
+
+6
+00:00:30.617 --> 00:00:40.933
+With --apply, the change is written with a backup and a journal entry.
+
+7
+00:00:41.350 --> 00:00:48.400
+“undo” restores the original files byte for byte.
+

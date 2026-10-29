@@ -1,0 +1,30 @@
+WEBVTT
+
+1
+00:00:00.835 --> 00:00:06.969
+Az HTML-változat egyetlen fájl: bármely böngészőben megnyitható, telepítés és szerver nélkül.
+
+2
+00:00:07.475 --> 00:00:13.033
+Válaszd ki a forrást: helyi mappa, online webhely vagy URL-lista. Itt egy mappát választunk.
+
+3
+00:00:13.538 --> 00:00:19.192
+Nyomd meg a Start gombot: minden helyben, a böngészőben fut. Semmi sem hagyja el a gépedet.
+
+4
+00:00:19.697 --> 00:00:24.631
+Szűrj állapot szerint és keress az eredmények között, mint a natív alkalmazásban.
+
+5
+00:00:25.132 --> 00:00:29.250
+Az Export menü menti a HTML-jelentést, CSV-t, JSON-t és egyebeket.
+
+6
+00:00:29.753 --> 00:00:35.407
+A Guardian szakasz javításokat, tartományokat, állapottérképet, trendeket és megfelelőséget kínál.
+
+7
+00:00:36.478 --> 00:00:43.620
+Online webhelyen a böngésző korlátozza a külső ellenőrzést (CORS): teljes eredményhez használd a GUI-t vagy a CLI-t.
+

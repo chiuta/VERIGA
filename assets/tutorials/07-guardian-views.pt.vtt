@@ -1,0 +1,26 @@
+WEBVTT
+
+1
+00:00:00.450 --> 00:00:06.008
+As vistas do Guardian baseiam-se na última verificação: execute primeiro uma verificação.
+
+2
+00:00:06.509 --> 00:00:13.363
+Domínios: por cada anfitrião vê totais, ligações quebradas, 403, redirecionamentos e uma pontuação de saúde.
+
+3
+00:00:16.864 --> 00:00:21.942
+Saúde / livro: páginas ordenadas por saúde, para saber por onde começar a reparar.
+
+4
+00:00:27.315 --> 00:00:34.025
+Tendências: registe a verificação atual e compare-a com uma sessão anterior para ver o que é novo e o que foi resolvido.
+
+5
+00:00:35.673 --> 00:00:42.575
+404 dos registos: importe um registo Apache ou nginx para saber que páginas em falta os visitantes realmente acedem.
+
+6
+00:00:43.075 --> 00:00:49.545
+Conformidade: gere um relatório de um período, por exemplo os últimos 30 dias, a partir do histórico guardado.
+

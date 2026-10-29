@@ -1,0 +1,22 @@
+WEBVTT
+
+1
+00:00:00.450 --> 00:00:04.184
+Il pulsante «Options» apre il pannello delle impostazioni.
+
+2
+00:00:04.684 --> 00:00:10.002
+I cursori impostano thread, connessioni per host, timeout e tentativi.
+
+3
+00:00:14.184 --> 00:00:20.270
+Le caselle controllano cosa verificare: link esterni, risorse, mailto, robots.txt, protezione SSRF.
+
+4
+00:00:24.176 --> 00:00:28.390
+Spunta «Check # anchors» e riavvia la scansione.
+
+5
+00:00:35.638 --> 00:00:39.708
+Ora anche le ancore mancanti compaiono come errori.
+

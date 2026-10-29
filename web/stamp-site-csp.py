@@ -10,7 +10,7 @@ scripts = [m.group(1) for m in re.finditer(r'<script(?![^>]*\btype=)[^>]*>(.*?)<
 styles = [m.group(1) for m in re.finditer(r'<style[^>]*>(.*?)</style>', s, re.S)]
 h = lambda t: "'sha256-" + base64.b64encode(hashlib.sha256(t.encode('utf-8')).digest()).decode() + "'"
 csp = ("default-src 'none'; script-src " + ' '.join(h(t) for t in scripts) + "; style-src " + ' '.join(h(t) for t in styles) +
-       "; img-src 'self' data:; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'none'")
+       "; img-src 'self' data:; media-src 'self'; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'none'")
 meta = '<meta http-equiv="Content-Security-Policy" content="' + csp + '">\n'
 new = s.replace('<meta charset="utf-8">\n', '<meta charset="utf-8">\n' + meta, 1)
 if check:

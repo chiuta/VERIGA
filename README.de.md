@@ -66,6 +66,10 @@ cargo test --workspace
 Der Workflow `.github/workflows/build.yml` erzeugt Archive für: Windows x64/ARM64, macOS Intel/Apple Silicon,
 Linux x64/ARM64 (glibc, mit GUI) und Linux x64/ARM64 (musl, statische CLI). Das `Dockerfile` baut ein minimales Image mit der CLI.
 
+## Video-Tutorials
+
+Zehn kurze Tutorials, aufgenommen mit der echten Anwendung und in 8 Sprachen untertitelt (ro, en, fr, it, es, pt, de, hu): erster Scan, Filter, Linkdetails, Optionen, Export, Guardian (Korrekturen; Domains, Karte, Trends), Kommandozeile, HTML-Edition und portable Edition. Zu sehen auf https://veriga.chiuta.ro/#tutoriale oder in `assets/tutorials/`: Jede `.mp4` enthält alle 8 Untertitelspuren, die `.vtt`-Dateien liegen daneben. Ohne Ton; die Erklärungen stehen in den Untertiteln.
+
 ## Portable Ausgabe (PortableApps.com)
 
 VERIGA gibt es auch als **PortableApps.com-Format-3.9**-Paket, `VERIGAPortable_<Version>_Multilingual.zip` (Release-Dateien). Entpacke es beliebig (USB-Stick, synchronisierter Ordner) und starte `VERIGAPortable.exe`.

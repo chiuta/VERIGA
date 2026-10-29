@@ -1,0 +1,22 @@
+WEBVTT
+
+1
+00:00:00.450 --> 00:00:05.000
+Saisissez une adresse de site ou un dossier local dans le champ Start.
+
+2
+00:00:05.500 --> 00:00:11.106
+Cliquez sur « Start ». VERIGA parcourt pages, images, feuilles de style et ancres.
+
+3
+00:00:13.203 --> 00:00:18.809
+Le tableau se remplit : statut, code, URL, type, taille, titre, niveau et temps de réponse.
+
+4
+00:00:22.867 --> 00:00:26.985
+Les lignes rouges sont des liens cassés ; les vertes fonctionnent.
+
+5
+00:00:28.860 --> 00:00:34.274
+La barre d’état résume : nombre d’URL, de liens cassés et de redirections.
+

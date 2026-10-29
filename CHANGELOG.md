@@ -4,6 +4,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+### Tutoriale video / Video tutorials
+- 10 tutoriale video (GUI în RO și EN, CLI, varianta HTML, ediția portabilă), subtitrate în 8 limbi: `.mp4` cu 8 piste de subtitrare + `.vtt`, în `assets/tutorials/`; secțiune nouă pe site (subtitrarea urmează limba paginii; CSP cu `media-src 'self'`).
+
 ### Remedieri după revizuirea de securitate / Security review fixes
 - FTP: URL-urile cu CR/LF/NUL codificate (`%0D%0A`) în cale/utilizator/parolă sunt refuzate (injecție de comenzi); FTP respectă acum protecția anti-SSRF; răspunsurile FTP au lungime plafonată.
 - O pagină la distanță (http/https) care trimite spre `file://` nu mai poate face programul să citească fișiere locale: linkul este raportat ca „Omis”.

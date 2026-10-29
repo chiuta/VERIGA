@@ -1,0 +1,30 @@
+WEBVTT
+
+1
+00:00:00.750 --> 00:00:06.596
+Dasselbe Werkzeug auf der Kommandozeile: derselbe Motor wie die GUI. Die Meldungen sind rumänisch.
+
+2
+00:00:07.283 --> 00:00:13.033
+Geben Sie eine Website oder einen Ordner an; das Format jedes Berichts richtet sich nach der Endung.
+
+3
+00:00:13.750 --> 00:00:18.060
+Defekte Links werden mit der Seite aufgelistet, die sie enthält.
+
+4
+00:00:18.750 --> 00:00:25.076
+„lint“ analysiert Dateien offline: Schemafehler, Tracking-Parameter, http statt https.
+
+5
+00:00:25.750 --> 00:00:30.133
+„fix“ schlägt Korrekturen vor. Ohne --apply wird nichts geschrieben.
+
+6
+00:00:30.617 --> 00:00:40.933
+Mit --apply wird die Änderung mit Sicherung und Journaleintrag geschrieben.
+
+7
+00:00:41.350 --> 00:00:48.400
+„undo“ stellt die Originaldateien Byte für Byte wieder her.
+

@@ -1,0 +1,26 @@
+WEBVTT
+
+1
+00:00:00.450 --> 00:00:06.008
+A Guardian nézetei az utolsó vizsgálatra épülnek: előbb futtass egy vizsgálatot.
+
+2
+00:00:06.509 --> 00:00:13.363
+Tartományok: minden gazdánál látod az összeget, a törött linkeket, a 403-akat, az átirányításokat és egy állapotpontszámot.
+
+3
+00:00:16.864 --> 00:00:21.942
+Állapot / könyv: az oldalak állapot szerint rendezve, hogy tudd, hol kezdd a javítást.
+
+4
+00:00:27.315 --> 00:00:34.025
+Trendek: rögzítsd az aktuális futást, és hasonlítsd egy korábbi munkamenettel: mi új és mi oldódott meg.
+
+5
+00:00:35.673 --> 00:00:42.575
+404 naplóból: importálj Apache- vagy nginx-naplót, hogy megtudd, mely hiányzó oldalakat keresik valójában a látogatók.
+
+6
+00:00:43.075 --> 00:00:49.545
+Megfelelőség: a mentett előzményekből készíts jelentést egy időszakra, például az utolsó 30 napra.
+

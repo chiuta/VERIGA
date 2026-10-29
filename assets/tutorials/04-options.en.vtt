@@ -1,0 +1,22 @@
+WEBVTT
+
+1
+00:00:00.450 --> 00:00:04.184
+The Options button opens the settings panel.
+
+2
+00:00:04.684 --> 00:00:10.002
+Sliders set threads, connections per host, timeout and retries.
+
+3
+00:00:14.184 --> 00:00:20.270
+Checkboxes control what is checked: external links, resources, mailto, robots.txt, SSRF protection.
+
+4
+00:00:24.176 --> 00:00:28.390
+Tick “Check # anchors” and run the scan again.
+
+5
+00:00:35.638 --> 00:00:39.708
+Now missing anchors show up as errors too.
+

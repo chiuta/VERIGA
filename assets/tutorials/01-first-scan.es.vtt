@@ -1,0 +1,22 @@
+WEBVTT
+
+1
+00:00:00.450 --> 00:00:05.000
+Escribe una dirección de sitio o una carpeta local en el campo Start.
+
+2
+00:00:05.500 --> 00:00:11.106
+Pulsa «Start». VERIGA recorre páginas, imágenes, hojas de estilo y anclas.
+
+3
+00:00:13.203 --> 00:00:18.809
+La tabla se llena: estado, código, URL, tipo, tamaño, título, nivel y tiempo de respuesta.
+
+4
+00:00:22.867 --> 00:00:26.985
+Las filas rojas son enlaces rotos; las verdes funcionan.
+
+5
+00:00:28.860 --> 00:00:34.274
+La barra de estado lo resume: cuántas URL, cuántas rotas y cuántas redirecciones.
+

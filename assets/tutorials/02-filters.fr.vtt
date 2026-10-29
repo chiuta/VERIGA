@@ -1,0 +1,22 @@
+WEBVTT
+
+1
+00:00:00.450 --> 00:00:05.144
+Les onglets filtrent : All, Broken, Redirects, OK, Orphans, Skipped.
+
+2
+00:00:12.381 --> 00:00:15.635
+« Broken » n’affiche que ce qu’il faut corriger.
+
+3
+00:00:18.800 --> 00:00:22.102
+« OK » liste les liens en bonne santé.
+
+4
+00:00:25.228 --> 00:00:29.058
+La zone de recherche filtre sur toute partie d’une URL.
+
+5
+00:00:34.275 --> 00:00:39.017
+Cliquez sur un en-tête de colonne pour trier ; recliquez pour inverser.
+

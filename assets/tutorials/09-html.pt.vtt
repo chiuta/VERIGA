@@ -1,0 +1,30 @@
+WEBVTT
+
+1
+00:00:00.835 --> 00:00:06.969
+A edição HTML é um único ficheiro: abra-o em qualquer navegador, sem instalação nem servidor.
+
+2
+00:00:07.475 --> 00:00:13.033
+Escolha a origem: pasta local, site online ou lista de URL. Aqui escolhemos uma pasta.
+
+3
+00:00:13.538 --> 00:00:19.192
+Prima Start: tudo corre localmente no navegador. Nada sai do seu computador.
+
+4
+00:00:19.697 --> 00:00:24.631
+Filtre por estado e pesquise nos resultados, como na aplicação nativa.
+
+5
+00:00:25.132 --> 00:00:29.250
+O menu Export guarda o relatório HTML, CSV, JSON e mais.
+
+6
+00:00:29.753 --> 00:00:35.407
+A secção Guardian acrescenta correções, domínios, mapa de saúde, tendências e conformidade.
+
+7
+00:00:36.478 --> 00:00:43.620
+Num site online o navegador limita as verificações externas (CORS): use a GUI ou a CLI para resultados completos.
+

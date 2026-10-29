@@ -1,0 +1,22 @@
+WEBVTT
+
+1
+00:00:00.450 --> 00:00:04.184
+Butonul Opțiuni deschide panoul de setări.
+
+2
+00:00:04.684 --> 00:00:10.002
+Cursoarele reglează firele, conexiunile pe gazdă, timeout-ul și reîncercările.
+
+3
+00:00:14.184 --> 00:00:20.270
+Bifele controlează ce se verifică: linkuri externe, resurse, mailto, robots.txt, protecția anti-SSRF.
+
+4
+00:00:24.176 --> 00:00:28.390
+Bifează „Verifică ancore #” și pornește din nou verificarea.
+
+5
+00:00:35.638 --> 00:00:39.708
+Acum și ancorele lipsă apar ca erori.
+

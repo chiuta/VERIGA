@@ -1,0 +1,30 @@
+WEBVTT
+
+1
+00:00:00.150 --> 00:00:06.284
+Téléchargez le ZIP et extrayez-le n’importe où : clé USB, dossier synchronisé ou Documents.
+
+2
+00:00:06.883 --> 00:00:13.689
+L’arborescence suit le format PortableApps.com 3.9 : la plateforme PortableApps.com peut la lister et la mettre à jour.
+
+3
+00:00:14.283 --> 00:00:20.225
+Double-cliquez sur VERIGAPortable.exe. Le lanceur choisit automatiquement la version x64 ou ARM64.
+
+4
+00:00:20.817 --> 00:00:28.295
+Tout ce vous créez reste dans le dossier Data : le lanceur n’écrit pas dans le registre ni ne laisse de traces sur le PC hôte.
+
+5
+00:00:28.883 --> 00:00:35.833
+Pour déplacer ou sauvegarder VERIGA, copiez le dossier VERIGAPortable : réglages et historique le suivent.
+
+6
+00:00:36.483 --> 00:00:42.377
+L’outil en ligne de commande est App\VERIGA\veriga.exe ; help.html ouvre le manuel en 8 langues.
+
+7
+00:00:43.017 --> 00:00:50.879
+L’installateur officiel .paf.exe se génère avec PortableApps.com Installer sous Windows. Ce tutoriel illustre l’arborescence.
+

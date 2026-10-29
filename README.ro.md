@@ -66,6 +66,10 @@ cargo test --workspace
 Fluxul `.github/workflows/build.yml` produce arhive pentru: Windows x64/ARM64, macOS Intel/Apple Silicon,
 Linux x64/ARM64 (glibc, cu GUI) și Linux x64/ARM64 (musl, CLI static). `Dockerfile` construiește o imagine minimă cu CLI-ul.
 
+## Tutoriale video
+
+Zece tutoriale scurte, înregistrate pe aplicația reală și subtitrate în 8 limbi (ro, en, fr, it, es, pt, de, hu): prima verificare, filtre, detaliile unui link, opțiuni, export, Guardian (reparații; domenii, hartă, tendințe), linia de comandă, varianta HTML și ediția portabilă. Le găsești pe https://veriga.chiuta.ro/#tutoriale sau în `assets/tutorials/`: fiecare `.mp4` conține toate cele 8 piste de subtitrare, iar fișierele `.vtt` sunt alăturate. Fără sunet; explicațiile sunt în subtitrări.
+
 ## Varianta portabilă (PortableApps.com)
 
 VERIGA vine și ca pachet **PortableApps.com Format 3.9**, `VERIGAPortable_<versiune>_Multilingual.zip` (fișiere ale release-ului). Dezarhivează-l oriunde (stick USB, folder sincronizat) și pornește `VERIGAPortable.exe`.

@@ -1,0 +1,30 @@
+WEBVTT
+
+1
+00:00:00.835 --> 00:00:06.969
+Die HTML-Edition ist eine einzelne Datei: In jedem Browser öffnen, ohne Installation und ohne Server.
+
+2
+00:00:07.475 --> 00:00:13.033
+Wählen Sie die Quelle: lokaler Ordner, Online-Site oder URL-Liste. Hier wählen wir einen Ordner.
+
+3
+00:00:13.538 --> 00:00:19.192
+Klicken Sie auf Start: Alles läuft lokal im Browser. Nichts verlässt Ihren Rechner.
+
+4
+00:00:19.697 --> 00:00:24.631
+Filtern Sie nach Status und durchsuchen Sie die Ergebnisse, wie in der nativen App.
+
+5
+00:00:25.132 --> 00:00:29.250
+Das Export-Menü speichert den HTML-Bericht, CSV, JSON und mehr.
+
+6
+00:00:29.753 --> 00:00:35.407
+Der Bereich Guardian bietet Korrekturen, Domains, Gesundheitskarte, Trends und Compliance.
+
+7
+00:00:36.478 --> 00:00:43.620
+Bei einer Online-Site begrenzt der Browser externe Prüfungen (CORS): Für vollständige Ergebnisse GUI oder CLI nutzen.
+

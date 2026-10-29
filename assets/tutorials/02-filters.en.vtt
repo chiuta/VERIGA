@@ -1,0 +1,22 @@
+WEBVTT
+
+1
+00:00:00.450 --> 00:00:05.144
+Tabs filter the results: All, Broken, Redirects, OK, Orphans, Skipped.
+
+2
+00:00:12.381 --> 00:00:15.635
+Broken shows only what needs fixing.
+
+3
+00:00:18.800 --> 00:00:22.102
+OK lists the healthy links.
+
+4
+00:00:25.228 --> 00:00:29.058
+The search box filters by any part of a URL.
+
+5
+00:00:34.275 --> 00:00:39.017
+Click a column header to sort; click again to reverse the order.
+

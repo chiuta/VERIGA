@@ -1,0 +1,26 @@
+WEBVTT
+
+1
+00:00:00.450 --> 00:00:06.008
+Le viste di Guardian si basano sull’ultima scansione: esegui prima una scansione.
+
+2
+00:00:06.509 --> 00:00:13.363
+Domini: per ogni host vedi totali, link rotti, 403, reindirizzamenti e un punteggio di salute.
+
+3
+00:00:16.864 --> 00:00:21.942
+Salute / libro: pagine ordinate per salute, così sai da dove iniziare a riparare.
+
+4
+00:00:27.315 --> 00:00:34.025
+Tendenze: registra la scansione corrente e confrontala con una sessione precedente per vedere novità e risolti.
+
+5
+00:00:35.673 --> 00:00:42.575
+404 dai log: importa un log Apache o nginx per scoprire quali pagine mancanti raggiungono davvero i visitatori.
+
+6
+00:00:43.075 --> 00:00:49.545
+Conformità: genera un report su un periodo, ad esempio gli ultimi 30 giorni, dalla cronologia salvata.
+

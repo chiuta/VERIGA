@@ -1,0 +1,22 @@
+WEBVTT
+
+1
+00:00:00.450 --> 00:00:05.000
+Type a site address or a local folder in the Start field.
+
+2
+00:00:05.500 --> 00:00:11.106
+Press Start. VERIGA crawls pages, images, stylesheets and anchors.
+
+3
+00:00:13.203 --> 00:00:18.809
+The table fills in: status, code, URL, type, size, title, level and response time.
+
+4
+00:00:22.867 --> 00:00:26.985
+Red rows are broken links; green rows are working.
+
+5
+00:00:28.860 --> 00:00:34.274
+The status bar sums it up: how many URLs, how many broken, how many redirects.
+

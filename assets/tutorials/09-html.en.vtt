@@ -1,0 +1,30 @@
+WEBVTT
+
+1
+00:00:00.835 --> 00:00:06.969
+The HTML edition is a single file: open it in any browser, no install and no server.
+
+2
+00:00:07.475 --> 00:00:13.033
+Choose the source: a local folder, an online site or a URL list. Here we pick a folder.
+
+3
+00:00:13.538 --> 00:00:19.192
+Press Start: everything runs locally in the browser. Nothing leaves your computer.
+
+4
+00:00:19.697 --> 00:00:24.631
+Filter by status and search the results, just like in the native app.
+
+5
+00:00:25.132 --> 00:00:29.250
+The Export menu saves the HTML report, CSV, JSON and more.
+
+6
+00:00:29.753 --> 00:00:35.407
+The Guardian section adds fixes, domains, a health map, trends and compliance.
+
+7
+00:00:36.478 --> 00:00:43.620
+On an online site the browser limits external checks (CORS): use the GUI or CLI for full results.
+

@@ -1,0 +1,26 @@
+WEBVTT
+
+1
+00:00:00.450 --> 00:00:06.008
+Guardian’s views build on your last scan: run a scan first, then open Guardian.
+
+2
+00:00:06.509 --> 00:00:13.363
+Domains: for each host you see totals, broken links, 403s, redirects and a health score.
+
+3
+00:00:16.864 --> 00:00:21.942
+Health / book: pages ranked by health, so you know where to start repairing.
+
+4
+00:00:27.315 --> 00:00:34.025
+Trends: record the current run and compare it with an earlier session to see what is new and what was resolved.
+
+5
+00:00:35.673 --> 00:00:42.575
+404 from logs: import an Apache or nginx log to learn which missing pages visitors really hit.
+
+6
+00:00:43.075 --> 00:00:49.545
+Compliance: generate a report for a period, for example the last 30 days, from the saved history.
+

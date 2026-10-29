@@ -66,6 +66,10 @@ cargo test --workspace
 A `.github/workflows/build.yml` munkafolyamat archívumokat készít a következőkhöz: Windows x64/ARM64, macOS Intel/Apple Silicon,
 Linux x64/ARM64 (glibc, GUI-val) és Linux x64/ARM64 (musl, statikus CLI). A `Dockerfile` minimális, CLI-t tartalmazó image-et épít.
 
+## Videóbemutatók
+
+Tíz rövid bemutató a valódi alkalmazáson felvéve, 8 nyelven feliratozva (ro, en, fr, it, es, pt, de, hu): első vizsgálat, szűrők, hivatkozás részletei, beállítások, exportálás, Guardian (javítások; tartományok, térkép, trendek), parancssor, HTML-változat és hordozható kiadás. Megtekinthető: https://veriga.chiuta.ro/#tutoriale vagy `assets/tutorials/`: minden `.mp4` mind a 8 feliratsávot tartalmazza, a `.vtt` fájlok mellette vannak. Hang nélkül; a magyarázat a feliratokban van.
+
 ## Hordozható kiadás (PortableApps.com)
 
 A VERIGA **PortableApps.com Format 3.9** csomagként is elérhető: `VERIGAPortable_<verzió>_Multilingual.zip` (a kiadás fájljai). Csomagold ki bárhová (pendrive, szinkronizált mappa), és indítsd el a `VERIGAPortable.exe`-t.

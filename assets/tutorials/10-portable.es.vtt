@@ -1,0 +1,30 @@
+WEBVTT
+
+1
+00:00:00.150 --> 00:00:06.284
+Descarga el ZIP y extráelo donde quieras: una memoria USB, una carpeta sincronizada o Documentos.
+
+2
+00:00:06.883 --> 00:00:13.689
+La estructura sigue el formato PortableApps.com 3.9, así que la plataforma PortableApps.com puede listarla y actualizarla.
+
+3
+00:00:14.283 --> 00:00:20.225
+Haz doble clic en VERIGAPortable.exe. El lanzador elige automáticamente la versión x64 o ARM64.
+
+4
+00:00:20.817 --> 00:00:28.295
+Todo lo que creas permanece en la carpeta Data: el lanzador no escribe en el registro ni deja rastro en el PC anfitrión.
+
+5
+00:00:28.883 --> 00:00:35.833
+Para mover o respaldar VERIGA, copia la carpeta VERIGAPortable: los ajustes y el historial viajan con ella.
+
+6
+00:00:36.483 --> 00:00:42.377
+La herramienta de línea de comandos es App\VERIGA\veriga.exe; help.html abre el manual en 8 idiomas.
+
+7
+00:00:43.017 --> 00:00:50.879
+El instalador oficial .paf.exe se genera con PortableApps.com Installer en Windows. Este tutorial ilustra la estructura.
+

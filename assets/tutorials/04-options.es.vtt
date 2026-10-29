@@ -1,0 +1,22 @@
+WEBVTT
+
+1
+00:00:00.450 --> 00:00:04.184
+El botón «Options» abre el panel de ajustes.
+
+2
+00:00:04.684 --> 00:00:10.002
+Los controles ajustan hilos, conexiones por host, tiempo de espera y reintentos.
+
+3
+00:00:14.184 --> 00:00:20.270
+Las casillas controlan qué se revisa: enlaces externos, recursos, mailto, robots.txt, protección SSRF.
+
+4
+00:00:24.176 --> 00:00:28.390
+Marca «Check # anchors» y vuelve a ejecutar el análisis.
+
+5
+00:00:35.638 --> 00:00:39.708
+Ahora las anclas que faltan también aparecen como errores.
+

@@ -1,0 +1,30 @@
+WEBVTT
+
+1
+00:00:00.150 --> 00:00:06.284
+Descarcă arhiva ZIP și dezarhiveaz-o oriunde: stick USB, dosar sincronizat sau Documente.
+
+2
+00:00:06.883 --> 00:00:13.689
+Structura respectă PortableApps.com Format 3.9, deci platforma PortableApps.com o poate lista și actualiza.
+
+3
+00:00:14.283 --> 00:00:20.225
+Dublu clic pe VERIGAPortable.exe. Lansatorul alege automat varianta x64 sau ARM64.
+
+4
+00:00:20.817 --> 00:00:28.295
+Tot ce creezi rămâne în dosarul Data: lansatorul nu scrie în registry și nu lasă urme pe calculatorul gazdă.
+
+5
+00:00:28.883 --> 00:00:35.833
+Ca să muți sau să salvezi VERIGA, copiază dosarul VERIGAPortable: setările și istoricul merg cu el.
+
+6
+00:00:36.483 --> 00:00:42.377
+Programul din linia de comandă este App\VERIGA\veriga.exe; help.html deschide manualul în 8 limbi.
+
+7
+00:00:43.017 --> 00:00:50.879
+Instalatorul oficial .paf.exe se generează cu PortableApps.com Installer pe Windows. Acest tutorial este o ilustrare a structurii.
+

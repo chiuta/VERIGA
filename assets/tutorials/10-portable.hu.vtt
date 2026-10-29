@@ -1,0 +1,30 @@
+WEBVTT
+
+1
+00:00:00.150 --> 00:00:06.284
+Töltsd le a ZIP-et, és csomagold ki bárhová: pendrive, szinkronizált mappa vagy Dokumentumok.
+
+2
+00:00:06.883 --> 00:00:13.689
+A felépítés a PortableApps.com 3.9-es formátumot követi, így a PortableApps.com platform listázhatja és frissítheti.
+
+3
+00:00:14.283 --> 00:00:20.225
+Kattints duplán a VERIGAPortable.exe-re. Az indító automatikusan az x64 vagy ARM64 változatot választja.
+
+4
+00:00:20.817 --> 00:00:28.295
+Minden, amit létrehozol, a Data mappában marad: az indító nem ír a rendszerleíró adatbázisba, és nem hagy nyomot a gazdagépen.
+
+5
+00:00:28.883 --> 00:00:35.833
+A VERIGA áthelyezéséhez vagy mentéséhez másold a VERIGAPortable mappát: a beállítások és az előzmények vele együtt költöznek.
+
+6
+00:00:36.483 --> 00:00:42.377
+A parancssori program az App\VERIGA\veriga.exe; a help.html a kézikönyvet 8 nyelven nyitja meg.
+
+7
+00:00:43.017 --> 00:00:50.879
+A hivatalos .paf.exe telepítőt a PortableApps.com Installer készíti Windowson. Ez a bemutató a szerkezetet szemlélteti.
+

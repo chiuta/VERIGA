@@ -1,0 +1,30 @@
+WEBVTT
+
+1
+00:00:00.750 --> 00:00:06.596
+Aceeași unealtă și în linia de comandă: același motor ca în GUI. Mesajele sunt în română.
+
+2
+00:00:07.283 --> 00:00:13.033
+Dă-i un site sau un dosar; formatul fiecărui raport se alege după extensie.
+
+3
+00:00:13.750 --> 00:00:18.060
+Linkurile rupte sunt listate împreună cu pagina care le conține.
+
+4
+00:00:18.750 --> 00:00:25.076
+„lint” analizează fișierele offline: greșeli de schemă, parametri de urmărire, http în loc de https.
+
+5
+00:00:25.750 --> 00:00:30.133
+„fix” propune reparații. Fără --apply nu se scrie nimic.
+
+6
+00:00:30.617 --> 00:00:40.933
+Cu --apply, modificarea se scrie cu copie de siguranță și intrare în jurnal.
+
+7
+00:00:41.350 --> 00:00:48.400
+„undo” restaurează fișierele originale, octet cu octet.
+
