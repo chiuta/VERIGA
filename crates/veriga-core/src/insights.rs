@@ -381,7 +381,7 @@ pub enum Period {
 }
 
 pub fn compliance_html(s: &Session, log: &FixLog, hist: &[Snapshot], period: Period) -> String {
-    let lang = s.config.lang.as_str();
+    let lang = crate::report::safe_lang(&s.config.lang);
     let cutoff = match period {
         Period::Days(d) => Some(chrono::Local::now() - chrono::Duration::days(d as i64)),
         Period::All => None,
@@ -528,7 +528,7 @@ pub fn compliance_html(s: &Session, log: &FixLog, hist: &[Snapshot], period: Per
 
 /// Pagină HTML cu: tablou de bord, domenii, hartă de sănătate, carte, redirecționări, diferențe.
 pub fn guardian_html(s: &Session, prev: Option<&Session>, hist: &[Snapshot]) -> String {
-    let lang = s.config.lang.as_str();
+    let lang = crate::report::safe_lang(&s.config.lang);
     let sn = snapshot_of(s);
     let mut o = String::new();
     let _ = write!(

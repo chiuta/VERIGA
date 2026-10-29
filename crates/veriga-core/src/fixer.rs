@@ -662,7 +662,7 @@ pub fn unlink(occs: &[Occurrence], old: &str) -> Vec<Proposal> {
                 let close = text[o.end..].find("</a>").filter(|p| *p < 4000);
                 match (lo, close) {
                     (Some(a), Some(c)) => {
-                        let tag_end = text[o.end..].find('>').map(|p| o.end + p + 1);
+                        let tag_end = html_tag_end(&text, o.end);
                         tag_end
                             .filter(|te| *te <= o.end + c)
                             .map(|te| (a, o.end + c + 4, text[te..o.end + c].to_string()))
@@ -933,6 +933,27 @@ pub struct UndoReport {
     pub conflicts: Vec<(String, String)>,
 }
 
+/// Sfârșitul etichetei de deschidere, ignorând `>` din valori de atribute între ghilimele.
+/// `from` este finalul URL-ului din `href` (la ghilimeaua de închidere, dacă există).
+fn html_tag_end(text: &str, from: usize) -> Option<usize> {
+    let b = text.as_bytes();
+    let mut i = from;
+    if matches!(b.get(i), Some(b'"') | Some(b'\'')) {
+        i += 1;
+    }
+    let mut q: Option<u8> = None;
+    while i < b.len() {
+        match (q, b[i]) {
+            (None, b'>') => return Some(i + 1),
+            (None, c @ (b'"' | b'\'')) => q = Some(c),
+            (Some(c), d) if c == d => q = None,
+            _ => {}
+        }
+        i += 1;
+    }
+    None
+}
+
 fn find_unique(text: &str, needle: &str) -> Option<usize> {
     if needle.is_empty() {
         return None;
@@ -972,13 +993,12 @@ pub fn undo(log: &mut FixLog, ids: Option<&[String]>, run: Option<&str>) -> Undo
             continue;
         };
         let ctx = format!("{}{}", e.before, e.new_raw);
-        // 1) poziția înregistrată, confirmată de context; 2) context unic; 3) text nou unic
+        // 1) poziția înregistrată, confirmată de context; 2) context unic (fără căutare după textul nou singur:
+        //    după o editare manuală ar putea atinge un link străin)
         let at_pos = (e.pos >= e.before.len()
             && t.get(e.pos - e.before.len()..e.pos + e.new_raw.len()) == Some(ctx.as_str()))
         .then_some(e.pos);
-        let pos = at_pos
-            .or_else(|| find_unique(t, &ctx).map(|p| p + e.before.len()))
-            .or_else(|| find_unique(t, &e.new_raw));
+        let pos = at_pos.or_else(|| find_unique(t, &ctx).map(|p| p + e.before.len()));
         match pos {
             Some(p) if t.get(p..p + e.new_raw.len()) == Some(e.new_raw.as_str()) => {
                 t.replace_range(p..p + e.new_raw.len(), &e.old_raw);
@@ -1218,6 +1238,72 @@ mod tests {
         assert_eq!(std::fs::read_to_string(&f).unwrap(), "Vezi pagina și alta.");
         assert_eq!(undo(&mut log, None, None).undone.len(), 2);
         assert_eq!(std::fs::read_to_string(&f).unwrap(), src);
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn unlink_handles_gt_inside_attribute() {
+        let d = std::env::temp_dir().join(format!("veriga-fix-gt-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let f = d.join("g.html");
+        let src = r#"<a href="http://x.ro/dead" title="a > b">Text</a>"#;
+        std::fs::write(&f, src).unwrap();
+        let occ = srcscan::scan_text(src, &f, SrcKind::Html);
+        let ps = unlink(&occ, "http://x.ro/dead");
+        let mut log = FixLog::default();
+        let o = ApplyOpts {
+            backup_dir: d.join("bk"),
+            run: "r".into(),
+            allow_unverified: true,
+        };
+        let r = apply(&ps, &mut log, &o);
+        assert_eq!(r.applied.len(), 1, "{:?}", r.skipped);
+        assert_eq!(std::fs::read_to_string(&f).unwrap(), "Text");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn undo_after_manual_edit_never_touches_a_foreign_link() {
+        let d = std::env::temp_dir().join(format!("veriga-fix-foreign-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let f = d.join("a.html");
+        let src = "<p>one</p>\n<a href=\"htp://example.com/l\">l</a>\n";
+        std::fs::write(&f, src).unwrap();
+        let occ = srcscan::scan_text(src, &f, SrcKind::Html);
+        let mut ps: Vec<Proposal> = occ
+            .iter()
+            .map(|o| Proposal {
+                id: "p1".into(),
+                file: f.clone(),
+                page: o.page.clone(),
+                start: o.start,
+                end: o.end,
+                old_raw: o.url.clone(),
+                new_raw: "http://example.com/l".into(),
+                old: o.url.clone(),
+                new: "http://example.com/l".into(),
+                rule: Rule::SchemeTypo,
+                verified: true,
+                nav: false,
+                pages: 1,
+                note: String::new(),
+            })
+            .collect();
+        fill_old_raw(&mut ps);
+        let mut log = FixLog::default();
+        let o = ApplyOpts {
+            backup_dir: d.join("bk"),
+            run: "r".into(),
+            allow_unverified: false,
+        };
+        assert_eq!(apply(&ps, &mut log, &o).applied.len(), 1);
+        // editare manuală: acum fișierul conține doar un alt link care începe la fel
+        let edited = "<a href=\"http://example.com/long-page\">x</a>";
+        std::fs::write(&f, edited).unwrap();
+        let u = undo(&mut log, None, Some("r"));
+        assert_eq!(u.undone.len(), 0, "undo a atins un link străin");
+        assert_eq!(u.conflicts.len(), 1);
+        assert_eq!(std::fs::read_to_string(&f).unwrap(), edited);
         let _ = std::fs::remove_dir_all(&d);
     }
 

@@ -5,6 +5,11 @@ use serde::Serialize;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt::Write as _;
 
+/// Doar limbile cunoscute ajung în rapoarte (atributul `lang` nu se poate injecta).
+pub(crate) fn safe_lang(l: &str) -> &'static str {
+    if l == "en" { "en" } else { "ro" }
+}
+
 pub(crate) fn tr(lang: &str, ro: &'static str, en: &'static str) -> &'static str {
     if lang == "en" { en } else { ro }
 }
@@ -63,7 +68,7 @@ pub struct Summary {
 
 impl Summary {
     pub fn from(s: &Session) -> Self {
-        let lang = s.config.lang.as_str();
+        let lang = safe_lang(&s.config.lang);
         let mut sm = Summary {
             total: s.results.len(),
             ok: 0,
@@ -161,7 +166,8 @@ fn broken_grouped(s: &Session) -> Vec<(Status, Vec<&LinkResult>)> {
 }
 
 pub fn to_text(s: &Session) -> String {
-    let lang = s.config.lang.as_str();
+    let s = &s.redacted();
+    let lang = safe_lang(&s.config.lang);
     let sm = Summary::from(s);
     let mut o = String::new();
     let _ = writeln!(
@@ -302,7 +308,8 @@ fn csv_writer(delim: u8) -> csv::Writer<Vec<u8>> {
 
 /// CSV (`,`) sau TSV (`\t`). `only_broken` exportă doar linkurile rupte.
 pub fn to_csv(s: &Session, delim: u8, only_broken: bool) -> String {
-    let lang = s.config.lang.as_str();
+    let s = &s.redacted();
+    let lang = safe_lang(&s.config.lang);
     let mut w = csv_writer(delim);
     let _ = w.write_record([
         "Address",
@@ -360,6 +367,7 @@ pub fn to_json(s: &Session) -> String {
 }
 
 pub fn to_sitemap_xml(s: &Session) -> String {
+    let s = &s.redacted();
     let mut o = String::from(
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n",
     );
@@ -392,6 +400,7 @@ pub fn to_sitemap_xml(s: &Session) -> String {
 
 /// Arborele site-ului (după prima pagină care a descoperit fiecare URL).
 pub fn to_tree_text(s: &Session, max_depth: usize) -> String {
+    let s = &s.redacted();
     let mut children: HashMap<&str, Vec<usize>> = HashMap::new();
     let mut roots = vec![];
     for (i, r) in s.results.iter().enumerate() {
@@ -488,12 +497,20 @@ fn parents_html(r: &LinkResult, max: usize) -> String {
         } else {
             format!(" — „{}”", esc(&p.text))
         };
-        let _ = write!(
-            o,
-            "<span class=\"par\">↳ <a href=\"{0}\">{0}</a>{1}</span>",
-            esc(&p.url),
-            t
-        );
+        let low = p.url.to_ascii_lowercase();
+        if ["http://", "https://", "file://", "ftp://"]
+            .iter()
+            .any(|sch| low.starts_with(sch))
+        {
+            let _ = write!(
+                o,
+                "<span class=\"par\">↳ <a href=\"{0}\">{0}</a>{1}</span>",
+                esc(&p.url),
+                t
+            );
+        } else {
+            let _ = write!(o, "<span class=\"par\">↳ {}{}</span>", esc(&p.url), t);
+        }
     }
     if r.parents.len() > max {
         let _ = write!(o, "<span class=\"par\">… +{}</span>", r.parents.len() - max);
@@ -532,8 +549,9 @@ pub(crate) fn csp_hash(js: &str) -> String {
 }
 
 pub fn to_html(s: &Session) -> String {
+    let s = &s.redacted();
     let jsh = csp_hash(REPORT_JS);
-    let lang = s.config.lang.as_str();
+    let lang = safe_lang(&s.config.lang);
     let sm = Summary::from(s);
     let mut o = String::new();
     let _ = write!(

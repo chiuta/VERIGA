@@ -566,7 +566,13 @@ impl Coord {
     fn check_fragments(&mut self) {
         let frs = std::mem::take(&mut self.fragments);
         for (page, frag, parent) in frs {
-            if frag.is_empty() || frag.eq_ignore_ascii_case("top") {
+            // directivă de text (#:~:text=…) și rute SPA (#!/…, #/…) nu sunt ancore HTML
+            let frag = frag.split(":~:").next().unwrap_or("").to_string();
+            if frag.is_empty()
+                || frag.eq_ignore_ascii_case("top")
+                || frag.starts_with('!')
+                || frag.starts_with('/')
+            {
                 continue;
             }
             let Some(set) = self.anchors.get(&page) else {

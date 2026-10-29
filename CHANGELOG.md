@@ -4,6 +4,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+## [1.0.0] — 2026-10-29
+
+### Remedieri din revizuirea independentă pre-lansare / Independent pre-release review fixes
+- `undo` nu mai caută textul nou „la nimereală”: după o editare manuală a fișierului raportează conflict în loc să atingă un alt link (regresie testată).
+- `fix --unlink` tratează corect `>` în valorile de atribute (`title="a > b"`).
+- Atributul `lang` din rapoarte/pagini Guardian provine dintr-o listă închisă (`ro`/`en`): o sesiune `.veriga` modificată nu mai poate injecta HTML; link-urile „părinte” din raport sunt active doar pentru http/https/file/ftp.
+- Credențialele din URL (`user:parolă@`) sunt scoase din toate rapoartele (HTML/CSV/TSV/TXT/JSON/sitemap/arbore), din sesiuni, din URL-urile de start și din mesajele de eroare.
+- `log404 -o .htaccess` scrie reguli Apache (nu CSV).
+- Ancorele cu directivă de text (`#:~:text=`) și rutele SPA (`#!/…`, `#/…`) nu mai sunt raportate drept „ancoră lipsă”.
+- CI: eticheta de release trebuie să corespundă versiunii din `Cargo.toml`; rularea de release nu mai este anulată de un push ulterior.
+- Limite cunoscute documentate: fereastra DNS (rebinding) între verificare și conectare; `veriga watch` citește `veriga-guardian.json` din directorul curent (nu-l rula în directoare necunoscute).
+
 ### Tutoriale video / Video tutorials
 - 10 tutoriale video (GUI în RO și EN, CLI, varianta HTML, ediția portabilă), subtitrate în 8 limbi: `.mp4` cu 8 piste de subtitrare + `.vtt`, în `assets/tutorials/`; secțiune nouă pe site (subtitrarea urmează limba paginii; CSP cu `media-src 'self'`).
 

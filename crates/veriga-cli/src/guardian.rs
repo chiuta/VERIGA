@@ -740,7 +740,11 @@ pub async fn dispatch() -> Result<()> {
             }
             println!("\n{} URL-uri 404 distincte", h.len());
             if let Some(o) = out {
-                let data = if o.extension().and_then(|e| e.to_str()) == Some("htaccess") {
+                let data = if o
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .is_some_and(|n| n.to_ascii_lowercase().ends_with("htaccess"))
+                {
                     insights::htaccess_rules(&h)
                 } else {
                     insights::hits_csv(&h)

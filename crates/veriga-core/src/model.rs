@@ -294,10 +294,34 @@ pub fn strip_proxy_userinfo(p: &str) -> Option<String> {
     }
 }
 
+static USERINFO_RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+    regex::Regex::new(r"(?i)([a-z][a-z0-9+.\-]*://)[^/\s?#@]+@").expect("regex userinfo")
+});
+
+/// Scoate `utilizator:parolă@` din orice URL găsit în text (rapoarte, sesiuni, mesaje de eroare).
+pub fn redact_userinfo(t: &str) -> String {
+    if !t.contains('@') {
+        return t.to_string();
+    }
+    USERINFO_RE.replace_all(t, "$1").into_owned()
+}
+
 impl Session {
-    /// Copie fără secrete: autentificare, antete sensibile, credențiale de proxy.
+    /// Copie fără secrete: autentificare, antete sensibile, credențiale de proxy și din URL-uri.
     pub fn redacted(&self) -> Session {
         let mut s = self.clone();
+        s.config.start = s.config.start.iter().map(|u| redact_userinfo(u)).collect();
+        for r in &mut s.results {
+            r.url = redact_userinfo(&r.url);
+            r.final_url = r.final_url.as_deref().map(redact_userinfo);
+            r.message = redact_userinfo(&r.message);
+            for h in &mut r.chain {
+                h.url = redact_userinfo(&h.url);
+            }
+            for p in &mut r.parents {
+                p.url = redact_userinfo(&p.url);
+            }
+        }
         s.config.basic_auth = None;
         s.config
             .headers
@@ -372,6 +396,58 @@ mod tests {
             assert!(out.contains("Accept-Language"));
             assert!(out.contains("proxy:3128"));
         }
+    }
+
+    #[test]
+    fn userinfo_is_redacted_everywhere() {
+        assert_eq!(
+            redact_userinfo("error for url (http://bob:s3cret@h:8/x) and ftp://u:p@f/y; me@x.ro"),
+            "error for url (http://h:8/x) and ftp://f/y; me@x.ro"
+        );
+        let mut s = Session {
+            version: 1,
+            tool: "t".into(),
+            started: String::new(),
+            finished: String::new(),
+            config: Config::default(),
+            results: vec![],
+            ignored: 0,
+            truncated: false,
+            cancelled: false,
+        };
+        s.config.start = vec!["http://bob:s3cret@h/a".into()];
+        let mut r = LinkResult::new("http://bob:s3cret@h/a", LinkKind::Page, 0, true);
+        r.parents.push(Parent {
+            url: "http://bob:s3cret@h/".into(),
+            text: String::new(),
+            kind: LinkKind::Page,
+        });
+        s.results.push(r);
+        let json = crate::report::to_json(&s);
+        let html = crate::report::to_html(&s);
+        let csv = crate::report::to_csv(&s, b',', false);
+        for out in [json, html, csv] {
+            assert!(!out.contains("s3cret"), "credențiale scurse");
+        }
+    }
+
+    #[test]
+    fn report_lang_cannot_inject() {
+        let mut s = Session {
+            version: 1,
+            tool: "t".into(),
+            started: String::new(),
+            finished: String::new(),
+            config: Config::default(),
+            results: vec![],
+            ignored: 0,
+            truncated: false,
+            cancelled: false,
+        };
+        s.config.lang = "x\"><script>alert(1)</script><i a=\"".into();
+        let html = crate::report::to_html(&s);
+        assert!(html.contains("<html lang=\"ro\">"));
+        assert!(!html.contains("<script>alert(1)"));
     }
 
     #[test]

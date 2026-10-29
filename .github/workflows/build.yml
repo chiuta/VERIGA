@@ -19,7 +19,8 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # rularea de release (tag sau dispatch cu release_tag) nu se anulează la un push ulterior
+  cancel-in-progress: ${{ !(startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')) }}
 
 env:
   CARGO_TERM_COLOR: always
@@ -204,6 +205,13 @@ jobs:
       id-token: write        # semnare Sigstore pentru atestare
       attestations: write    # proveniență (SLSA) pentru artefacte
     steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - name: Eticheta trebuie să corespundă versiunii din Cargo.toml
+        env: { TAG: "${{ inputs.release_tag || github.ref_name }}" }
+        run: |
+          ver=$(sed -n 's/^version = "\([0-9][0-9.]*\)".*/\1/p' Cargo.toml | head -1)
+          case "$TAG" in "v$ver"|"v$ver-"*) echo "eticheta $TAG corespunde versiunii $ver" ;; *) echo "::error::eticheta $TAG nu corespunde versiunii $ver din Cargo.toml"; exit 1 ;; esac
       - uses: actions/download-artifact@v8
         with: { path: dist, merge-multiple: true }
       - name: Sume de control

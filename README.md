@@ -122,6 +122,8 @@ Support the project: https://www.buymeacoffee.com/echo.of.the.strings
 
 ## Known limits
 
+- **Network guard:** the private-address check resolves the host, then the HTTP client resolves it again (a DNS-rebinding window exists); run VERIGA on untrusted sites from a network that cannot reach private ranges.
+- **`veriga watch`** reads `./veriga-guardian.json` from the current directory by default, and that file can name a `sendmail` command and the sources to rewrite: do not run it inside a directory you do not trust.
 - It does not send reports by e-mail (SMTP) and does not detect orphans over FTP — only in a local directory.
 - Compressed `.xml.gz` sitemaps are not read.
 - Pages that build their links with JavaScript are not rendered (there is no browser engine); the served HTML is analysed.
