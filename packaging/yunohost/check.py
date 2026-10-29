@@ -13,7 +13,7 @@ cargo = re.search(r'^version = "([^"]+)"', open(f"{root}/Cargo.toml").read(), re
 if not m["version"].startswith(cargo + "~ynh"): err.append(f"versiunea {m['version']} ≠ Cargo {cargo}")
 src = m["resources"]["sources"]["main"]
 for a in ("amd64", "arm64"):
-    if not re.fullmatch(r"[0-9a-f]{64}", src[a]["sha256"]): err.append(f"sha256 {a}")
+    if not re.fullmatch(r"[0-9a-f]{64}", src[a]["sha256"]) or set(src[a]["sha256"]) == {"0"}: err.append(f"sha256 {a}")
     if f"/v{cargo}/" not in src[a]["url"]: err.append(f"url {a} nu indică v{cargo}")
 for s in ("install", "remove", "upgrade", "backup", "restore", "change_url"):
     p = f"{here}/scripts/{s}"

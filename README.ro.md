@@ -2,9 +2,9 @@
 
 [English](README.md) · **Română** · [Français](README.fr.md) · [Italiano](README.it.md) · [Español](README.es.md) · [Português](README.pt.md) · [Deutsch](README.de.md) · [Magyar](README.hu.md)
 
-**Descărcare:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.0.0
+**Descărcare:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.0.1
 
-Versiune: 1.0.0 · Ultima actualizare: 27.10.2026 · Pagina de prezentare: https://veriga.chiuta.ro
+Versiune: 1.0.1 · Ultima actualizare: 27.10.2026 · Pagina de prezentare: https://veriga.chiuta.ro
 
 Aplicație 64-bit în Rust, pentru Windows, macOS și Linux (x86-64 și ARM64), care parcurge un site
 sau un director local și verifică legăturile. Vine în trei forme cu același model de rezultate:
