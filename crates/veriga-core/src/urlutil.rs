@@ -44,6 +44,115 @@ pub fn is_index_name(name: &str) -> bool {
     INDEX_NAMES.contains(&n.as_str())
 }
 
+/// Scheme non-web legitime: nu se pot verifica, deci se ignoră fără zgomot.
+pub const NON_WEB_SCHEMES: &[&str] = &[
+    "javascript",
+    "data",
+    "tel",
+    "sms",
+    "mms",
+    "callto",
+    "skype",
+    "whatsapp",
+    "viber",
+    "tg",
+    "facetime",
+    "facetime-audio",
+    "geo",
+    "maps",
+    "magnet",
+    "webcal",
+    "sip",
+    "sips",
+    "xmpp",
+    "irc",
+    "ircs",
+    "news",
+    "nntp",
+    "urn",
+    "about",
+    "blob",
+    "intent",
+    "market",
+    "itms-apps",
+    "itms-services",
+    "bitcoin",
+    "spotify",
+    "steam",
+    "slack",
+    "zoommtg",
+    "msteams",
+    "fb",
+    "twitter",
+    "ms-settings",
+    "view-source",
+    "chrome",
+    "edge",
+    "ws",
+    "wss",
+    "ssh",
+    "sftp",
+    "git",
+    "svn",
+    "smb",
+    "rtsp",
+    "rtmp",
+    "feed",
+    "cid",
+    "mid",
+    "ldap",
+    "nfs",
+    "vnc",
+    "rdp",
+];
+
+fn edit_distance(a: &str, b: &str) -> usize {
+    let b: Vec<char> = b.chars().collect();
+    let mut prev: Vec<usize> = (0..=b.len()).collect();
+    for (i, ca) in a.chars().enumerate() {
+        let mut cur = vec![i + 1; b.len() + 1];
+        for (j, cb) in b.iter().enumerate() {
+            cur[j + 1] = (prev[j] + usize::from(ca != *cb))
+                .min(prev[j + 1] + 1)
+                .min(cur[j] + 1);
+        }
+        prev = cur;
+    }
+    prev[b.len()]
+}
+
+/// Dacă schema unui URL pare o greșeală de tastare a lui http/https/ftp/mailto
+/// (`htp`, `htps`, `hhtp`, `hxxp`, `mialto`…), întoarce schema probabil intenționată.
+pub fn scheme_typo_target(scheme: &str) -> Option<&'static str> {
+    let s = scheme.to_ascii_lowercase();
+    if NON_WEB_SCHEMES.contains(&s.as_str()) || s.len() < 3 {
+        return None;
+    }
+    for target in ["https", "http", "mailto", "ftp"] {
+        if s == target {
+            return None;
+        }
+    }
+    if s.starts_with("hxxp") || s.starts_with("http") || s.starts_with("htp") {
+        return Some(if s.contains('s') { "https" } else { "http" });
+    }
+    let best = ["https", "http", "mailto", "ftp"]
+        .into_iter()
+        .map(|t| (edit_distance(&s, t), t))
+        .min()?;
+    let limit = if best.1 == "ftp" { 1 } else { 2 };
+    (best.0 <= limit).then_some(best.1)
+}
+
+fn looks_like_path(s: &str) -> bool {
+    s.starts_with('.')
+        || s.starts_with('/')
+        || s.starts_with('\\')
+        || s.starts_with('~')
+        || s.contains('\\')
+        || (s.len() >= 2 && s.as_bytes()[1] == b':' && s.as_bytes()[0].is_ascii_alphabetic())
+}
+
 /// Transformă o intrare de start (URL, fișier sau director) într-un URL.
 pub fn parse_start(s: &str) -> Result<Url> {
     let s = s.trim();
@@ -77,6 +186,29 @@ pub fn parse_start(s: &str) -> Result<Url> {
         }
         return Url::from_file_path(&abs)
             .map_err(|_| anyhow!("cale de fișier invalidă: {}", abs.display()));
+    }
+    // Arată a cale locală, dar nu există: eroare clară, nu „https://./x”.
+    if looks_like_path(s) {
+        return Err(anyhow!("calea „{s}” nu există"));
+    }
+    if let Some((sch, _)) = s.split_once(':')
+        && let Some(t) = scheme_typo_target(sch)
+    {
+        return Err(anyhow!(
+            "schemă greșită „{sch}:” în „{s}” — probabil ați vrut {t}:"
+        ));
+    }
+    // Un cuvânt simplu („check”, „sitee”) nu e nici fișier existent, nici domeniu.
+    let host_part = s.split(['/', '?', '#']).next().unwrap_or("");
+    let host_only = host_part.rsplit_once('@').map(|x| x.1).unwrap_or(host_part);
+    let host_only = host_only.split(':').next().unwrap_or("");
+    if !host_only.contains('.')
+        && !host_only.eq_ignore_ascii_case("localhost")
+        && !host_only.starts_with('[')
+    {
+        return Err(anyhow!(
+            "„{s}” nu e nici fișier/director existent, nici URL (ex.: https://exemplu.ro)"
+        ));
     }
     // Fără schemă: presupunem https.
     Url::parse(&format!("https://{s}")).map_err(|e| anyhow!("URL invalid „{s}”: {e}"))

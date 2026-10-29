@@ -2,9 +2,9 @@
 
 **English** · [Română](README.ro.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [Español](README.es.md) · [Português](README.pt.md) · [Deutsch](README.de.md) · [Magyar](README.hu.md)
 
-**Download:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.0.1
+**Download:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.0.2
 
-Version: 1.0.1 · Last updated: 27.10.2026 · Presentation site: https://veriga.chiuta.ro
+Version: 1.0.2 · Last updated: 29.10.2026 · Presentation site: https://veriga.chiuta.ro
 
 A 64-bit Rust application for Windows, macOS and Linux (x86-64 and ARM64) that crawls a website
 or a local folder and checks its links. It comes in three forms that share one result model:
@@ -55,7 +55,7 @@ veriga --recheck session.veriga -o report.html                      # broken lin
 veriga https://example.com --ignore-status 999 --exclude '/logout' -o s.veriga
 ```
 
-Exit code `2` if broken links were found (useful in CI); `--no-fail` turns it off. `veriga --help` lists everything. Exit code `3` if the run was cancelled or truncated by `--max-urls`.
+Exit code `2` if broken links were found (useful in CI); `--no-fail` turns it off. `veriga --help` lists everything. Exit code `3` if the run was cancelled or truncated by `--max-urls` / `--max-per-pattern` (crawler traps, default 5000 pages per path template); `3` takes precedence over `2`. `veriga check URL` is equivalent to `veriga URL`.
 
 ## Building
 
@@ -155,13 +155,13 @@ VERIGA processes untrusted content (web pages, exported files, configuration fil
 - **Notifications:** `sendmail` must be an absolute path; do not use configuration files from untrusted sources (they could trigger execution of a chosen binary).
 - **Known limits:** escaped HTML in WXR is not scanned (false negatives); the web edition is limited by CORS; `lint` exits with code 2 when it has findings.
 
-## Standards and compliance (checked 27.10.2026)
+## Standards and compliance (checked 29.10.2026)
 
 | Area | Status |
 |---|---|
 | Rust | edition **2024**, MSRV **1.88** (core + CLI; their dependencies declare at most 1.88), GUI **1.95** (egui 0.37); `cargo clippy -- -D warnings` and `cargo fmt --check` clean; `--locked` in CI |
 | Dependencies | reqwest 0.13 (rustls + platform verifier, HTTP/2, gzip/brotli/zstd), scraper 0.29, thiserror 2, eframe/egui 0.37, rfd 0.17; `cargo audit` 0 vulnerabilities; `cargo deny` (advisories, licenses, sources, bans) |
-| robots.txt | **RFC 9309**: merged groups, exact match on the product token, percent/UTF-8 normalisation, `*` and `$`, longest rule wins (Allow on a tie), 500 KiB cap, 4xx ⇒ allowed, 5xx/network ⇒ disallowed |
+| robots.txt | **RFC 9309**: merged groups, exact match on the product token, percent/UTF-8 normalisation, `*` and `$`, longest rule wins (Allow on a tie), 500 KiB cap, 4xx ⇒ allowed, 5xx/network ⇒ unavailable, the check continues (a dead site shows as broken, not “0 broken”); the start page is never blocked by robots.txt |
 | HTTP | RFC 9110: `Retry-After` (seconds/date) on 429/503, redirects 301/302/303/307/308, relative `Location`, `HEAD` with fallback to `GET` |
 | URL | WHATWG URL / IDNA (UTS 46) through the `url` crate (with `idna`) |
 | Sitemap | sitemaps.org 0.9 (index + urlset) |

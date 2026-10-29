@@ -47,6 +47,9 @@ pub struct Config {
     /// pagină sunt totuși verificate).
     pub max_depth: Option<u32>,
     pub max_urls: usize,
+    /// Protecție la capcane (calendare, paginări fără fund): câte pagini cu același
+    /// șablon de cale (cifrele înlocuite cu „N”) se parcurg. 0 = fără limită.
+    pub max_per_pattern: usize,
     pub max_redirects: usize,
     /// Verifică și linkurile externe (fără a le parcurge).
     pub check_external: bool,
@@ -108,6 +111,7 @@ impl Default for Config {
             retries: 2,
             max_depth: None,
             max_urls: 1_000_000,
+            max_per_pattern: 5_000,
             max_redirects: 10,
             check_external: true,
             stay_in_dir: false,

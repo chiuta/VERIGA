@@ -221,7 +221,10 @@ impl RobotsCache {
         }
         let robots_url = format!("{origin}/robots.txt");
         // RFC 9309 §2.3.1: 2xx → se interpretează; 4xx → fără restricții;
-        // 5xx / eroare de rețea → „indisponibil”, deci interdicție totală.
+        // 5xx / eroare de rețea → robots.txt indisponibil. Un crawler de indexare
+        // s-ar opri, dar un verificator de linkuri care s-ar opri ar raporta
+        // „0 rupte” pentru un site căzut (fals succes). Continuăm deci fără
+        // restricții: cererea reală va raporta corect DNS / conexiune / 5xx.
         let rules = match client.get(&robots_url).send().await {
             Ok(mut resp) if resp.status().is_success() => {
                 let ct_ok = resp
@@ -250,9 +253,8 @@ impl RobotsCache {
                     Rules::allow_all()
                 }
             }
-            Ok(resp) if resp.status().is_server_error() => Rules::disallow_all(),
             Ok(_) => Rules::allow_all(),
-            Err(_) => Rules::disallow_all(),
+            Err(_) => Rules::allow_all(),
         };
         let rules = Arc::new(rules);
         self.map.lock().await.insert(origin, rules.clone());
@@ -291,7 +293,7 @@ mod tests {
     }
 
     #[test]
-    fn unreachable_means_disallow_all() {
+    fn disallow_all_blocks_everything() {
         assert!(!Rules::disallow_all().allowed("/orice"));
     }
 

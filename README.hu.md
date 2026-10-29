@@ -2,9 +2,9 @@
 
 [English](README.md) · [Română](README.ro.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [Español](README.es.md) · [Português](README.pt.md) · [Deutsch](README.de.md) · **Magyar**
 
-**Letöltés:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.0.1
+**Letöltés:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.0.2
 
-Verzió: 1.0.1 · Utolsó frissítés: 2026.10.27. · Bemutatkozó oldal: https://veriga.chiuta.ro
+Verzió: 1.0.2 · Utolsó frissítés: 2026.10.29. · Bemutatkozó oldal: https://veriga.chiuta.ro
 
 Egy 64 bites Rust alkalmazás Windowsra, macOS-re és Linuxra (x86-64 és ARM64), amely bejár egy weboldalt
 vagy egy helyi mappát, és ellenőrzi a hivatkozásait. Három formában érhető el, amelyek egyetlen közös eredménymodellen osztoznak:
@@ -55,7 +55,7 @@ veriga --recheck session.veriga -o report.html                      # csak a hib
 veriga https://example.com --ignore-status 999 --exclude '/logout' -o s.veriga
 ```
 
-A kilépési kód `2`, ha hibás hivatkozásokat találtak (CI-ben hasznos); a `--no-fail` kikapcsolja. A `veriga --help` mindent felsorol. A kilépési kód `3`, ha a futást megszakították vagy a `--max-urls` megcsonkította.
+A kilépési kód `2`, ha hibás hivatkozásokat találtak (CI-ben hasznos); a `--no-fail` kikapcsolja. A `veriga --help` mindent felsorol. A kilépési kód `3`, ha a futást megszakították vagy a `--max-urls` / `--max-per-pattern` (csapdák, alapértelmezés 5000 oldal útvonalmintánként) megcsonkította; a `3` elsőbbséget élvez a `2`-vel szemben. A `veriga check URL` egyenértékű a `veriga URL` paranccsal.
 
 ## Fordítás
 
@@ -153,13 +153,13 @@ A VERIGA nem megbízható tartalmat dolgoz fel (weboldalak, exportált fájlok, 
 - **Értesítések:** a `sendmail` értékének abszolút útvonalnak kell lennie; ne használj nem megbízható forrásból származó konfigurációs fájlokat (egy választott bináris futtatását válthatják ki).
 - **Ismert korlátok:** a WXR-ben escape-elt HTML nincs átvizsgálva (hamis negatívok); a webes kiadást a CORS korlátozza; a `lint` 2-es kóddal lép ki, ha vannak találatai.
 
-## Szabványok és megfelelőség (ellenőrizve: 2026.10.27.)
+## Szabványok és megfelelőség (ellenőrizve: 2026.10.29.)
 
 | Terület | Állapot |
 |---|---|
 | Rust | edition **2024**, MSRV **1.88** (mag + CLI; függőségeik legfeljebb 1.88-at deklarálnak), GUI **1.95** (egui 0.37); a `cargo clippy -- -D warnings` és a `cargo fmt --check` tiszta; `--locked` a CI-ben |
 | Függőségek | reqwest 0.13 (rustls + platform verifier, HTTP/2, gzip/brotli/zstd), scraper 0.29, thiserror 2, eframe/egui 0.37, rfd 0.17; `cargo audit` 0 sebezhetőség; `cargo deny` (advisories, licenses, sources, bans) |
-| robots.txt | **RFC 9309**: összevont csoportok, pontos egyezés a termék-tokenre, százalék/UTF-8 normalizálás, `*` és `$`, a leghosszabb szabály nyer (egyenlőségnél Allow), 500 KiB korlát, 4xx ⇒ engedélyezett, 5xx/hálózati hiba ⇒ tiltott |
+| robots.txt | **RFC 9309**: összevont csoportok, pontos egyezés a termék-tokenre, százalék/UTF-8 normalizálás, `*` és `$`, a leghosszabb szabály nyer (egyenlőségnél Allow), 500 KiB korlát, 4xx ⇒ engedélyezett, 5xx/hálózati hiba ⇒ nem elérhető, az ellenőrzés folytatódik (egy halott oldal hibásként jelenik meg, nem „0 hibás”-ként); a kezdőoldalt a robots.txt soha nem blokkolja |
 | HTTP | RFC 9110: `Retry-After` (másodperc/dátum) 429/503 esetén, 301/302/303/307/308 átirányítások, relatív `Location`, `HEAD` `GET`-re való visszalépéssel |
 | URL | WHATWG URL / IDNA (UTS 46) az `url` crate-en keresztül (az `idna`-val) |
 | Sitemap | sitemaps.org 0.9 (index + urlset) |

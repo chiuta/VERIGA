@@ -2,9 +2,9 @@
 
 [English](README.md) · [Română](README.ro.md) · **Français** · [Italiano](README.it.md) · [Español](README.es.md) · [Português](README.pt.md) · [Deutsch](README.de.md) · [Magyar](README.hu.md)
 
-**Téléchargement:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.0.1
+**Téléchargement:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.0.2
 
-Version : 1.0.1 · Dernière mise à jour : 27.10.2026 · Site de présentation : https://veriga.chiuta.ro
+Version : 1.0.2 · Dernière mise à jour : 29.10.2026 · Site de présentation : https://veriga.chiuta.ro
 
 Une application Rust 64 bits pour Windows, macOS et Linux (x86-64 et ARM64) qui explore un site web
 ou un dossier local et vérifie ses liens. Elle existe sous trois formes qui partagent un même modèle de résultats :
@@ -55,7 +55,7 @@ veriga --recheck session.veriga -o report.html                      # liens cass
 veriga https://example.com --ignore-status 999 --exclude '/logout' -o s.veriga
 ```
 
-Code de sortie `2` si des liens cassés ont été trouvés (utile en CI) ; `--no-fail` le désactive. `veriga --help` liste tout. Code de sortie `3` si l'exécution a été interrompue ou tronquée par `--max-urls`.
+Code de sortie `2` si des liens cassés ont été trouvés (utile en CI) ; `--no-fail` le désactive. `veriga --help` liste tout. Code de sortie `3` si l'exécution a été interrompue ou tronquée par `--max-urls` / `--max-per-pattern` (pièges d'exploration, 5000 pages par modèle de chemin par défaut) ; `3` l'emporte sur `2`. `veriga check URL` équivaut à `veriga URL`.
 
 ## Compilation
 
@@ -153,13 +153,13 @@ VERIGA traite du contenu non fiable (pages web, fichiers exportés, fichiers de 
 - **Notifications :** `sendmail` doit être un chemin absolu ; n'utilisez pas de fichiers de configuration de source non fiable (ils pourraient déclencher l'exécution d'un binaire choisi).
 - **Limites connues :** le HTML échappé dans les WXR n'est pas analysé (faux négatifs) ; l'édition web est limitée par CORS ; `lint` se termine avec le code 2 lorsqu'il trouve des problèmes.
 
-## Normes et conformité (vérifié le 27.10.2026)
+## Normes et conformité (vérifié le 29.10.2026)
 
 | Domaine | État |
 |---|---|
 | Rust | édition **2024**, MSRV **1.88** (cœur + CLI ; leurs dépendances déclarent au plus 1.88), GUI **1.95** (egui 0.37) ; `cargo clippy -- -D warnings` et `cargo fmt --check` sans avertissement ; `--locked` en CI |
 | Dépendances | reqwest 0.13 (rustls + vérificateur de la plateforme, HTTP/2, gzip/brotli/zstd), scraper 0.29, thiserror 2, eframe/egui 0.37, rfd 0.17 ; `cargo audit` 0 vulnérabilité ; `cargo deny` (advisories, licenses, sources, bans) |
-| robots.txt | **RFC 9309** : groupes fusionnés, correspondance exacte sur le jeton de produit, normalisation pourcentage/UTF-8, `*` et `$`, la règle la plus longue l'emporte (Allow en cas d'égalité), plafond de 500 KiB, 4xx ⇒ autorisé, 5xx/réseau ⇒ interdit |
+| robots.txt | **RFC 9309** : groupes fusionnés, correspondance exacte sur le jeton de produit, normalisation pourcentage/UTF-8, `*` et `$`, la règle la plus longue l'emporte (Allow en cas d'égalité), plafond de 500 KiB, 4xx ⇒ autorisé, 5xx/réseau ⇒ indisponible, la vérification continue (un site mort apparaît cassé, pas « 0 cassé ») ; la page de départ n'est jamais bloquée par robots.txt |
 | HTTP | RFC 9110 : `Retry-After` (secondes/date) sur 429/503, redirections 301/302/303/307/308, `Location` relatif, `HEAD` avec repli sur `GET` |
 | URL | WHATWG URL / IDNA (UTS 46) via la crate `url` (avec `idna`) |
 | Sitemap | sitemaps.org 0.9 (index + urlset) |

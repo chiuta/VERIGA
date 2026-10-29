@@ -4,6 +4,29 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+## [1.0.2] — 2026-10-29
+
+Remedieri din recenzia adversarială a versiunii 1.0.0/1.0.1. Toate au teste de regresie (`crates/veriga-core/tests/regressions_102.rs`, `web/tests/core.test.js`).
+
+### Fals succes / False success
+- **robots.txt indisponibil (5xx, DNS, port închis) nu mai blochează verificarea.** Înainte, un site căzut ieșea „0 rupte”, cod 0 (verde în CI). Acum cererea reală raportează `DnsFailure` / `NoConnection` / `ServerError`, cod 2.
+- **Pagina de start nu mai poate fi exclusă de robots.txt**: a fost cerută explicit.
+- **Scheme greșite** (`htp:`, `htps:`, `hxxp:`, `mialto:`…) apar ca **URL invalid** (rupte), cu sugestia schemei corecte, în CLI, GUI și varianta web. Schemele non-web legitime (`tel:`, `sms:`, `skype:`, `geo:`…) se ignoră; orice altă schemă necunoscută apare ca „omisă”, nu dispare.
+- **Intrare de start inexistentă**: `veriga ./sitee` sau `veriga check` (fără URL) dau eroare clară, nu `https://./sitee`.
+
+### CLI
+- Subcomanda **`veriga check URL`** (echivalentă cu `veriga URL`), folosită în Docker, docker-compose, YunoHost și documentație.
+- Cod de ieșire **3 (incomplet) are prioritate față de 2** — o rulare tăiată nu se mai prezintă drept „doar linkuri rupte”.
+- `--max-per-pattern N` (implicit 5000, 0 = dezactivat): protecție la capcane fără fund (paginări/calendare `/x/N`, segmente repetate `/a/a/a/a`). La atingerea limitei, linkurile se verifică dar nu se mai parcurg, iar rularea e marcată incompletă (cod 3).
+
+### Guardian
+- `fix` **refuză fișierele doar-citire** (read-only): sunt raportate „neatinse”, nu rescrise.
+- Fișierele **non-UTF-8 (Windows-1250 / ISO-8859-2 / declarate prin `<meta charset>`)** sunt scanate de `lint`, reparate și re-scrise în **aceeași codificare**; decodarea trebuie să fie reversibilă, iar caracterele nereprezentabile duc la refuz (fișier neatins). `undo` folosește aceeași logică; o scriere eșuată la `undo` nu mai e raportată drept anulare reușită.
+
+### GUI / Web
+- GUI: filtrele „OK” și „Omise” afișează contorul.
+- PWA (`/app/`): subtitlul descrie aplicația instalabilă, nu „single-file HTML”.
+
 ## [1.0.1] — 2026-10-29
 
 Prima versiune cu pachetele `.deb`/`.rpm` și imaginea `ghcr.io/chiuta/veriga`; vezi „Împachetare” mai jos.

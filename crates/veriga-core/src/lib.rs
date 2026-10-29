@@ -15,6 +15,7 @@ pub mod report;
 pub mod robots;
 pub mod rules;
 pub mod srcscan;
+pub mod textio;
 pub mod urlutil;
 
 pub use config::{Config, OrphanConfig};

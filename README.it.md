@@ -2,9 +2,9 @@
 
 [English](README.md) · [Română](README.ro.md) · [Français](README.fr.md) · **Italiano** · [Español](README.es.md) · [Português](README.pt.md) · [Deutsch](README.de.md) · [Magyar](README.hu.md)
 
-**Download:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.0.1
+**Download:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.0.2
 
-Versione: 1.0.1 · Ultimo aggiornamento: 27.10.2026 · Sito di presentazione: https://veriga.chiuta.ro
+Versione: 1.0.2 · Ultimo aggiornamento: 29.10.2026 · Sito di presentazione: https://veriga.chiuta.ro
 
 Un'applicazione Rust a 64 bit per Windows, macOS e Linux (x86-64 e ARM64) che analizza un sito web
 o una cartella locale e ne verifica i link. Esiste in tre forme che condividono lo stesso modello di risultati:
@@ -55,7 +55,7 @@ veriga --recheck session.veriga -o report.html                      # solo link 
 veriga https://example.com --ignore-status 999 --exclude '/logout' -o s.veriga
 ```
 
-Codice di uscita `2` se vengono trovati link rotti (utile in CI); `--no-fail` lo disattiva. `veriga --help` elenca tutto. Codice di uscita `3` se l'esecuzione è stata interrotta o troncata da `--max-urls`.
+Codice di uscita `2` se vengono trovati link rotti (utile in CI); `--no-fail` lo disattiva. `veriga --help` elenca tutto. Codice di uscita `3` se l'esecuzione è stata interrotta o troncata da `--max-urls` / `--max-per-pattern` (trappole di scansione, predefinito 5000 pagine per modello di percorso); `3` ha la precedenza su `2`. `veriga check URL` equivale a `veriga URL`.
 
 ## Compilazione
 
@@ -153,13 +153,13 @@ VERIGA elabora contenuti non attendibili (pagine web, file esportati, file di co
 - **Notifiche:** `sendmail` deve essere un percorso assoluto; non usare file di configurazione da fonti non attendibili (potrebbero causare l'esecuzione di un binario scelto da altri).
 - **Limiti noti:** l'HTML con escape nei WXR non viene analizzato (falsi negativi); l'edizione web è limitata da CORS; `lint` termina con codice 2 quando trova problemi.
 
-## Standard e conformità (verificati il 27.10.2026)
+## Standard e conformità (verificati il 29.10.2026)
 
 | Area | Stato |
 |---|---|
 | Rust | edition **2024**, MSRV **1.88** (core + CLI; le loro dipendenze dichiarano al massimo 1.88), GUI **1.95** (egui 0.37); `cargo clippy -- -D warnings` e `cargo fmt --check` senza avvisi; `--locked` in CI |
 | Dipendenze | reqwest 0.13 (rustls + platform verifier, HTTP/2, gzip/brotli/zstd), scraper 0.29, thiserror 2, eframe/egui 0.37, rfd 0.17; `cargo audit` 0 vulnerabilità; `cargo deny` (advisories, licenses, sources, bans) |
-| robots.txt | **RFC 9309**: gruppi uniti, corrispondenza esatta sul product token, normalizzazione percent/UTF-8, `*` e `$`, vince la regola più lunga (Allow in caso di parità), limite di 500 KiB, 4xx ⇒ consentito, 5xx/rete ⇒ non consentito |
+| robots.txt | **RFC 9309**: gruppi uniti, corrispondenza esatta sul product token, normalizzazione percent/UTF-8, `*` e `$`, vince la regola più lunga (Allow in caso di parità), limite di 500 KiB, 4xx ⇒ consentito, 5xx/rete ⇒ non disponibile, il controllo continua (un sito morto appare rotto, non «0 rotti»); la pagina iniziale non è mai bloccata da robots.txt |
 | HTTP | RFC 9110: `Retry-After` (secondi/data) su 429/503, redirect 301/302/303/307/308, `Location` relativo, `HEAD` con ripiego su `GET` |
 | URL | WHATWG URL / IDNA (UTS 46) tramite il crate `url` (con `idna`) |
 | Sitemap | sitemaps.org 0.9 (index + urlset) |

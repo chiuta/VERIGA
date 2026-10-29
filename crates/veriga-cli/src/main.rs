@@ -20,6 +20,7 @@ use veriga_core::{Config, Control, Event, OrphanConfig, Session};
 scripturi, cadre, media, obiecte, e-mail, FTP, ancore — și produce rapoarte HTML/CSV/TSV/JSON/text/sitemap.\n\n\
 Exemple:\n  veriga https://exemplu.ro -o raport.html -o rupte.csv\n  veriga ./site --orphans ./site\n  veriga --recheck sesiune.veriga -o raport.html",
     after_help = "Subcomenzi (Guardian) / Subcommands — `veriga <subcomandă> --help`:\n  \
+check       verificare de linkuri (implicit) / link check (default)\n  \
 lint        analiză offline a surselor / offline source lint\n  \
 fix         propune/aplică reparații / propose/apply fixes\n  \
 undo        anulează reparații / undo fixes\n  \
@@ -31,8 +32,9 @@ watch       verificare periodică / periodic checks\n  \
 wizard      configurare ghidată / guided setup\n\n\
 Un director cu numele unei subcomenzi se verifică prin `veriga ./lint` sau `veriga -- lint`.\n\
 A directory named like a subcommand is checked with `veriga ./lint` or `veriga -- lint`.\n\n\
-Coduri de ieșire / Exit codes: 0 ok · 2 linkuri rupte / broken links · \
-3 verificare oprită sau trunchiată (--max-urls) / run cancelled or truncated"
+Coduri de ieșire / Exit codes: 0 ok · 1 eroare de utilizare / usage error · \
+2 linkuri rupte / broken links · 3 verificare oprită sau trunchiată (--max-urls, --max-per-pattern), \
+are prioritate față de 2 / run cancelled or truncated, takes precedence over 2"
 )]
 struct Cli {
     /// URL-uri, fișiere HTML sau directoare locale de la care începe verificarea
@@ -56,6 +58,9 @@ struct Cli {
     /// Număr maxim de URL-uri
     #[arg(long, default_value_t = 1_000_000)]
     max_urls: usize,
+    /// Capcane: pagini parcurse maxim per șablon de cale (cifre → N); 0 = fără limită
+    #[arg(long, default_value_t = 5_000)]
+    max_per_pattern: usize,
     /// Redirecționări maxime urmate
     #[arg(long, default_value_t = 10)]
     max_redirects: usize,
@@ -169,6 +174,7 @@ fn build_config(c: &Cli) -> Result<Config> {
     cfg.retries = c.retries.min(veriga_core::check::MAX_RETRIES);
     cfg.max_depth = c.depth;
     cfg.max_urls = c.max_urls;
+    cfg.max_per_pattern = c.max_per_pattern;
     cfg.max_redirects = c.max_redirects;
     cfg.check_external = !c.no_external;
     cfg.stay_in_dir = c.stay_in_dir;
@@ -273,7 +279,12 @@ async fn main() -> Result<()> {
     {
         return guardian::dispatch().await;
     }
-    let cli = Cli::parse();
+    // `veriga check URL` ≡ `veriga URL` (forma folosită în Docker și documentație)
+    let mut argv: Vec<std::ffi::OsString> = std::env::args_os().collect();
+    if argv.get(1).is_some_and(|a| a == "check") {
+        argv.remove(1);
+    }
+    let cli = Cli::parse_from(argv);
     if cli.recheck.is_none() && cli.start.is_empty() {
         bail!("indică cel puțin un URL, fișier sau director de start (vezi --help)");
     }
@@ -381,22 +392,27 @@ async fn main() -> Result<()> {
 
     let broken = session.broken_count();
     let _ = Arc::strong_count(&ctl);
-    if broken > 0 && !cli.no_fail {
-        std::process::exit(2);
-    }
-    // verificare incompletă: niciodată „succes”, nici cu --no-fail
+    // verificare incompletă: niciodată „succes”, nici cu --no-fail; are prioritate față de 2
     if session.cancelled || session.truncated {
         if !cli.quiet {
             eprintln!(
-                "Atenție: verificare incompletă ({}) — cod de ieșire 3",
+                "Atenție: verificare incompletă ({}) — cod de ieșire 3{}",
                 if session.cancelled {
                     "oprită / cancelled"
                 } else {
-                    "trunchiată la --max-urls / truncated"
+                    "trunchiată la --max-urls / --max-per-pattern (posibilă capcană) / truncated"
+                },
+                if broken > 0 {
+                    format!(" ({broken} rupte până la oprire)")
+                } else {
+                    String::new()
                 }
             );
         }
         std::process::exit(3);
+    }
+    if broken > 0 && !cli.no_fail {
+        std::process::exit(2);
     }
     Ok(())
 }

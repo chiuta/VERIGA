@@ -13,7 +13,7 @@ name = "veriga"
 path = "src/main.rs"
 
 [dependencies]
-veriga-core = { path = "../veriga-core", version = "1.0.1" }
+veriga-core = { path = "../veriga-core", version = "1.0.2" }
 tokio = { workspace = true, features = ["signal"] }
 clap.workspace = true
 anyhow.workspace = true

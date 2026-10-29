@@ -124,6 +124,22 @@ const ok = (c, m) => { if (!c) { fails++; console.log('FAIL:', m); } else consol
   const R3 = w3.eval('S.results');
   ok(R3.find(r => r.url === 'https://l.test/bad').status === 'ServerError' && R3.find(r => r.url === 'https://l.test/ok').status === 'Ok', 'mod listă: 200/500');
 
+  // 1.0.2: scheme greșite raportate ca rupte; scheme non-web ignorate; capcană limitată
+  const dom4 = new JSDOM(html, { runScripts: 'dangerously', pretendToBeVisual: true, url: 'http://localhost/' });
+  const w4 = dom4.window; await new Promise(r => setTimeout(r, 80));
+  const mk4 = (c, n) => new (w4.File)([c], n, { type: 'text/html' });
+  const pages4 = [["index.html", mk4('<a href="htp://exemplu.ro/contact">a</a><a href="hxxps://exemplu.ro/">b</a><a href="tel:+40">t</a><a href="sms:1">s</a><a href="myapp:deschide">c</a><a href="a/a/a/a/x.html">trap</a>', 'index.html')]];
+  w4.eval("setFiles").call(null, pages4, "site");
+  await w4.eval('start')(); await waitDone(w4);
+  const R4 = w4.eval('S.results');
+  const f4 = s => R4.find(r => r.url.startsWith(s));
+  ok(f4('htp:') && f4('htp:').status === 'InvalidUrl', 'htp:// raportat ca URL invalid');
+  ok(f4('hxxps:') && f4('hxxps:').status === 'InvalidUrl', 'hxxps:// raportat ca URL invalid');
+  ok(!f4('tel:') && !f4('sms:'), 'tel:/sms: ignorate');
+  ok(f4('myapp:') && f4('myapp:').status === 'Skipped', 'schemă necunoscută vizibilă ca omisă');
+  ok(w4.eval('S.broken') >= 2, 'contor rupte include schemele greșite: ' + w4.eval('S.broken'));
+  ok(w4.eval('schemeTypoTarget')('mialto') === 'mailto' && w4.eval('schemeTypoTarget')('tel') === null, 'euristica de schemă');
+
   // limbă
   w.document.querySelector('#lang').click();
   ok(w.document.querySelector('#b-start').textContent.includes('Start') && w.eval('LANG') !== 'ro' || true, 'comutare limbă fără erori');

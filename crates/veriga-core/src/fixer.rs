@@ -634,7 +634,11 @@ pub fn unlink(occs: &[Occurrence], old: &str) -> Vec<Proposal> {
     for o in occs.iter().filter(|o| o.url == old) {
         let text = cache
             .entry(o.file.clone())
-            .or_insert_with(|| std::fs::read_to_string(&o.file).unwrap_or_default())
+            .or_insert_with(|| {
+                crate::textio::read(&o.file)
+                    .map(|d| d.text)
+                    .unwrap_or_default()
+            })
             .clone();
         // poziții vechi (fișier modificat între timp) → ignorăm apariția
         if o.start > o.end
@@ -734,7 +738,10 @@ pub struct ApplyReport {
 
 /// Scriere atomică: păstrează permisiunile, urmează legăturile simbolice (nu le înlocuiește
 /// cu un fișier obișnuit) și nu lasă fișiere temporare la eroare.
-fn write_atomic(path: &Path, data: &str) -> anyhow::Result<()> {
+fn write_atomic(path: &Path, data: &[u8]) -> anyhow::Result<()> {
+    if crate::textio::is_read_only(path) {
+        anyhow::bail!("fișier doar-citire (read-only)");
+    }
     let target = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
     let name = target
         .file_name()
@@ -785,9 +792,25 @@ pub fn apply(props: &[Proposal], log: &mut FixLog, o: &ApplyOpts) -> ApplyReport
         by_file.entry(p.file.as_path()).or_default().push(p);
     }
     for (file, mut ps) in by_file {
-        let Ok(orig) = std::fs::read_to_string(file) else {
+        if crate::textio::is_read_only(file) {
             for p in ps {
-                rep.skipped.push((p.id.clone(), "fișier ilizibil".into()));
+                rep.skipped.push((
+                    p.id.clone(),
+                    "fișier doar-citire (read-only) — neatins".into(),
+                ));
+            }
+            continue;
+        }
+        let Ok(crate::textio::Decoded {
+            text: orig,
+            encoding: enc,
+        }) = crate::textio::read(file)
+        else {
+            for p in ps {
+                rep.skipped.push((
+                    p.id.clone(),
+                    "fișier ilizibil sau cu codificare nesigură".into(),
+                ));
             }
             continue;
         };
@@ -889,7 +912,7 @@ pub fn apply(props: &[Proposal], log: &mut FixLog, o: &ApplyOpts) -> ApplyReport
             continue;
         };
         // TOCTOU: dacă fișierul s-a schimbat între citire și scriere, nu-l atingem
-        if std::fs::read_to_string(file).ok().as_deref() != Some(orig.as_str()) {
+        if crate::textio::read(file).ok().map(|d| d.text).as_deref() != Some(orig.as_str()) {
             for (_, e) in &done {
                 rep.skipped.push((
                     e.id.clone(),
@@ -898,7 +921,7 @@ pub fn apply(props: &[Proposal], log: &mut FixLog, o: &ApplyOpts) -> ApplyReport
             }
             continue;
         }
-        if let Err(e) = write_atomic(file, &text) {
+        if let Err(e) = crate::textio::encode(&text, enc).and_then(|b| write_atomic(file, &b)) {
             for (_, en) in &done {
                 rep.skipped
                     .push((en.id.clone(), format!("scriere eșuată: {e}")));
@@ -981,13 +1004,17 @@ pub fn undo(log: &mut FixLog, ids: Option<&[String]>, run: Option<&str>) -> Undo
         .collect();
     idx.reverse(); // cele mai noi primele
     // None = fișier ilizibil (nu se rescrie niciodată); bool = s-a anulat ceva în el
-    let mut texts: HashMap<PathBuf, Option<(String, bool)>> = HashMap::new();
+    #[allow(clippy::type_complexity)]
+    let mut texts: HashMap<PathBuf, Option<(String, &'static encoding_rs::Encoding, bool)>> =
+        HashMap::new();
     for i in idx {
         let e = log.entries[i].clone();
-        let slot = texts
-            .entry(e.file.clone())
-            .or_insert_with(|| std::fs::read_to_string(&e.file).ok().map(|t| (t, false)));
-        let Some((t, changed)) = slot.as_mut() else {
+        let slot = texts.entry(e.file.clone()).or_insert_with(|| {
+            crate::textio::read(&e.file)
+                .ok()
+                .map(|d| (d.text, d.encoding, false))
+        });
+        let Some((t, _, changed)) = slot.as_mut() else {
             rep.conflicts
                 .push((e.id.clone(), "fișier ilizibil — neatins".into()));
             continue;
@@ -1016,8 +1043,18 @@ pub fn undo(log: &mut FixLog, ids: Option<&[String]>, run: Option<&str>) -> Undo
         }
     }
     for (f, slot) in texts {
-        if let Some((t, true)) = slot {
-            let _ = write_atomic(&f, &t);
+        if let Some((t, enc, true)) = slot
+            && let Err(err) = crate::textio::encode(&t, enc).and_then(|b| write_atomic(&f, &b))
+        {
+            // scrierea a eșuat: anulările din acest fișier NU s-au produs
+            for en in log.entries.iter_mut().filter(|en| en.file == f) {
+                if let Some(k) = rep.undone.iter().position(|id| *id == en.id) {
+                    rep.undone.remove(k);
+                    en.status = FixStatus::Applied;
+                    rep.conflicts
+                        .push((en.id.clone(), format!("scriere eșuată: {err}")));
+                }
+            }
         }
     }
     rep
@@ -1100,9 +1137,11 @@ pub fn fill_old_raw(props: &mut Vec<Proposal>) {
         if !p.old_raw.is_empty() {
             return true;
         }
-        let t = cache
-            .entry(p.file.clone())
-            .or_insert_with(|| std::fs::read_to_string(&p.file).unwrap_or_default());
+        let t = cache.entry(p.file.clone()).or_insert_with(|| {
+            crate::textio::read(&p.file)
+                .map(|d| d.text)
+                .unwrap_or_default()
+        });
         match t.get(p.start..p.end) {
             Some(s)
                 if s.replace("&amp;", "&")
@@ -1693,7 +1732,57 @@ mod tests {
     }
 
     #[test]
-    fn undo_never_truncates_unreadable_file() {
+    fn read_only_and_cp1250_apply() {
+        let d = std::env::temp_dir().join(format!("veriga-ro-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        let ro = d.join("ro.html");
+        let src = r#"<a href="htp://a.ro/x">1</a>"#;
+        std::fs::write(&ro, src).unwrap();
+        let mut perm = std::fs::metadata(&ro).unwrap().permissions();
+        perm.set_readonly(true);
+        std::fs::set_permissions(&ro, perm).unwrap();
+        let cp = d.join("cp.html");
+        let mut cpb = b"<meta charset=windows-1250><p>Bucure\xBAti</p>".to_vec();
+        cpb.extend_from_slice(src.as_bytes());
+        std::fs::write(&cp, &cpb).unwrap();
+        let cp_text = encoding_rs::WINDOWS_1250.decode(&cpb).0.into_owned();
+        let mut ps = vec![
+            prop(&ro, src, "htp://a.ro/x", "http://a.ro/x", Rule::SchemeTypo),
+            prop(
+                &cp,
+                &cp_text,
+                "htp://a.ro/x",
+                "http://a.ro/x",
+                Rule::SchemeTypo,
+            ),
+        ];
+        fill_old_raw(&mut ps);
+        let mut log = FixLog::default();
+        let rep = apply(
+            &ps,
+            &mut log,
+            &ApplyOpts {
+                backup_dir: d.join("bk"),
+                run: "r".into(),
+                allow_unverified: true,
+            },
+        );
+        assert_eq!(rep.applied.len(), 1, "{:?}", rep.skipped);
+        assert!(rep.skipped[0].1.contains("read-only"));
+        assert_eq!(std::fs::read_to_string(&ro).unwrap(), src);
+        let after = std::fs::read(&cp).unwrap();
+        assert!(after.starts_with(b"<meta charset=windows-1250><p>Bucure\xBAti</p>"));
+        assert!(after.ends_with(br#"<a href="http://a.ro/x">1</a>"#));
+        let mut perm = std::fs::metadata(&ro).unwrap().permissions();
+        #[allow(clippy::permissions_set_readonly_false)]
+        perm.set_readonly(false);
+        let _ = std::fs::set_permissions(&ro, perm);
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn undo_preserves_cp1250_bytes() {
         let d = std::env::temp_dir().join(format!("veriga-undo-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&d);
         std::fs::create_dir_all(&d).unwrap();
@@ -1723,10 +1812,12 @@ mod tests {
         let mut bytes = std::fs::read(&f).unwrap();
         bytes.extend_from_slice(b"<p>Bucure\xBAti</p>");
         std::fs::write(&f, &bytes).unwrap();
+        // CP1250 se decodează reversibil: anularea reușește și păstrează octeții adăugați
         let u = undo(&mut log, None, Some("r"));
-        assert!(u.undone.is_empty());
-        assert_eq!(u.conflicts.len(), 1);
-        assert_eq!(std::fs::read(&f).unwrap(), bytes);
+        assert_eq!(u.undone.len(), 1);
+        let after = std::fs::read(&f).unwrap();
+        assert!(after.ends_with(b"<p>Bucure\xBAti</p>"));
+        assert!(after.windows(12).any(|w| w == b"htp://a.ro/x"));
         let _ = std::fs::remove_dir_all(&d);
     }
 

@@ -2,9 +2,9 @@
 
 [English](README.md) · **Română** · [Français](README.fr.md) · [Italiano](README.it.md) · [Español](README.es.md) · [Português](README.pt.md) · [Deutsch](README.de.md) · [Magyar](README.hu.md)
 
-**Descărcare:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.0.1
+**Descărcare:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.0.2
 
-Versiune: 1.0.1 · Ultima actualizare: 27.10.2026 · Pagina de prezentare: https://veriga.chiuta.ro
+Versiune: 1.0.2 · Ultima actualizare: 29.10.2026 · Pagina de prezentare: https://veriga.chiuta.ro
 
 Aplicație 64-bit în Rust, pentru Windows, macOS și Linux (x86-64 și ARM64), care parcurge un site
 sau un director local și verifică legăturile. Vine în trei forme cu același model de rezultate:
@@ -55,7 +55,7 @@ veriga --recheck sesiune.veriga -o raport.html                      # doar linku
 veriga https://exemplu.ro --ignore-status 999 --exclude '/logout' -o s.veriga
 ```
 
-Cod de ieșire `2` dacă s-au găsit legături rupte (util în CI); `--no-fail` îl dezactivează. `veriga --help` listează tot. Cod de ieșire `3` dacă rularea a fost oprită sau tăiată de `--max-urls`.
+Cod de ieșire `2` dacă s-au găsit legături rupte (util în CI); `--no-fail` îl dezactivează. `veriga --help` listează tot. Cod de ieșire `3` dacă rularea a fost oprită sau tăiată de `--max-urls` / `--max-per-pattern` (capcane, implicit 5000 de pagini pe șablon de cale); `3` are prioritate față de `2`. Comanda `veriga check URL` este echivalentă cu `veriga URL`.
 
 ## Compilare
 
@@ -155,13 +155,13 @@ VERIGA procesează conținut necontrolat (pagini web, fișiere exportate, fișie
 - **Notificări:** `sendmail` trebuie să fie cale absolută; nu folosiți fișiere de configurare din surse nesigure (pot declanșa execuția unui binar ales).
 - **Limite cunoscute:** HTML escapat în WXR nu este scanat (fals-negative); varianta web este limitată de CORS; `lint` iese cu cod 2 când are constatări.
 
-## Standarde și conformitate / Standards & compliance (verificat 27.10.2026)
+## Standarde și conformitate / Standards & compliance (verificat 29.10.2026)
 
 | Domeniu | Stare |
 |---|---|
 | Rust | edition **2024**, MSRV **1.88** (core + CLI; dependențele lor declară cel mult 1.88), GUI **1.95** (egui 0.37); `cargo clippy -- -D warnings` și `cargo fmt --check` curate; `--locked` în CI |
 | Dependențe | reqwest 0.13 (rustls + verificator de platformă, HTTP/2, gzip/brotli/zstd), scraper 0.29, thiserror 2, eframe/egui 0.37, rfd 0.17; `cargo audit` 0 vulnerabilități; `cargo deny` (advisories, licențe, surse, ban-uri) |
-| robots.txt | **RFC 9309**: grupuri îmbinate, potrivire exactă pe tokenul de produs, normalizare procentuală/UTF-8, `*` și `$`, cea mai lungă regulă câștigă (Allow la egalitate), plafon 500 KiB, 4xx ⇒ permis, 5xx/rețea ⇒ interzis |
+| robots.txt | **RFC 9309**: grupuri îmbinate, potrivire exactă pe tokenul de produs, normalizare procentuală/UTF-8, `*` și `$`, cea mai lungă regulă câștigă (Allow la egalitate), plafon 500 KiB, 4xx ⇒ permis, 5xx/rețea ⇒ indisponibil, verificarea continuă (un site căzut apare rupt, nu „0 rupte”); pagina de start nu e niciodată blocată de robots.txt |
 | HTTP | RFC 9110: `Retry-After` (secunde/dată) la 429/503, redirecturi 301/302/303/307/308, `Location` relativ, `HEAD` cu revenire la `GET` |
 | URL | WHATWG URL / IDNA (UTS 46) prin crate-ul `url` (cu `idna`) |
 | Sitemap | sitemaps.org 0.9 (index + urlset) |

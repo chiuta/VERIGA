@@ -34,6 +34,9 @@ head = ('<link rel="manifest" href="manifest.webmanifest">'
         '<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">'
         '<link rel="apple-touch-icon" href="apple-touch-icon.png">')
 html = html.replace("</head>", head + "</head>", 1)
+# subtitlul aplicației instalabile (nu „single-file”)
+html = html.replace('data-ro="Verificator de legături — variantă HTML single-file, 100% în browser" data-en="Link checker — single-file HTML edition, 100% in the browser"',
+                    'data-ro="Verificator de legături — aplicație instalabilă (PWA), funcționează offline" data-en="Link checker — installable app (PWA), works offline"', 1)
 i = html.rindex("</body>")  # ultimul: în JS există șabloane cu </body>
 html = html[:i] + '<script src="pwa.js"></script>' + html[i:]
 files["index.html"] = html.encode()

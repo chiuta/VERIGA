@@ -66,6 +66,7 @@ struct Coord {
     anchors: HashMap<String, HashSet<String>>,
     ignored: usize,
     truncated: bool,
+    pattern_hits: HashMap<String, usize>,
     excl: Vec<Regex>,
     nofollow: Vec<Regex>,
     only: Vec<Regex>,
@@ -101,6 +102,7 @@ impl Coord {
             anchors: HashMap::new(),
             ignored: 0,
             truncated: false,
+            pattern_hits: HashMap::new(),
             file_roots: vec![],
             dir_prefixes: vec![],
             discover: true,
@@ -191,7 +193,14 @@ impl Coord {
                     return None;
                 }
             }
-            _ => return None,
+            other => {
+                // Scheme non-web legitime (tel:, javascript:, data:…) se ignoră;
+                // orice altceva (htp:, hxxp:, scheme necunoscute) ajunge în raport.
+                if crate::urlutil::NON_WEB_SCHEMES.contains(&other) {
+                    return None;
+                }
+                return Some((true, false));
+            }
         }
         let internal = self.is_internal(url);
         if !internal && !cfg.check_external && kind != LinkKind::Start {
@@ -227,6 +236,28 @@ impl Coord {
             }
         }
         Some((internal, parse))
+    }
+
+    /// Euristică de capcană: segmente repetate (/a/b/a/b/a/b…) sau prea multe pagini
+    /// cu același șablon de cale (/calendar/2026/10/N…).
+    fn is_trap(&mut self, url: &Url) -> bool {
+        let segs: Vec<&str> = url.path().split('/').filter(|s| !s.is_empty()).collect();
+        let mut counts: HashMap<&str, usize> = HashMap::new();
+        for s in &segs {
+            let c = counts.entry(s).or_default();
+            *c += 1;
+            if *c > 3 {
+                return true;
+            }
+        }
+        let max = self.cfg.max_per_pattern;
+        if max == 0 {
+            return false;
+        }
+        let tpl = pattern_key(url);
+        let n = self.pattern_hits.entry(tpl).or_default();
+        *n += 1;
+        *n > max
     }
 
     fn push_task(&mut self, t: Task) {
@@ -321,9 +352,14 @@ impl Coord {
             self.index.insert(key, idx);
             return;
         }
-        let Some((internal, parse)) = self.plan(&url, l.kind, depth) else {
+        let Some((internal, mut parse)) = self.plan(&url, l.kind, depth) else {
             return;
         };
+        if parse && self.is_trap(&url) {
+            // linkul se verifică, dar nu se mai parcurge; verificarea e marcată incompletă
+            parse = false;
+            self.truncated = true;
+        }
         if self.results.len() >= self.cfg.max_urls {
             self.truncated = true;
             return;
@@ -860,4 +896,31 @@ pub async fn recheck(
         truncated: session.truncated,
         cancelled,
     })
+}
+
+/// Șablonul de cale al unui URL: gazdă + cale cu secvențele de cifre înlocuite cu „N”
+/// și numele parametrilor de interogare (fără valori).
+fn pattern_key(u: &Url) -> String {
+    let mut out = String::with_capacity(64);
+    out.push_str(u.host_str().unwrap_or(""));
+    let mut in_digits = false;
+    for ch in u.path().chars() {
+        if ch.is_ascii_digit() {
+            if !in_digits {
+                out.push('N');
+            }
+            in_digits = true;
+        } else {
+            in_digits = false;
+            out.push(ch);
+        }
+    }
+    let mut keys: Vec<String> = u.query_pairs().map(|(k, _)| k.into_owned()).collect();
+    keys.sort();
+    keys.dedup();
+    if !keys.is_empty() {
+        out.push('?');
+        out.push_str(&keys.join("&"));
+    }
+    out
 }

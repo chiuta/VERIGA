@@ -234,9 +234,17 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
         "file" => body = file_check(&sh, &t, &mut r).await,
         "ftp" => ftp_check(&sh, &t, &mut r).await,
         "mailto" => mailto_check(&t, &mut r),
-        _ => {
-            r.status = Status::Skipped;
-            r.message = "schemă neacceptată".into();
+        other => {
+            if let Some(want) = crate::urlutil::scheme_typo_target(other) {
+                r.status = Status::InvalidUrl;
+                r.message = format!("schemă greșită „{other}:” — probabil {want}:");
+            } else if t.kind == LinkKind::Start {
+                r.status = Status::InvalidUrl;
+                r.message = format!("schemă neacceptată „{other}:” pentru pagina de start");
+            } else {
+                r.status = Status::Skipped;
+                r.message = format!("schemă neacceptată „{other}:”");
+            }
         }
     }
     let mut links = vec![];
@@ -627,7 +635,9 @@ pub const MAX_RETRIES: u32 = 10;
 async fn http_check(sh: &Shared, t: &Task, r: &mut LinkResult) -> Option<Body> {
     let cfg = &sh.cfg;
     let mut delay = Duration::from_millis(cfg.delay_ms);
-    if t.internal && cfg.respect_robots {
+    // Pagina de start a fost cerută explicit de utilizator: robots.txt nu o poate
+    // „ascunde” (altfel un site mort sau blocat ar ieși „0 rupte”, cod 0).
+    if t.internal && cfg.respect_robots && t.kind != LinkKind::Start {
         let rules = sh.robots.get(&sh.client, &t.url, &cfg.robots_token()).await;
         let mut pq = t.url.path().to_string();
         if let Some(q) = t.url.query() {

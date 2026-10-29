@@ -898,12 +898,23 @@ impl eframe::App for App {
                 let l_broken = format!("{} ({broken})", self.t("Rupte", "Broken"));
                 let l_red = format!("{} ({red})", self.t("Redirecționări", "Redirects"));
                 let l_orph = format!("{} ({orph})", self.t("Orfane", "Orphans"));
-                let l_skip = self.t("Omise", "Skipped");
+                let okc = self
+                    .results
+                    .iter()
+                    .filter(|r| r.status == Status::Ok)
+                    .count();
+                let skc = self
+                    .results
+                    .iter()
+                    .filter(|r| matches!(r.status, Status::Skipped | Status::RobotsBlocked))
+                    .count();
+                let l_ok = format!("OK ({okc})");
+                let l_skip = format!("{} ({skc})", self.t("Omise", "Skipped"));
                 let l_search = self.t("Caută…", "Search…");
                 ui.selectable_value(&mut self.filter, Filter::All, l_all);
                 ui.selectable_value(&mut self.filter, Filter::Broken, l_broken);
                 ui.selectable_value(&mut self.filter, Filter::Redirects, l_red);
-                ui.selectable_value(&mut self.filter, Filter::Ok, "OK");
+                ui.selectable_value(&mut self.filter, Filter::Ok, l_ok);
                 ui.selectable_value(&mut self.filter, Filter::Orphans, l_orph);
                 ui.selectable_value(&mut self.filter, Filter::Skipped, l_skip);
                 ui.separator();

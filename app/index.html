@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-8KexQMYB43Nnk6/nFT9UZkMR1rr+a0MdrbXmsQ7tgN4=' 'sha256-o/Hdu5nxu/qzuFkJ8XYGutrRNZuXd0vcp5idZn8QDu0='; style-src-elem 'sha256-pT+CdiRMyfWnJaSujq6Rw3TLJ8X7EW7oun5DaBBlBFU='; style-src-attr 'unsafe-inline'; img-src 'self' data: blob:; connect-src http: https: blob: data:; base-uri 'none'; form-action 'none'; object-src 'none'; manifest-src 'self'; worker-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-XKC/HVLUn54oVFTHvYxO9F6+5foM7T1dz9B9umxyjr4=' 'sha256-o/Hdu5nxu/qzuFkJ8XYGutrRNZuXd0vcp5idZn8QDu0='; style-src-elem 'sha256-pT+CdiRMyfWnJaSujq6Rw3TLJ8X7EW7oun5DaBBlBFU='; style-src-attr 'unsafe-inline'; img-src 'self' data: blob:; connect-src http: https: blob: data:; base-uri 'none'; form-action 'none'; object-src 'none'; manifest-src 'self'; worker-src 'self'">
 <title>VERIGA — verificator de legături</title>
 <style>
 :root{--bg:#f6f6f2;--fg:#1c1f23;--mut:#677079;--card:#fff;--bd:#d8dce1;--ok:#17794c;--bad:#b3261e;--warn:#98660a;--acc:#2f5fd0;--accfg:#fff;--row:#f1f3f5}
@@ -73,7 +73,7 @@ details>summary{cursor:pointer;font-weight:600}
 <a class="skip" href="#main" data-ro="Sari la conținut" data-en="Skip to content"></a>
 <header>
   <h1>VERIGA</h1>
-  <span class="sub" data-ro="Verificator de legături — variantă HTML single-file, 100% în browser" data-en="Link checker — single-file HTML edition, 100% in the browser"></span>
+  <span class="sub" data-ro="Verificator de legături — aplicație instalabilă (PWA), funcționează offline" data-en="Link checker — installable app (PWA), works offline"></span>
   <button id="lang" title="RO / EN">EN</button>
 </header>
 <main id="main" tabindex="-1">
@@ -380,10 +380,47 @@ function isInternal(u) {
 const BIN_EXT = /\.(pdf|zip|rar|7z|gz|tgz|tar|bz2|xz|exe|msi|dmg|iso|apk|deb|rpm|jpe?g|png|gif|webp|avif|bmp|ico|svg|tiff?|mp3|mp4|m4a|m4v|avi|mov|mkv|webm|ogg|wav|flac|docx?|xlsx?|pptx?|od[tsp]|epub|woff2?|ttf|otf|eot|json|js|css|xml|txt|csv)$/i;
 const looksHtml = u => !BIN_EXT.test(u.pathname);
 
+const NON_WEB_SCHEMES = new Set(['javascript', 'data', 'tel', 'sms', 'mms', 'callto', 'skype', 'whatsapp', 'viber', 'tg', 'facetime', 'facetime-audio', 'geo', 'maps', 'magnet', 'webcal', 'sip', 'sips', 'xmpp', 'irc', 'ircs', 'news', 'nntp', 'urn', 'about', 'blob', 'intent', 'market', 'itms-apps', 'itms-services', 'bitcoin', 'spotify', 'steam', 'slack', 'zoommtg', 'msteams', 'fb', 'twitter', 'ms-settings', 'view-source', 'chrome', 'edge', 'ws', 'wss', 'ssh', 'sftp', 'git', 'svn', 'smb', 'rtsp', 'rtmp', 'feed', 'cid', 'mid', 'ldap', 'nfs', 'vnc', 'rdp']);
+function editDistance(a, b) {
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 0; i < a.length; i++) {
+    const cur = [i + 1];
+    for (let j = 0; j < b.length; j++) cur[j + 1] = Math.min(prev[j] + (a[i] === b[j] ? 0 : 1), prev[j + 1] + 1, cur[j] + 1);
+    prev = cur;
+  }
+  return prev[b.length];
+}
+/* aceeași euristică precum varianta Rust: htp/htps/hxxp/mialto… → schema intenționată */
+function schemeTypoTarget(scheme) {
+  const s = scheme.toLowerCase();
+  if (NON_WEB_SCHEMES.has(s) || s.length < 3 || ['https', 'http', 'mailto', 'ftp'].includes(s)) return null;
+  if (/^(hxxp|http|htp)/.test(s)) return s.includes('s') ? 'https' : 'http';
+  let best = null;
+  for (const t of ['https', 'http', 'mailto', 'ftp']) { const d = editDistance(s, t); if (!best || d < best[0]) best = [d, t]; }
+  return best[0] <= (best[1] === 'ftp' ? 1 : 2) ? best[1] : null;
+}
+function patternKey(u) {
+  const keys = [...new Set([...u.searchParams.keys()])].sort();
+  return u.host + u.pathname.replace(/\d+/g, 'N') + (keys.length ? '?' + keys.join('&') : '');
+}
+function isTrap(u) {
+  const segs = u.pathname.split('/').filter(Boolean), cnt = new Map();
+  for (const x of segs) { const n = (cnt.get(x) || 0) + 1; if (n > 3) return true; cnt.set(x, n); }
+  const max = S.cfg.maxPerPattern == null ? 5000 : S.cfg.maxPerPattern;
+  if (!max) return false;
+  S.patternHits = S.patternHits || new Map();
+  const k = patternKey(u), n = (S.patternHits.get(k) || 0) + 1;
+  S.patternHits.set(k, n);
+  return n > max;
+}
+
 function plan(u, kind, depth) {
   const c = S.cfg;
   const p = u.protocol;
-  if (!['http:', 'https:', 'file:', 'mailto:', 'ftp:'].includes(p)) return null;
+  if (!['http:', 'https:', 'file:', 'mailto:', 'ftp:'].includes(p)) {
+    /* scheme non-web legitime se ignoră; restul (htp:, hxxp:, necunoscute) apar în raport */
+    return NON_WEB_SCHEMES.has(p.slice(0, -1).toLowerCase()) ? null : { internal: false, parse: false, odd: true };
+  }
   if (p === 'mailto:' && !c.checkMailto) return null;
   const internal = isInternal(u);
   if (!internal && !c.checkExternal && kind !== 'Start') return null;
@@ -417,6 +454,13 @@ function enqueue(u, kind, depth, parent) {
   const r = newResult(key, kind, depth, pl.internal);
   if (parent) r.parents.push(parent);
   S.results.push(r); S.index.set(key, idx);
+  if (pl.odd) {
+    const sch = u.protocol.slice(0, -1), want = schemeTypoTarget(sch);
+    if (want || kind === 'Start') { r.status = 'InvalidUrl'; r.message = want ? T(`schemă greșită „${sch}:” — probabil ${want}:`, `wrong scheme “${sch}:” — probably ${want}:`) : T(`schemă neacceptată „${sch}:”`, `unsupported scheme “${sch}:”`); }
+    else { r.status = 'Skipped'; r.message = T(`schemă neacceptată „${sch}:”`, `unsupported scheme “${sch}:”`); }
+    S.done++; if (isBroken(r.status)) S.broken++; return;
+  }
+  if (pl.parse && kind !== 'Start' && isTrap(u)) { pl.parse = false; S.truncated = true; }
   if (u.protocol === 'ftp:') { r.status = 'Skipped'; r.message = T('FTP nu poate fi verificat din browser (folosește varianta Rust)', 'FTP cannot be checked from a browser (use the Rust edition)'); S.done++; return; }
   S.queue.push({ url: u, key, kind, depth, parse: pl.parse, internal: pl.internal, idx });
 }
@@ -675,7 +719,7 @@ async function start() {
   S.cfg = cfg; S.mode = activeMode();
   const startUrls = [], pasted = [];
   S.results = []; S.index = new Map(); S.queue = []; S.anchors = new Map(); S.fragments = []; S.hostBusy = new Map();
-  S.done = 0; S.broken = 0; S.ignored = 0; S.truncated = false; S.cancelled = false; S.paused = false; S.selected = -1;
+  S.done = 0; S.broken = 0; S.ignored = 0; S.truncated = false; S.patternHits = new Map(); S.cancelled = false; S.paused = false; S.selected = -1;
   S.internalHosts = new Set(cfg.internalHosts); S.dirPrefixes = [];
   S.abort = new AbortController();
 

@@ -434,7 +434,8 @@ pub fn scan_paths(paths: &[PathBuf]) -> anyhow::Result<Vec<Occurrence>> {
             let Ok(bytes) = std::fs::read(&f) else {
                 continue;
             };
-            let Ok(text) = String::from_utf8(bytes) else {
+            // UTF-8 sau codificare declarată (ex. Windows-1250), decodată reversibil
+            let Some(crate::textio::Decoded { text, .. }) = crate::textio::decode(&bytes) else {
                 continue;
             };
             let head: String = text.chars().take(4000).collect();
