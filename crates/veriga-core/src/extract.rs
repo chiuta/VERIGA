@@ -135,7 +135,12 @@ fn parent_name(el: &ElementRef) -> String {
 }
 
 pub fn extract_html(page: &Url, html: &str, check_forms: bool) -> Extracted {
-    let doc = Html::parse_document(html);
+    // `<noscript>` este text brut pentru parserul cu scripting activ, dar conține linkuri reale
+    // pentru vizitatorii fără JavaScript: îi eliminăm doar etichetele, ca să fie parcurs conținutul.
+    static NOSCRIPT: OnceLock<Regex> = OnceLock::new();
+    let nos = NOSCRIPT.get_or_init(|| Regex::new(r"(?i)</?noscript\b[^>]*>").unwrap());
+    let unwrapped = nos.replace_all(html, "");
+    let doc = Html::parse_document(&unwrapped);
     let all = Selector::parse("*").unwrap();
     let mut out = Extracted::default();
 
@@ -406,6 +411,15 @@ mod tests {
             .iter()
             .map(|l| (l.url.to_string(), l.kind))
             .collect()
+    }
+
+    #[test]
+    fn noscript_links_are_extracted() {
+        let page = Url::parse("https://ex.ro/").unwrap();
+        let html = "<html><body><noscript><a href=\"/fara-js\">x</a><img src=\"/px.gif\"></noscript></body></html>";
+        let k = kinds(&extract_html(&page, html, false));
+        assert!(k.iter().any(|(u, _)| u == "https://ex.ro/fara-js"));
+        assert!(k.iter().any(|(u, _)| u == "https://ex.ro/px.gif"));
     }
 
     #[test]

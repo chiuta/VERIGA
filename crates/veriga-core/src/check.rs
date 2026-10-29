@@ -70,6 +70,8 @@ pub struct Shared {
     file_roots: Vec<PathBuf>,
     /// Anti-SSRF activ (start public + `block_private`).
     pub block_private: bool,
+    /// Gazdele private date explicit ca punct de start: singurele adrese private permise.
+    start_hosts: HashSet<String>,
     priv_cache: std::sync::Mutex<HashMap<String, bool>>,
     dir_cache: std::sync::Mutex<HashMap<PathBuf, Arc<HashSet<String>>>>,
 }
@@ -82,6 +84,9 @@ impl Shared {
         }
         let Some(h) = u.host_str() else { return false };
         let key = h.to_ascii_lowercase();
+        if self.start_hosts.contains(&key) {
+            return false;
+        }
         if let Some(v) = self.priv_cache.lock().unwrap().get(&key) {
             return *v;
         }
@@ -111,21 +116,20 @@ impl Shared {
             .filter_map(|u| u.to_file_path().ok())
             .filter_map(|p| p.parent().map(|x| x.to_path_buf()))
             .collect();
-        let starts_private = cfg.start.iter().any(|s| {
-            crate::urlutil::parse_start(s)
-                .ok()
-                .map(|u| match u.scheme() {
-                    "file" => true,
-                    _ => u
-                        .host_str()
-                        .map(crate::netguard::host_is_private_syntactic)
-                        .unwrap_or(false),
-                })
-                .unwrap_or(false)
-        });
-        let block_private = cfg.block_private && !starts_private;
+        // Un start privat exceptează doar gazda respectivă; un start `file://` nu exceptează nimic
+        // (altfel un HTML local ostil ar putea scana rețeaua locală).
+        let start_hosts: HashSet<String> = cfg
+            .start
+            .iter()
+            .filter_map(|s| crate::urlutil::parse_start(s).ok())
+            .filter(|u| u.scheme() != "file")
+            .filter_map(|u| u.host_str().map(|h| h.to_ascii_lowercase()))
+            .filter(|h| crate::netguard::host_is_private_syntactic(h))
+            .collect();
+        let block_private = cfg.block_private;
         Ok(Self {
             block_private,
+            start_hosts,
             priv_cache: std::sync::Mutex::new(HashMap::new()),
             client: b.build()?,
             robots: RobotsCache::default(),
@@ -373,7 +377,21 @@ fn classify_error(e: &reqwest::Error) -> (Status, String, bool) {
     if e.is_builder() {
         return (Status::InvalidUrl, short(&chain), false);
     }
-    (Status::NoConnection, short(&chain), true)
+    let msg = if l.contains("connection refused") {
+        "conexiune refuzată de server".to_string()
+    } else if l.contains("connection reset") || l.contains("broken pipe") {
+        "conexiune resetată de server".to_string()
+    } else if l.contains("closed before message completed")
+        || l.contains("unexpected eof")
+        || l.contains("incomplete message")
+    {
+        "serverul a închis conexiunea fără să răspundă complet".to_string()
+    } else if l.contains("unreachable") {
+        "rețea sau gazdă inaccesibilă".to_string()
+    } else {
+        format!("eroare de rețea: {}", short(&chain))
+    };
+    (Status::NoConnection, msg, true)
 }
 
 fn short(s: &str) -> String {
@@ -597,6 +615,7 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
             if let Some(kind) = kind {
                 let mut resp = resp;
                 let mut buf: Vec<u8> = Vec::new();
+                let mut truncated = false;
                 loop {
                     match resp.chunk().await {
                         Ok(Some(c)) => {
@@ -614,11 +633,25 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
                                 a.retryable = retry;
                                 return a;
                             }
+                            truncated = true;
                             break;
                         }
                     }
                 }
-                a.size = Some(a.size.unwrap_or(0).max(buf.len() as u64));
+                if truncated {
+                    // nu raportăm mărimea declarată ca fiind cea primită
+                    let declared = a.size;
+                    a.size = Some(buf.len() as u64);
+                    if a.status == Some(Status::Ok) {
+                        a.msg = format!(
+                            "răspuns trunchiat: primit {} din {} octeți",
+                            buf.len(),
+                            declared.map_or("?".to_string(), |d| d.to_string())
+                        );
+                    }
+                } else {
+                    a.size = Some(a.size.unwrap_or(0).max(buf.len() as u64));
+                }
                 a.body = Some(Body {
                     kind,
                     text: decode(&buf, ct.as_deref()),
@@ -1051,9 +1084,17 @@ mod tests {
             !sh.is_private_target(&Url::parse("http://8.8.8.8/").unwrap())
                 .await
         );
-        // start local ⇒ protecția se dezactivează (intranet legitim)
+        // start privat ⇒ se exceptează DOAR acea gazdă (intranet legitim), nu toate adresele private
         let local = Shared::new(Arc::new(Config::with_start("http://localhost:8080/"))).unwrap();
-        assert!(!local.block_private);
+        assert!(local.block_private);
+        assert!(!local.is_private_target(&Url::parse("http://localhost:9/x").unwrap()).await);
+        for u in ["http://127.0.0.1/", "http://169.254.169.254/", "http://10.0.0.5/", "http://[::1]/"] {
+            assert!(local.is_private_target(&Url::parse(u).unwrap()).await, "{u}");
+        }
+        // start file:// ⇒ nu exceptează nimic (F1)
+        let f = Shared::new(Arc::new(Config::with_start("/tmp/x/index.html"))).unwrap();
+        assert!(f.block_private);
+        assert!(f.is_private_target(&Url::parse("http://127.0.0.1:9/").unwrap()).await);
         // și poate fi oprită explicit
         let mut c = Config::with_start("https://example.com/");
         c.block_private = false;

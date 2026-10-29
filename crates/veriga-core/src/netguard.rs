@@ -1,5 +1,5 @@
 //! Protecție anti-SSRF: adrese private / loopback / link-local nu sunt contactate
-//! decât dacă utilizatorul a cerut explicit (sau dacă punctul de start este deja privat).
+//! decât dacă utilizatorul a cerut explicit (singura excepție: gazda privată dată explicit ca start; un start file:// nu exceptează nimic).
 
 use std::net::IpAddr;
 

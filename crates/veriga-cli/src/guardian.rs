@@ -811,7 +811,7 @@ pub async fn dispatch() -> Result<()> {
                 &std::fs::read(&config)
                     .with_context(|| format!("configurare {}", config.display()))?,
             )?;
-            if g.start.is_empty() {
+            if g.start.iter().all(|s| s.trim().is_empty()) {
                 bail!("configurarea nu conține niciun URL de start");
             }
             if let Some(cmd) = &g.sendmail {
@@ -826,6 +826,10 @@ pub async fn dispatch() -> Result<()> {
             loop {
                 if let Err(e) = one_run(&g).await {
                     eprintln!("rulare eșuată: {e:#}");
+                    if once {
+                        // cod ≠ 0 ca systemd, CronJob și cron să vadă eșecul
+                        return Err(e.context("rulare eșuată"));
+                    }
                 }
                 if once {
                     break;
