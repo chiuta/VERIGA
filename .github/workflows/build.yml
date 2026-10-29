@@ -201,9 +201,16 @@ jobs:
           if-no-files-found: error
 
   packaging:
-    # verificări statice ale pachetelor (YunoHost, Termux, K8s, compose) + pachete .deb/.rpm din binarele musl
+    # verificări statice ale pachetelor (YunoHost, Termux, K8s, compose) + .deb/.rpm construite nativ pe fiecare arhitectură
+    # (rpmbuild din Ubuntu nu face cross-build pentru altă arhitectură)
     needs: build
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04,     target: x86_64-unknown-linux-musl,  rpmarch: x86_64,  debarch: amd64 }
+          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-musl, rpmarch: aarch64, debarch: arm64 }
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -216,28 +223,30 @@ jobs:
           python3 -c "import yaml,sys; [list(yaml.safe_load_all(open(f))) for f in ('packaging/k8s/cronjob.yaml','packaging/docker/docker-compose.yml')]"
           python3 -c "import json; json.load(open('packaging/systemd/guardian.example.json'))"
       - uses: actions/download-artifact@v8
-        with: { path: in, pattern: "veriga-*-unknown-linux-musl", merge-multiple: true }
+        with: { path: in, name: "veriga-${{ matrix.target }}" }
       - name: Construiește .deb și .rpm
         run: |
           sudo apt-get update && sudo apt-get install -y rpm
           ver=$(sed -n 's/^version = "\([0-9][0-9.]*\)".*/\1/p' Cargo.toml | head -1)
-          for t in x86_64-unknown-linux-musl aarch64-unknown-linux-musl; do
-            tar xzf in/veriga-$t.tar.gz -C in
-            packaging/deb/build.sh "$ver" "$t" "in/veriga-$t/veriga" dist
-          done
+          t=${{ matrix.target }}
+          tar xzf in/veriga-$t.tar.gz -C in
+          packaging/deb/build.sh "$ver" "$t" "in/veriga-$t/veriga" dist
           ls -l dist
-      - name: Instalează și rulează .deb (amd64)
+      - name: Instalează și rulează .deb (nativ)
         run: |
-          sudo dpkg -i dist/veriga_*_amd64.deb
+          sudo dpkg -i dist/veriga_*_${{ matrix.debarch }}.deb
           veriga --version
           test -f /usr/lib/systemd/system/veriga-watch.timer
           sudo mkdir -p /etc/veriga && sudo cp packaging/systemd/guardian.example.json /etc/veriga/guardian.json
           systemd-analyze verify /usr/lib/systemd/system/veriga-watch.service /usr/lib/systemd/system/veriga-watch.timer
           sudo dpkg -r veriga
       - name: Verifică .rpm
-        run: rpm -qpl dist/veriga-*.x86_64.rpm && rpm -qpi dist/veriga-*.aarch64.rpm | head -5
+        run: |
+          ls dist/veriga-*.${{ matrix.rpmarch }}.rpm
+          rpm -qpi dist/veriga-*.${{ matrix.rpmarch }}.rpm | grep -E "^(Name|Version|Architecture)"
+          rpm -qpl dist/veriga-*.${{ matrix.rpmarch }}.rpm | grep -c . 
       - uses: actions/upload-artifact@v7
-        with: { name: packages, path: dist/*, if-no-files-found: error }
+        with: { name: "packages-${{ matrix.debarch }}", path: dist/*, if-no-files-found: error }
 
   docker:
     # imagine multi-arch (amd64+arm64) din binarele musl; publicată pe GHCR doar la lansări
