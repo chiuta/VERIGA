@@ -6,6 +6,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [1.0.0] — 2026-10-29
 
+### Pagina web / Website
+- Secțiune nouă „Descarcă” cu linkuri directe către toate fișierele release-ului v1.0.0 (Windows/macOS/Linux x64 și ARM64, CLI static musl, ediția portabilă, varianta HTML, SHA256SUMS), traduse în 8 limbi; JSON-LD cu `softwareVersion`.
+
 ### Remedieri din revizuirea independentă pre-lansare / Independent pre-release review fixes
 - `undo` nu mai caută textul nou „la nimereală”: după o editare manuală a fișierului raportează conflict în loc să atingă un alt link (regresie testată).
 - `fix --unlink` tratează corect `>` în valorile de atribute (`title="a > b"`).
