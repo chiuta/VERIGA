@@ -112,7 +112,13 @@ jobs:
           python3 web/stamp-site-csp.py index.html --check
       - name: Pagini pe limbă și sitemap la zi?
         working-directory: .
-        run: python3 web/build-i18n.py --check
+        run: |
+          python3 web/build-i18n.py --check > i18n.log 2>&1 || {
+            cat i18n.log
+            echo "::error title=build-i18n::$(tr '\n' '|' < i18n.log | cut -c1-1500)"
+            git status --short | head -20
+            exit 1
+          }
       - name: PWA la zi?
         working-directory: .
         run: |
