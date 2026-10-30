@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2154  # variabilele ($app, $install_dir, $data_dir) sunt injectate de YunoHost
 source /usr/share/yunohost/helpers
 
 ynh_script_progression "Updating NGINX web server configuration..."

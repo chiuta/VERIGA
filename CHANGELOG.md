@@ -4,6 +4,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+### Adăugat
+- CLI, GUI și ghidul `guardian` bilingve (ro/en): limba se alege cu `--lang`, apoi `VERIGA_LANG`, apoi `LC_ALL`/`LC_MESSAGES`/`LANG` (`ro*` → română, orice altceva → engleză; fără nimic setat rămâne româna). Textele `--help` sunt traduse. / CLI, GUI and the `guardian` wizard are now bilingual.
+- Pagini statice per limbă (`/en/`, `/fr/`, `/it/`, `/es/`, `/pt/`, `/de/`, `/hu/`) cu `hreflang` pe toate paginile și alternate în `sitemap.xml`; generate de `web/build-i18n.py` (CI verifică cu `--check`).
+- `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `.editorconfig`, `.gitattributes` și formular de raportare a erorilor.
+
+### Schimbat
+- Limba implicită a CLI depinde acum de setările regionale ale sistemului (înainte era mereu româna).
+
+### Reparat
+- Legăturile `mailto:` apar ca „E-mail”, iar `ftp(s):` ca „FTP”, nu ca „Pagină”.
+- Directive `shellcheck` pentru scripturile YunoHost.
+
 ## [1.0.3] — 2026-10-30
 
 Remedieri din auditul adversarial al versiunii 1.0.2 (recenzie cu reproduceri video) și proxy-uri etice.

@@ -4,7 +4,9 @@
 use crate::check::{Outcome, Shared, Task, check};
 use crate::config::Config;
 use crate::extract::RawLink;
+use crate::i18n::tr;
 use crate::model::*;
+use crate::trf;
 use crate::urlutil::*;
 use anyhow::{Context, Result, anyhow, bail};
 use regex::Regex;
@@ -47,7 +49,12 @@ impl Control {
 fn compile_list(label: &str, pats: &[String]) -> Result<Vec<Regex>> {
     pats.iter()
         .map(|p| {
-            Regex::new(p).with_context(|| format!("expresie regulată invalidă în {label}: {p}"))
+            Regex::new(p).with_context(|| {
+                trf!(
+                    "expresie regulată invalidă în {label}: {p}",
+                    "invalid regular expression in {label}: {p}"
+                )
+            })
         })
         .collect()
 }
@@ -344,8 +351,11 @@ impl Coord {
             let idx = self.results.len();
             let mut r = LinkResult::new(&key, l.kind, depth, false);
             r.status = Status::Skipped;
-            r.message =
-                "link file: într-o pagină la distanță — fișierul local nu se citește".into();
+            r.message = tr(
+                "link file: într-o pagină la distanță — fișierul local nu se citește",
+                "file link inside a remote page — the local file is not read",
+            )
+            .into();
             r.parents.push(p);
             self.emit(Event::Checked(Box::new(r.clone())));
             self.results.push(r);
@@ -633,7 +643,10 @@ impl Coord {
                 .unwrap_or(1);
             let mut r = LinkResult::new(&full, LinkKind::Anchor, depth, true);
             r.status = Status::FragmentMissing;
-            r.message = format!("ancora #{decoded} nu există în pagina țintă");
+            r.message = trf!(
+                "ancora #{decoded} nu există în pagina țintă",
+                "anchor #{decoded} does not exist on the target page"
+            );
             r.parents.push(parent);
             let idx = self.results.len();
             self.broken += 1;
@@ -671,7 +684,7 @@ impl Coord {
                 let first = self
                     .start_urls
                     .first()
-                    .ok_or_else(|| anyhow!("fără URL de start"))?;
+                    .ok_or_else(|| anyhow!(tr("fără URL de start", "no start URL")))?;
                 if first.scheme() == "file" {
                     Url::from_directory_path(&dir).map_err(|_| anyhow!("director invalid"))?
                 } else {
@@ -765,7 +778,11 @@ impl Coord {
         for r in &mut self.results {
             if r.status == Status::Pending {
                 r.status = Status::Skipped;
-                r.message = "neverificat (oprit înainte de finalizare)".into();
+                r.message = tr(
+                    "neverificat (oprit înainte de finalizare)",
+                    "unchecked (stopped before completion)",
+                )
+                .into();
             }
         }
     }
@@ -782,7 +799,10 @@ pub async fn run(
     tx: Option<UnboundedSender<Event>>,
 ) -> Result<Session> {
     if cfg.start.is_empty() {
-        bail!("nu a fost indicat niciun URL, fișier sau director de start");
+        bail!(tr(
+            "nu a fost indicat niciun URL, fișier sau director de start",
+            "no start URL, file or directory was given"
+        ));
     }
     let cfg = Arc::new(cfg);
     let sh = Arc::new(Shared::new(cfg.clone())?);
@@ -808,7 +828,9 @@ pub async fn run(
     co.emit_progress(true);
 
     if !cancelled {
-        co.emit(Event::Phase("ancore și orfani".into()));
+        co.emit(Event::Phase(
+            tr("ancore și orfani", "anchors and orphans").into(),
+        ));
         if cfg.check_fragments {
             co.check_fragments();
         }

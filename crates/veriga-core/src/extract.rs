@@ -68,8 +68,13 @@ impl<'a> Sink<'a> {
         }
         match self.base.join(raw) {
             Ok(u) => self.out.links.push(RawLink {
+                // tipul urmează schema: un `mailto:` nu este „Pagină”
+                kind: match (u.scheme(), kind) {
+                    ("mailto", _) => LinkKind::Mailto,
+                    ("ftp" | "ftps", LinkKind::Page | LinkKind::Link) => LinkKind::Ftp,
+                    _ => kind,
+                },
                 url: u,
-                kind,
                 text: truncate_chars(text, 120),
             }),
             Err(e) => self
@@ -454,7 +459,7 @@ mod tests {
         assert!(has("https://alt.ro/x", LinkKind::Frame));
         assert!(has("https://ex.ro/dir/v.mp4", LinkKind::Media));
         assert!(has("https://ex.ro/dir/p.jpg", LinkKind::Image));
-        assert!(has("mailto:x@y.ro", LinkKind::Page));
+        assert!(has("mailto:x@y.ro", LinkKind::Mailto));
         assert!(!k.iter().any(|(x, _)| x.starts_with("javascript")));
         assert!(e.anchors.contains("ancora") && e.anchors.contains("veche"));
         let a = e

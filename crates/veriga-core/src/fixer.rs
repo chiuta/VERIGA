@@ -6,9 +6,11 @@
 //! momentul propunerii; (3) fiecare modificare se poate anula; (4) se scriu
 //! doar octeții din interval — restul fișierului rămâne identic.
 
+use crate::i18n::tr;
 use crate::model::{Session, Status};
 use crate::rules::{self, Rule};
 use crate::srcscan::{self, Occurrence, SrcKind};
+use crate::trf;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -90,12 +92,11 @@ impl FixLog {
             Ok(b) if b.iter().all(|c| c.is_ascii_whitespace()) => Ok(Self::default()),
             Ok(b) => serde_json::from_slice(&b).map_err(|e| {
                 anyhow::anyhow!(
-                    "jurnalul {} este corupt ({e}); nu îl suprascriu — repară-l sau mută-l, apoi reia",
-                    path.display()
+                    "{}", trf!("jurnalul {} este corupt ({e}); nu îl suprascriu — repară-l sau mută-l, apoi reia", "the log {} is corrupt ({e}); not overwriting it — repair or move it, then retry", path.display())
                 )
             }),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Self::default()),
-            Err(e) => Err(anyhow::anyhow!("nu pot citi jurnalul {}: {e}", path.display())),
+            Err(e) => Err(anyhow::anyhow!("{}", trf!("nu pot citi jurnalul {}: {e}", "cannot read the log {}: {e}", path.display()))),
         }
     }
 
@@ -141,9 +142,13 @@ impl FixLog {
                 Ok(LockGuard(lp))
             }
             Err(_) => Err(anyhow::anyhow!(
-                "altă rulare VERIGA folosește {} (dacă e o blocare rămasă, șterge {})",
-                path.display(),
-                lp.display()
+                "{}",
+                trf!(
+                    "altă rulare VERIGA folosește {} (dacă e o blocare rămasă, șterge {})",
+                    "another VERIGA run is using {} (if it is a stale lock, delete {})",
+                    path.display(),
+                    lp.display()
+                )
             )),
         }
     }
@@ -200,7 +205,7 @@ pub async fn probe(c: &reqwest::Client, url: &str, allow_private: bool) -> Probe
                 code: 0,
                 final_url: cur,
                 hops,
-                error: Some("schemă neacceptată".into()),
+                error: Some(tr("schemă neacceptată", "unsupported scheme").into()),
             };
         }
         if !allow_private
@@ -211,7 +216,13 @@ pub async fn probe(c: &reqwest::Client, url: &str, allow_private: bool) -> Probe
                 code: 0,
                 final_url: cur,
                 hops,
-                error: Some("adresă privată/locală blocată (anti-SSRF)".into()),
+                error: Some(
+                    tr(
+                        "adresă privată/locală blocată (anti-SSRF)",
+                        "private/local address blocked (anti-SSRF)",
+                    )
+                    .into(),
+                ),
             };
         }
         let mut resp = c.head(&cur).send().await;
@@ -243,7 +254,7 @@ pub async fn probe(c: &reqwest::Client, url: &str, allow_private: bool) -> Probe
                             code,
                             final_url: cur,
                             hops,
-                            error: Some("Location lipsă".into()),
+                            error: Some(tr("Location lipsă", "missing Location").into()),
                         };
                     };
                     let Ok(next) = u.join(loc) else {
@@ -271,7 +282,7 @@ pub async fn probe(c: &reqwest::Client, url: &str, allow_private: bool) -> Probe
         code: 0,
         final_url: cur,
         hops,
-        error: Some("prea multe redirecționări".into()),
+        error: Some(tr("prea multe redirecționări", "too many redirects").into()),
     }
 }
 
@@ -561,9 +572,10 @@ pub fn unsafe_url_for(file: &Path, url: &str) -> Option<&'static str> {
     if url.chars().any(|c| {
         c.is_whitespace() || c.is_control() || matches!(c, '"' | '\'' | '<' | '>' | '`' | '\\')
     }) {
-        return Some(
+        return Some(tr(
             "URL nou conține caractere nesigure (ghilimele, <, >, spații, backtick sau backslash)",
-        );
+            "the new URL contains unsafe characters (quotes, <, >, spaces, backtick or backslash)",
+        ));
     }
     let ext = file
         .extension()
@@ -573,7 +585,10 @@ pub fn unsafe_url_for(file: &Path, url: &str) -> Option<&'static str> {
     if matches!(ext.as_str(), "md" | "markdown" | "mdx")
         && url.chars().any(|c| matches!(c, '(' | ')' | '[' | ']'))
     {
-        return Some("URL nou conține paranteze, nesigur în Markdown");
+        return Some(tr(
+            "URL nou conține paranteze, nesigur în Markdown",
+            "the new URL contains brackets, unsafe in Markdown",
+        ));
     }
     None
 }
@@ -740,7 +755,7 @@ pub struct ApplyReport {
 /// cu un fișier obișnuit) și nu lasă fișiere temporare la eroare.
 fn write_atomic(path: &Path, data: &[u8]) -> anyhow::Result<()> {
     if crate::textio::is_read_only(path) {
-        anyhow::bail!("fișier doar-citire (read-only)");
+        anyhow::bail!(tr("fișier doar-citire (read-only)", "read-only file"));
     }
     let target = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
     let name = target
@@ -796,7 +811,11 @@ pub fn apply(props: &[Proposal], log: &mut FixLog, o: &ApplyOpts) -> ApplyReport
             for p in ps {
                 rep.skipped.push((
                     p.id.clone(),
-                    "fișier doar-citire (read-only) — neatins".into(),
+                    tr(
+                        "fișier doar-citire (read-only) — neatins",
+                        "read-only file — untouched",
+                    )
+                    .into(),
                 ));
             }
             continue;
@@ -809,7 +828,11 @@ pub fn apply(props: &[Proposal], log: &mut FixLog, o: &ApplyOpts) -> ApplyReport
             for p in ps {
                 rep.skipped.push((
                     p.id.clone(),
-                    "fișier ilizibil sau cu codificare nesigură".into(),
+                    tr(
+                        "fișier ilizibil sau cu codificare nesigură",
+                        "unreadable file or unsafe encoding",
+                    )
+                    .into(),
                 ));
             }
             continue;
@@ -824,13 +847,25 @@ pub fn apply(props: &[Proposal], log: &mut FixLog, o: &ApplyOpts) -> ApplyReport
                 continue;
             }
             let Some(cur) = orig.get(p.start..p.end) else {
-                rep.skipped
-                    .push((p.id.clone(), "fișier modificat între timp".into()));
+                rep.skipped.push((
+                    p.id.clone(),
+                    tr(
+                        "fișier modificat între timp",
+                        "file changed in the meantime",
+                    )
+                    .into(),
+                ));
                 continue;
             };
             if p.old_raw.is_empty() {
-                rep.skipped
-                    .push((p.id.clone(), "propunere incompletă (old_raw lipsă)".into()));
+                rep.skipped.push((
+                    p.id.clone(),
+                    tr(
+                        "propunere incompletă (old_raw lipsă)",
+                        "incomplete proposal (old_raw missing)",
+                    )
+                    .into(),
+                ));
                 continue;
             }
             if p.note != "unlink"
@@ -840,8 +875,14 @@ pub fn apply(props: &[Proposal], log: &mut FixLog, o: &ApplyOpts) -> ApplyReport
                 continue;
             }
             if cur != p.old_raw {
-                rep.skipped
-                    .push((p.id.clone(), "fișier modificat între timp".into()));
+                rep.skipped.push((
+                    p.id.clone(),
+                    tr(
+                        "fișier modificat între timp",
+                        "file changed in the meantime",
+                    )
+                    .into(),
+                ));
                 continue;
             }
             text.replace_range(p.start..p.end, &p.new_raw);
@@ -906,8 +947,10 @@ pub fn apply(props: &[Proposal], log: &mut FixLog, o: &ApplyOpts) -> ApplyReport
             Some(bpath)
         } else {
             for (_, e) in &done {
-                rep.skipped
-                    .push((e.id.clone(), "copia de siguranță a eșuat".into()));
+                rep.skipped.push((
+                    e.id.clone(),
+                    tr("copia de siguranță a eșuat", "the backup failed").into(),
+                ));
             }
             continue;
         };
@@ -916,15 +959,21 @@ pub fn apply(props: &[Proposal], log: &mut FixLog, o: &ApplyOpts) -> ApplyReport
             for (_, e) in &done {
                 rep.skipped.push((
                     e.id.clone(),
-                    "fișierul s-a modificat în timpul lucrului".into(),
+                    tr(
+                        "fișierul s-a modificat în timpul lucrului",
+                        "the file changed during the run",
+                    )
+                    .into(),
                 ));
             }
             continue;
         }
         if let Err(e) = crate::textio::encode(&text, enc).and_then(|b| write_atomic(file, &b)) {
             for (_, en) in &done {
-                rep.skipped
-                    .push((en.id.clone(), format!("scriere eșuată: {e}")));
+                rep.skipped.push((
+                    en.id.clone(),
+                    trf!("scriere eșuată: {e}", "write failed: {e}"),
+                ));
             }
             continue;
         }
@@ -1015,8 +1064,10 @@ pub fn undo(log: &mut FixLog, ids: Option<&[String]>, run: Option<&str>) -> Undo
                 .map(|d| (d.text, d.encoding, false))
         });
         let Some((t, _, changed)) = slot.as_mut() else {
-            rep.conflicts
-                .push((e.id.clone(), "fișier ilizibil — neatins".into()));
+            rep.conflicts.push((
+                e.id.clone(),
+                tr("fișier ilizibil — neatins", "unreadable file — untouched").into(),
+            ));
             continue;
         };
         let ctx = format!("{}{}", e.before, e.new_raw);
@@ -1051,8 +1102,10 @@ pub fn undo(log: &mut FixLog, ids: Option<&[String]>, run: Option<&str>) -> Undo
                 if let Some(k) = rep.undone.iter().position(|id| *id == en.id) {
                     rep.undone.remove(k);
                     en.status = FixStatus::Applied;
-                    rep.conflicts
-                        .push((en.id.clone(), format!("scriere eșuată: {err}")));
+                    rep.conflicts.push((
+                        en.id.clone(),
+                        trf!("scriere eșuată: {err}", "write failed: {err}"),
+                    ));
                 }
             }
         }
@@ -1628,7 +1681,11 @@ mod tests {
         };
         let r = apply(&[p.clone()], &mut log, &opt);
         assert_eq!(r.applied.len(), 0);
-        assert!(r.skipped[0].1.contains("nesigure"), "{:?}", r.skipped);
+        assert!(
+            r.skipped[0].1.contains("nesigure") || r.skipped[0].1.contains("unsafe"),
+            "{:?}",
+            r.skipped
+        );
         assert_eq!(std::fs::read_to_string(&f).unwrap(), src);
         // Markdown: parantezele sunt refuzate
         let m = d.join("i.md");

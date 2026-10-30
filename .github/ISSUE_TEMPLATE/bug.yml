@@ -1,0 +1,17 @@
+name: Bug / Eroare
+description: Report a defect / Raportează o eroare
+body:
+  - type: input
+    id: version
+    attributes: { label: "Version / Versiune (veriga --version)" }
+    validations: { required: true }
+  - type: input
+    id: platform
+    attributes: { label: "Platform / Platformă (OS, CLI/GUI/web)" }
+  - type: textarea
+    id: steps
+    attributes: { label: "Steps to reproduce / Pași de reproducere", description: "Command and the smallest page that shows it. Do not paste secrets or private URLs." }
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes: { label: "Expected vs actual / Așteptat vs obținut" }

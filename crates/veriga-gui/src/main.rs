@@ -122,7 +122,7 @@ impl App {
             sort_desc: false,
             selected: None,
             paused: false,
-            english: false,
+            english: veriga_core::i18n::detect() == "en",
             gd: guardian_ui::GuardianUi::default(),
         }
     }
@@ -435,6 +435,7 @@ impl eframe::App for App {
         let ctx = root.ctx().clone();
         let ctx = &ctx;
         self.poll();
+        veriga_core::i18n::set(self.lang()); // mesajele din nucleu urmează limba aleasă în interfață
         if self.running() {
             // 4 fps: suficient pentru progres; 10 fps ținea un nucleu ocupat la randare software
             ctx.request_repaint_after(std::time::Duration::from_millis(250));
@@ -754,7 +755,7 @@ impl eframe::App for App {
                         .find(|x| c.proxy.as_deref() == Some(x.url));
                     egui::ComboBox::from_id_salt("proxy_preset")
                         .selected_text(match current {
-                            Some(x) => x.label.to_string(),
+                            Some(x) => (if en { x.label_en } else { x.label }).to_string(),
                             None => {
                                 if en {
                                     "Free ethical proxy…".into()
@@ -766,7 +767,10 @@ impl eframe::App for App {
                         .show_ui(ui, |ui| {
                             for x in veriga_core::proxy::PRESETS.iter() {
                                 if ui
-                                    .selectable_label(current.map(|y| y.id) == Some(x.id), x.label)
+                                    .selectable_label(
+                                        current.map(|y| y.id) == Some(x.id),
+                                        if en { x.label_en } else { x.label },
+                                    )
                                     .clicked()
                                 {
                                     veriga_core::proxy::apply(c, x);

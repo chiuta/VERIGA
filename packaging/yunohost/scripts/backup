@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2154  # variabilele ($app, $install_dir, $data_dir) sunt injectate de YunoHost
 source /usr/share/yunohost/helpers
 ynh_print_info "Declaring files to be backed up..."
 ynh_backup "$install_dir"

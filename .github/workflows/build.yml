@@ -110,6 +110,9 @@ jobs:
           python3 web/stamp-csp.py web/veriga.html
           git diff --exit-code web/veriga.html
           python3 web/stamp-site-csp.py index.html --check
+      - name: Pagini pe limbă și sitemap la zi?
+        working-directory: .
+        run: python3 web/build-i18n.py --check
       - name: PWA la zi?
         working-directory: .
         run: |
@@ -244,7 +247,7 @@ jobs:
         run: |
           ls dist/veriga-*.${{ matrix.rpmarch }}.rpm
           rpm -qpi dist/veriga-*.${{ matrix.rpmarch }}.rpm | grep -E "^(Name|Version|Architecture)"
-          rpm -qpl dist/veriga-*.${{ matrix.rpmarch }}.rpm | grep -c . 
+          rpm -qpl dist/veriga-*.${{ matrix.rpmarch }}.rpm | grep -c .
       - uses: actions/upload-artifact@v7
         with: { name: "packages-${{ matrix.debarch }}", path: dist/*, if-no-files-found: error }
 

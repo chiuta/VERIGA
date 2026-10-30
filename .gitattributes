@@ -1,0 +1,15 @@
+* text=auto eol=lf
+*.png binary
+*.woff2 binary
+*.mp4 binary
+*.zip binary
+*.ico binary
+Cargo.lock linguist-generated=true
+app/* linguist-generated=true
+en/* linguist-generated=true
+fr/* linguist-generated=true
+it/* linguist-generated=true
+es/* linguist-generated=true
+pt/* linguist-generated=true
+de/* linguist-generated=true
+hu/* linguist-generated=true

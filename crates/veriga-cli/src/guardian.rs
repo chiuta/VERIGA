@@ -9,8 +9,10 @@ use std::collections::BTreeSet;
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
 use veriga_core::fixer::{self, ApplyOpts, FixLog, FixStatus, ProposeOpts};
+use veriga_core::i18n::{self, tr};
 use veriga_core::insights::{self, Period};
 use veriga_core::rules::{self, Rule};
+use veriga_core::trf;
 use veriga_core::{Config, Control, Session, srcscan};
 
 pub const NAMES: &[&str] = &[
@@ -40,9 +42,9 @@ struct Common {
     /// Director de stare (istoric, jurnal reparații, copii de siguranță)
     #[arg(long, default_value = ".veriga")]
     state: PathBuf,
-    /// Limba: ro sau en
-    #[arg(long, default_value = "ro")]
-    lang: String,
+    /// Limba: ro sau en (implicit: din LANG / VERIGA_LANG)
+    #[arg(long)]
+    lang: Option<String>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -228,7 +230,7 @@ fn parse_rules(v: &[String]) -> Result<Option<BTreeSet<Rule>>> {
             "protocol" => Rule::Protocol,
             "www" => Rule::WwwConsistency,
             "redirect" => Rule::Redirect,
-            o => bail!("regulă necunoscută „{o}”"),
+            o => bail!(trf!("regulă necunoscută „{o}”", "unknown rule “{o}”")),
         });
     }
     Ok(Some(s))
@@ -250,7 +252,7 @@ fn print_proposals(ps: &[fixer::Proposal], lg: &str) {
             p.id,
             p.rule.id(),
             if p.impact() { " ★impact" } else { "" },
-            if p.nav { " (meniu)" } else { "" },
+            if p.nav { tr(" (meniu)", " (menu)") } else { "" },
             p.old,
             p.new,
             p.page,
@@ -287,10 +289,12 @@ async fn do_fix(
     out: Option<&Path>,
     c: &Common,
 ) -> Result<(usize, usize)> {
-    let lg = lang(&c.lang);
+    let lg = i18n::code();
     let occs = srcscan::scan_paths(paths)?;
     let sess = match session {
-        Some(p) => Some(Session::load(p).with_context(|| format!("sesiune {}", p.display()))?),
+        Some(p) => {
+            Some(Session::load(p).with_context(|| trf!("sesiune {}", "session {}", p.display()))?)
+        }
         None => None,
     };
     let opts = ProposeOpts {
@@ -317,9 +321,21 @@ async fn do_fix(
             match fixer::wayback_lookup(&cl, u).await {
                 Some(a) => match fixer::manual_replace(&occs, u, &a) {
                     Ok(v) => ps.extend(v),
-                    Err(e) => eprintln!("Wayback: arhiva pentru {u} refuzată ({e})"),
+                    Err(e) => eprintln!(
+                        "{}",
+                        trf!(
+                            "Wayback: arhiva pentru {u} refuzată ({e})",
+                            "Wayback: the archive for {u} was refused ({e})"
+                        )
+                    ),
                 },
-                None => eprintln!("Wayback: nicio arhivă pentru {u}"),
+                None => eprintln!(
+                    "{}",
+                    trf!(
+                        "Wayback: nicio arhivă pentru {u}",
+                        "Wayback: no archive for {u}"
+                    )
+                ),
             }
         }
     }
@@ -335,7 +351,13 @@ async fn do_fix(
     }
     if !apply {
         if !ps.is_empty() {
-            eprintln!("(simulare — adaugă --apply pentru a scrie modificările)");
+            eprintln!(
+                "{}",
+                tr(
+                    "(simulare — adaugă --apply pentru a scrie modificările)",
+                    "(dry run — add --apply to write the changes)"
+                )
+            );
         }
         return Ok((ps.len(), 0));
     }
@@ -354,12 +376,16 @@ async fn do_fix(
     );
     log.save(&logp)?;
     println!(
-        "\nAplicate: {} (rularea {run}) · omise: {}",
-        rep.applied.len(),
-        rep.skipped.len()
+        "\n{}",
+        trf!(
+            "Aplicate: {} (rularea {run}) · omise: {}",
+            "Applied: {} (run {run}) · skipped: {}",
+            rep.applied.len(),
+            rep.skipped.len()
+        )
     );
     for (id, why) in &rep.skipped {
-        println!("  omis {id}: {why}");
+        println!("  {} {id}: {why}", tr("omis", "skipped"));
     }
     Ok((ps.len(), rep.applied.len()))
 }
@@ -470,13 +496,26 @@ async fn one_run(g: &GuardianConfig) -> Result<()> {
         })
         .count();
     if s.cancelled || checked.is_empty() || (checked.len() >= 5 && net_fail * 2 > checked.len()) {
-        let msg = format!(
+        let msg = trf!(
             "rulare inconclusivă: {net_fail}/{} verificări cu eroare de rețea{} — nu a fost înregistrată",
+            "inconclusive run: {net_fail}/{} checks with a network error{} — not recorded",
             checked.len(),
-            if s.cancelled { " (întreruptă)" } else { "" }
+            if s.cancelled {
+                tr(" (întreruptă)", " (interrupted)")
+            } else {
+                ""
+            }
         );
         println!("{msg}");
-        notify(g, "VERIGA: rulare inconclusivă (rețea?)", &msg).await;
+        notify(
+            g,
+            tr(
+                "VERIGA: rulare inconclusivă (rețea?)",
+                "VERIGA: inconclusive run (network?)",
+            ),
+            &msg,
+        )
+        .await;
         return Ok(());
     }
     s.save(&last)?;
@@ -517,8 +556,17 @@ async fn one_run(g: &GuardianConfig) -> Result<()> {
         .map(|d| d.new_broken.len())
         .unwrap_or(snap.broken);
     println!(
-        "{} · {} URL-uri · {} rupte ({} noi) · {} de verificat · {} reparate automat",
-        snap.time, snap.total, snap.broken, new_broken, snap.review, fixed
+        "{}",
+        trf!(
+            "{} · {} URL-uri · {} rupte ({} noi) · {} de verificat · {} reparate automat",
+            "{} · {} URLs · {} broken ({} new) · {} to review · {} fixed automatically",
+            snap.time,
+            snap.total,
+            snap.broken,
+            new_broken,
+            snap.review,
+            fixed
+        )
     );
     let should = if g.notify_only_new {
         new_broken > 0 || d.as_ref().map(|d| !d.drift.is_empty()).unwrap_or(false)
@@ -526,8 +574,9 @@ async fn one_run(g: &GuardianConfig) -> Result<()> {
         snap.broken > 0
     };
     if should {
-        let mut body = format!(
+        let mut body = trf!(
             "{}\nURL-uri: {} · rupte: {} (noi: {}) · de verificat: {} · reparate automat: {}\n",
+            "{}\nURLs: {} · broken: {} (new: {}) · to review: {} · fixed automatically: {}\n",
             g.start.join(", "),
             snap.total,
             snap.broken,
@@ -537,13 +586,21 @@ async fn one_run(g: &GuardianConfig) -> Result<()> {
         );
         if let Some(d) = &d {
             for u in d.new_broken.iter().take(30) {
-                body.push_str(&format!("  NOU RUPT: {u}\n"));
+                body.push_str(&format!("  {}: {u}\n", tr("NOU RUPT", "NEWLY BROKEN")));
             }
             for x in d.drift.iter().take(10) {
-                body.push_str(&format!("  DERIVĂ: {}\n", x.url));
+                body.push_str(&format!("  {}: {}\n", tr("DERIVĂ", "DRIFT"), x.url));
             }
         }
-        notify(g, &format!("VERIGA: {new_broken} linkuri rupte noi"), &body).await;
+        notify(
+            g,
+            &trf!(
+                "VERIGA: {new_broken} linkuri rupte noi",
+                "VERIGA: {new_broken} new broken links"
+            ),
+            &body,
+        )
+        .await;
     }
     Ok(())
 }
@@ -561,14 +618,212 @@ fn ask(prompt: &str, default: &str) -> String {
     }
 }
 
+/// Ajutorul subcomenzilor în engleză: (subcomandă, descriere, [(argument, ajutor, nume valoare)]).
+type SubHelp = (
+    &'static str,
+    &'static str,
+    &'static [(&'static str, &'static str, Option<&'static str>)],
+);
+const SUB_HELP_EN: &[SubHelp] = &[
+    (
+        "lint",
+        "Offline analysis of sources (HTML/Markdown/WXR/sitemap): malformed URLs, tracking, http/www",
+        &[
+            ("paths", "Files or directories", None),
+            ("out", "Output: .csv or .json", None),
+            ("state", "State directory (history, fix log, backups)", None),
+            (
+                "lang",
+                "Language: ro or en (default: from LANG / VERIGA_LANG)",
+                None,
+            ),
+        ],
+    ),
+    (
+        "fix",
+        "Propose (and, with --apply, apply) fixes verified live",
+        &[
+            (
+                "session",
+                "A .veriga session (for permanent-redirect fixes)",
+                None,
+            ),
+            (
+                "only",
+                "Only these rules: scheme_typo,unmangle,missing_scheme,tracking,protocol,www,redirect",
+                None,
+            ),
+            (
+                "no_upgrade_http",
+                "Do not propose https:// for every http:// (only when the site mixes schemes)",
+                None,
+            ),
+            (
+                "allow_private",
+                "Allow checking private/local addresses (blocked by default: anti-SSRF)",
+                None,
+            ),
+            (
+                "no_verify",
+                "Do not verify live (proposals stay \"unverified\" and are not applied automatically)",
+                None,
+            ),
+            ("apply", "Write the changes (default: only propose)", None),
+            (
+                "allow_unverified",
+                "Also apply unverified proposals (not recommended)",
+                None,
+            ),
+            (
+                "replace",
+                "Manual replacement OLD=NEW (repeatable)",
+                Some("OLD=NEW"),
+            ),
+            (
+                "unlink",
+                "Unlink the link (keep the text), repeatable",
+                Some("URL"),
+            ),
+            (
+                "wayback",
+                "Look in the Wayback Machine and propose the archive for this URL (opt-in, repeatable)",
+                Some("URL"),
+            ),
+            ("out", "Proposals report (.csv)", None),
+            ("state", "State directory (history, fix log, backups)", None),
+            (
+                "lang",
+                "Language: ro or en (default: from LANG / VERIGA_LANG)",
+                None,
+            ),
+        ],
+    ),
+    (
+        "undo",
+        "Undo fixes from the log",
+        &[
+            ("id", "IDs to undo (repeatable)", None),
+            ("run", "Undo a whole run", None),
+            ("list", "Only list the log", None),
+            ("state", "State directory (history, fix log, backups)", None),
+            (
+                "lang",
+                "Language: ro or en (default: from LANG / VERIGA_LANG)",
+                None,
+            ),
+        ],
+    ),
+    (
+        "log404",
+        "Import 404s from Apache/nginx access logs",
+        &[
+            (
+                "known",
+                "A .veriga session or a text file (one path per line) with known pages, for suggestions",
+                None,
+            ),
+            ("include_bots", "Include bots too", None),
+            ("out", "Output: .csv or .htaccess", None),
+            ("state", "State directory (history, fix log, backups)", None),
+            (
+                "lang",
+                "Language: ro or en (default: from LANG / VERIGA_LANG)",
+                None,
+            ),
+        ],
+    ),
+    (
+        "guardian",
+        "HTML page: dashboard, domains, health map, book, redirects, trends",
+        &[
+            ("prev", "The previous session (new/resolved/drift)", None),
+            ("record", "Add the run to the history", None),
+            ("state", "State directory (history, fix log, backups)", None),
+            (
+                "lang",
+                "Language: ro or en (default: from LANG / VERIGA_LANG)",
+                None,
+            ),
+        ],
+    ),
+    (
+        "compliance",
+        "Compliance report over a period",
+        &[
+            ("days", "Last N days (default 30)", None),
+            ("state", "State directory (history, fix log, backups)", None),
+            (
+                "lang",
+                "Language: ro or en (default: from LANG / VERIGA_LANG)",
+                None,
+            ),
+        ],
+    ),
+    (
+        "history",
+        "Show the run history",
+        &[
+            ("state", "State directory (history, fix log, backups)", None),
+            (
+                "lang",
+                "Language: ro or en (default: from LANG / VERIGA_LANG)",
+                None,
+            ),
+        ],
+    ),
+    (
+        "watch",
+        "Scheduled runs (from a configuration file created by `wizard`)",
+        &[(
+            "once",
+            "A single run, then exit (for cron / Task Scheduler)",
+            None,
+        )],
+    ),
+    ("wizard", "Interactive 4-step setup wizard", &[]),
+];
+
+fn localized_command() -> clap::Command {
+    let mut cmd = <G as clap::CommandFactory>::command();
+    if i18n::is_en() {
+        cmd = cmd.about("VERIGA Guardian — fixes, history, compliance");
+        for (name, about, args) in SUB_HELP_EN {
+            let (name, about, args) = (*name, *about, *args);
+            cmd = cmd.mut_subcommand(name, move |mut sc| {
+                sc = sc.about(about);
+                for (id, help, vn) in args {
+                    let (help, vn) = (*help, *vn);
+                    sc = sc.mut_arg(*id, move |a| {
+                        let a = a.help(help);
+                        match vn {
+                            Some(v) => a.value_name(v),
+                            None => a,
+                        }
+                    });
+                }
+                sc
+            });
+        }
+    }
+    cmd
+}
+
 pub async fn dispatch() -> Result<()> {
-    let g = G::parse();
+    let argv: Vec<std::ffi::OsString> = std::env::args_os().collect();
+    i18n::set(&crate::pick_lang(&argv));
+    let g = match localized_command().try_get_matches_from(argv) {
+        Ok(m) => <G as clap::FromArgMatches>::from_arg_matches(&m).unwrap_or_else(|e| e.exit()),
+        Err(e) => e.exit(),
+    };
     match g.cmd {
-        Cmd::Lint { paths, out, c } => {
+        Cmd::Lint { paths, out, c: _ } => {
             if paths.is_empty() {
-                bail!("indică fișiere sau directoare-sursă");
+                bail!(tr(
+                    "indică fișiere sau directoare-sursă",
+                    "give source files or directories"
+                ));
             }
-            let lg = lang(&c.lang);
+            let lg = i18n::code();
             let occs = srcscan::scan_paths(&paths)?;
             let f = rules::analyze(&occs, lg);
             for x in &f {
@@ -584,7 +839,15 @@ pub async fn dispatch() -> Result<()> {
                         .unwrap_or_default()
                 );
             }
-            println!("\n{} linkuri scanate · {} constatări", occs.len(), f.len());
+            println!(
+                "\n{}",
+                trf!(
+                    "{} linkuri scanate · {} constatări",
+                    "{} links scanned · {} findings",
+                    occs.len(),
+                    f.len()
+                )
+            );
             if let Some(o) = out {
                 let ext = o.extension().and_then(|e| e.to_str()).unwrap_or("");
                 if ext == "json" {
@@ -630,7 +893,10 @@ pub async fn dispatch() -> Result<()> {
             c,
         } => {
             if paths.is_empty() {
-                bail!("indică fișiere sau directoare-sursă");
+                bail!(tr(
+                    "indică fișiere sau directoare-sursă",
+                    "give source files or directories"
+                ));
             }
             do_fix(
                 &paths,
@@ -672,7 +938,10 @@ pub async fn dispatch() -> Result<()> {
                 return Ok(());
             }
             if id.is_empty() && run.is_none() {
-                bail!("indică --id ID, --run RULARE sau --list");
+                bail!(tr(
+                    "indică --id ID, --run RULARE sau --list",
+                    "give --id ID, --run RUN or --list"
+                ));
             }
             let rep = fixer::undo(
                 &mut log,
@@ -681,9 +950,13 @@ pub async fn dispatch() -> Result<()> {
             );
             log.save(&logp)?;
             println!(
-                "Anulate: {} · conflicte: {}",
-                rep.undone.len(),
-                rep.conflicts.len()
+                "{}",
+                trf!(
+                    "Anulate: {} · conflicte: {}",
+                    "Undone: {} · conflicts: {}",
+                    rep.undone.len(),
+                    rep.conflicts.len()
+                )
             );
             for (i, w) in rep.conflicts {
                 println!("  {i}: {w}");
@@ -738,7 +1011,10 @@ pub async fn dispatch() -> Result<()> {
                         .unwrap_or_default()
                 );
             }
-            println!("\n{} URL-uri 404 distincte", h.len());
+            println!(
+                "\n{}",
+                trf!("{} URL-uri 404 distincte", "{} distinct 404 URLs", h.len())
+            );
             if let Some(o) = out {
                 let data = if o
                     .file_name()
@@ -797,38 +1073,63 @@ pub async fn dispatch() -> Result<()> {
             let (hist, _, _) = paths_state(&c.state);
             let h = insights::history_load(&hist);
             if h.is_empty() {
-                println!("Istoric gol ({}).", hist.display());
+                println!(
+                    "{}",
+                    trf!(
+                        "Istoric gol ({}).",
+                        "History is empty ({}).",
+                        hist.display()
+                    )
+                );
             }
             for x in h {
                 println!(
-                    "{}  total {:>6}  rupte {:>5}  verificat {:>4}  redir {:>5}  sănătate {:>5.1}%",
-                    x.time, x.total, x.broken, x.review, x.redirects, x.health
+                    "{}",
+                    trf!(
+                        "{}  total {:>6}  rupte {:>5}  verificat {:>4}  redir {:>5}  sănătate {:>5.1}%",
+                        "{}  total {:>6}  broken {:>5}  review {:>4}  redir {:>5}  health {:>5.1}%",
+                        x.time,
+                        x.total,
+                        x.broken,
+                        x.review,
+                        x.redirects,
+                        x.health
+                    )
                 );
             }
         }
         Cmd::Watch { config, once } => {
-            let g: GuardianConfig = serde_json::from_slice(
-                &std::fs::read(&config)
-                    .with_context(|| format!("configurare {}", config.display()))?,
-            )?;
+            let g: GuardianConfig =
+                serde_json::from_slice(&std::fs::read(&config).with_context(|| {
+                    trf!("configurare {}", "configuration {}", config.display())
+                })?)?;
+            // configurația fixează limba notificărilor programate
+            i18n::set(&g.lang);
             if g.start.iter().all(|s| s.trim().is_empty()) {
-                bail!("configurarea nu conține niciun URL de start");
+                bail!(tr(
+                    "configurarea nu conține niciun URL de start",
+                    "the configuration contains no start URL"
+                ));
             }
             if let Some(cmd) = &g.sendmail {
                 // se execută direct, fără shell; cerem cale absolută către un fișier existent
                 let p = Path::new(cmd);
                 if !p.is_absolute() || !p.is_file() {
                     bail!(
-                        "`sendmail` trebuie să fie o cale absolută către un executabil existent (primit: {cmd}). Configurările din surse necunoscute pot rula comenzi — verifică fișierul înainte de a-l folosi."
+                        "{}",
+                        trf!(
+                            "`sendmail` trebuie să fie o cale absolută către un executabil existent (primit: {cmd}). Configurările din surse necunoscute pot rula comenzi — verifică fișierul înainte de a-l folosi.",
+                            "`sendmail` must be an absolute path to an existing executable (got: {cmd}). Configurations from unknown sources can run commands — check the file before using it."
+                        )
                     );
                 }
             }
             loop {
                 if let Err(e) = one_run(&g).await {
-                    eprintln!("rulare eșuată: {e:#}");
+                    eprintln!("{}: {e:#}", tr("rulare eșuată", "run failed"));
                     if once {
                         // cod ≠ 0 ca systemd, CronJob și cron să vadă eșecul
-                        return Err(e.context("rulare eșuată"));
+                        return Err(e.context(tr("rulare eșuată", "run failed")));
                     }
                 }
                 if once {
@@ -839,32 +1140,92 @@ pub async fn dispatch() -> Result<()> {
             }
         }
         Cmd::Wizard { config } => {
-            println!("VERIGA — asistent de configurare (4 pași)\n");
-            println!("Pasul 1/4 — ce verificăm");
+            println!(
+                "{}\n",
+                tr(
+                    "VERIGA — asistent de configurare (4 pași)",
+                    "VERIGA — setup wizard (4 steps)"
+                )
+            );
+            println!(
+                "{}",
+                tr("Pasul 1/4 — ce verificăm", "Step 1/4 — what to check")
+            );
             let start = ask(
-                "URL-uri sau directoare de start (separate prin spațiu)",
-                "https://exemplu.ro/",
+                tr(
+                    "URL-uri sau directoare de start (separate prin spațiu)",
+                    "Start URLs or directories (separated by spaces)",
+                ),
+                "https://example.org/",
             );
             let sources = ask(
-                "Directoare cu surse editabile (HTML/Markdown/export WordPress), gol = fără reparații",
+                tr(
+                    "Directoare cu surse editabile (HTML/Markdown/export WordPress), gol = fără reparații",
+                    "Directories with editable sources (HTML/Markdown/WordPress export), empty = no fixes",
+                ),
                 "",
             );
-            println!("\nPasul 2/4 — domeniu de aplicare");
-            let ext = ask("Verific și linkurile externe? (da/nu)", "da");
-            let depth = ask("Adâncime maximă (gol = nelimitat)", "");
-            println!("\nPasul 3/4 — reparații automate (verificate live, cu jurnal și anulare)");
+            println!(
+                "\n{}",
+                tr("Pasul 2/4 — domeniu de aplicare", "Step 2/4 — scope")
+            );
+            let ext = ask(
+                tr(
+                    "Verific și linkurile externe? (da/nu)",
+                    "Check external links too? (yes/no)",
+                ),
+                tr("da", "yes"),
+            );
+            let depth = ask(
+                tr(
+                    "Adâncime maximă (gol = nelimitat)",
+                    "Maximum depth (empty = unlimited)",
+                ),
+                "",
+            );
+            println!(
+                "\n{}",
+                tr(
+                    "Pasul 3/4 — reparații automate (verificate live, cu jurnal și anulare)",
+                    "Step 3/4 — automatic fixes (verified live, with a log and undo)"
+                )
+            );
             let auto = ask(
-                "Reguli automate separate prin virgulă (scheme_typo,unmangle,missing_scheme,tracking,protocol,www,redirect) sau gol",
+                tr(
+                    "Reguli automate separate prin virgulă (scheme_typo,unmangle,missing_scheme,tracking,protocol,www,redirect) sau gol",
+                    "Automatic rules separated by commas (scheme_typo,unmangle,missing_scheme,tracking,protocol,www,redirect) or empty",
+                ),
                 "",
             );
-            println!("\nPasul 4/4 — programare și notificări");
-            let every = ask("Rulează la fiecare N ore", "24");
-            let hook = ask("Webhook (Slack/Discord/generic), gol = niciunul", "");
-            let to = ask("E-mail destinatar (necesită sendmail), gol = niciunul", "");
+            println!(
+                "\n{}",
+                tr(
+                    "Pasul 4/4 — programare și notificări",
+                    "Step 4/4 — schedule and notifications"
+                )
+            );
+            let every = ask(tr("Rulează la fiecare N ore", "Run every N hours"), "24");
+            let hook = ask(
+                tr(
+                    "Webhook (Slack/Discord/generic), gol = niciunul",
+                    "Webhook (Slack/Discord/generic), empty = none",
+                ),
+                "",
+            );
+            let to = ask(
+                tr(
+                    "E-mail destinatar (necesită sendmail), gol = niciunul",
+                    "Recipient e-mail (needs sendmail), empty = none",
+                ),
+                "",
+            );
             let sm = if to.is_empty() {
                 String::new()
             } else {
-                ask("Comandă sendmail", "/usr/sbin/sendmail")
+                ask(
+                    tr("Comandă sendmail", "sendmail command"),
+                    "/usr/sbin/sendmail",
+                )
             };
             let g = GuardianConfig {
                 start: start.split_whitespace().map(String::from).collect(),
@@ -880,15 +1241,20 @@ pub async fn dispatch() -> Result<()> {
                 webhook: if hook.is_empty() { None } else { Some(hook) },
                 email_to: if to.is_empty() { None } else { Some(to) },
                 sendmail: if sm.is_empty() { None } else { Some(sm) },
+                lang: i18n::code().into(),
                 ..Default::default()
             };
             std::fs::write(&config, serde_json::to_vec_pretty(&g)?)?;
             println!(
-                "\nSalvat în {}.\nRulare unică: veriga watch --config {} --once\nProgramat (la {} h): veriga watch --config {}",
-                config.display(),
-                config.display(),
-                g.every_hours,
-                config.display()
+                "\n{}",
+                trf!(
+                    "Salvat în {}.\nRulare unică: veriga watch --config {} --once\nProgramat (la {} h): veriga watch --config {}",
+                    "Saved to {}.\nOne-off run: veriga watch --config {} --once\nScheduled (every {} h): veriga watch --config {}",
+                    config.display(),
+                    config.display(),
+                    g.every_hours,
+                    config.display()
+                )
             );
         }
     }
@@ -924,5 +1290,32 @@ impl CsvW {
     }
     fn into_inner(self) -> Result<Vec<u8>> {
         Ok(self.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_subcommand_option_has_an_english_help_text() {
+        let root = <G as clap::CommandFactory>::command();
+        for sc in root.get_subcommands() {
+            let name = sc.get_name();
+            let entry = SUB_HELP_EN
+                .iter()
+                .find(|(n, _, _)| *n == name)
+                .unwrap_or_else(|| panic!("lipsește subcomanda {name}"));
+            for a in sc.get_arguments() {
+                let id = a.get_id().as_str();
+                if matches!(id, "help" | "version") || a.get_help().is_none() {
+                    continue;
+                }
+                assert!(
+                    entry.2.iter().any(|(k, _, _)| *k == id),
+                    "lipsește ajutorul în engleză pentru {name} --{id}"
+                );
+            }
+        }
     }
 }

@@ -1,4 +1,91 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://veriga.chiuta.ro/</loc><lastmod>2026-10-30</lastmod></url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url><loc>https://veriga.chiuta.ro/</loc><lastmod>2026-10-30</lastmod>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://veriga.chiuta.ro/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://veriga.chiuta.ro/en/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://veriga.chiuta.ro/fr/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://veriga.chiuta.ro/it/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://veriga.chiuta.ro/es/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://veriga.chiuta.ro/pt/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://veriga.chiuta.ro/de/"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://veriga.chiuta.ro/hu/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://veriga.chiuta.ro/"/>
+  </url>
+  <url><loc>https://veriga.chiuta.ro/en/</loc><lastmod>2026-10-30</lastmod>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://veriga.chiuta.ro/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://veriga.chiuta.ro/en/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://veriga.chiuta.ro/fr/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://veriga.chiuta.ro/it/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://veriga.chiuta.ro/es/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://veriga.chiuta.ro/pt/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://veriga.chiuta.ro/de/"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://veriga.chiuta.ro/hu/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://veriga.chiuta.ro/"/>
+  </url>
+  <url><loc>https://veriga.chiuta.ro/fr/</loc><lastmod>2026-10-30</lastmod>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://veriga.chiuta.ro/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://veriga.chiuta.ro/en/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://veriga.chiuta.ro/fr/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://veriga.chiuta.ro/it/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://veriga.chiuta.ro/es/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://veriga.chiuta.ro/pt/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://veriga.chiuta.ro/de/"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://veriga.chiuta.ro/hu/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://veriga.chiuta.ro/"/>
+  </url>
+  <url><loc>https://veriga.chiuta.ro/it/</loc><lastmod>2026-10-30</lastmod>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://veriga.chiuta.ro/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://veriga.chiuta.ro/en/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://veriga.chiuta.ro/fr/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://veriga.chiuta.ro/it/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://veriga.chiuta.ro/es/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://veriga.chiuta.ro/pt/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://veriga.chiuta.ro/de/"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://veriga.chiuta.ro/hu/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://veriga.chiuta.ro/"/>
+  </url>
+  <url><loc>https://veriga.chiuta.ro/es/</loc><lastmod>2026-10-30</lastmod>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://veriga.chiuta.ro/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://veriga.chiuta.ro/en/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://veriga.chiuta.ro/fr/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://veriga.chiuta.ro/it/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://veriga.chiuta.ro/es/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://veriga.chiuta.ro/pt/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://veriga.chiuta.ro/de/"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://veriga.chiuta.ro/hu/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://veriga.chiuta.ro/"/>
+  </url>
+  <url><loc>https://veriga.chiuta.ro/pt/</loc><lastmod>2026-10-30</lastmod>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://veriga.chiuta.ro/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://veriga.chiuta.ro/en/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://veriga.chiuta.ro/fr/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://veriga.chiuta.ro/it/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://veriga.chiuta.ro/es/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://veriga.chiuta.ro/pt/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://veriga.chiuta.ro/de/"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://veriga.chiuta.ro/hu/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://veriga.chiuta.ro/"/>
+  </url>
+  <url><loc>https://veriga.chiuta.ro/de/</loc><lastmod>2026-10-30</lastmod>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://veriga.chiuta.ro/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://veriga.chiuta.ro/en/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://veriga.chiuta.ro/fr/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://veriga.chiuta.ro/it/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://veriga.chiuta.ro/es/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://veriga.chiuta.ro/pt/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://veriga.chiuta.ro/de/"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://veriga.chiuta.ro/hu/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://veriga.chiuta.ro/"/>
+  </url>
+  <url><loc>https://veriga.chiuta.ro/hu/</loc><lastmod>2026-10-30</lastmod>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://veriga.chiuta.ro/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://veriga.chiuta.ro/en/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://veriga.chiuta.ro/fr/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://veriga.chiuta.ro/it/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://veriga.chiuta.ro/es/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://veriga.chiuta.ro/pt/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://veriga.chiuta.ro/de/"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://veriga.chiuta.ro/hu/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://veriga.chiuta.ro/"/>
+  </url>
 </urlset>

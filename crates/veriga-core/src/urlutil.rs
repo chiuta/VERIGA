@@ -1,5 +1,7 @@
 //! Utilitare pentru URL-uri: normalizare, intrări de start, tipuri de fișiere.
 
+use crate::i18n::tr;
+use crate::trf;
 use anyhow::{Result, anyhow};
 use std::path::Path;
 use url::Url;
@@ -157,12 +159,13 @@ fn looks_like_path(s: &str) -> bool {
 pub fn parse_start(s: &str) -> Result<Url> {
     let s = s.trim();
     if s.is_empty() {
-        return Err(anyhow!("intrare de start goală"));
+        return Err(anyhow!(tr("intrare de start goală", "empty start entry")));
     }
     let lower = s.to_ascii_lowercase();
     for scheme in ["http://", "https://", "ftp://", "file://"] {
         if lower.starts_with(scheme) {
-            return Url::parse(s).map_err(|e| anyhow!("URL invalid „{s}”: {e}"));
+            return Url::parse(s)
+                .map_err(|e| anyhow!(trf!("URL invalid „{s}”: {e}", "invalid URL “{s}”: {e}")));
         }
     }
     let p = Path::new(s);
@@ -175,28 +178,43 @@ pub fn parse_start(s: &str) -> Result<Url> {
             for n in INDEX_NAMES {
                 let f = abs.join(n);
                 if f.is_file() {
-                    return Url::from_file_path(&f)
-                        .map_err(|_| anyhow!("cale de fișier invalidă: {}", f.display()));
+                    return Url::from_file_path(&f).map_err(|_| {
+                        anyhow!(trf!(
+                            "cale de fișier invalidă: {}",
+                            "invalid file path: {}",
+                            f.display()
+                        ))
+                    });
                 }
             }
-            return Err(anyhow!(
+            return Err(anyhow!(trf!(
                 "directorul „{}” nu conține index.html / index.htm",
+                "the directory “{}” contains no index.html / index.htm",
                 abs.display()
-            ));
+            )));
         }
-        return Url::from_file_path(&abs)
-            .map_err(|_| anyhow!("cale de fișier invalidă: {}", abs.display()));
+        return Url::from_file_path(&abs).map_err(|_| {
+            anyhow!(trf!(
+                "cale de fișier invalidă: {}",
+                "invalid file path: {}",
+                abs.display()
+            ))
+        });
     }
     // Arată a cale locală, dar nu există: eroare clară, nu „https://./x”.
     if looks_like_path(s) {
-        return Err(anyhow!("calea „{s}” nu există"));
+        return Err(anyhow!(trf!(
+            "calea „{s}” nu există",
+            "the path “{s}” does not exist"
+        )));
     }
     if let Some((sch, _)) = s.split_once(':')
         && let Some(t) = scheme_typo_target(sch)
     {
-        return Err(anyhow!(
-            "schemă greșită „{sch}:” în „{s}” — probabil ați vrut {t}:"
-        ));
+        return Err(anyhow!(trf!(
+            "schemă greșită „{sch}:” în „{s}” — probabil ați vrut {t}:",
+            "wrong scheme “{sch}:” in “{s}” — did you mean {t}:"
+        )));
     }
     // Un cuvânt simplu („check”, „sitee”) nu e nici fișier existent, nici domeniu.
     let host_part = s.split(['/', '?', '#']).next().unwrap_or("");
@@ -211,7 +229,8 @@ pub fn parse_start(s: &str) -> Result<Url> {
         ));
     }
     // Fără schemă: presupunem https.
-    Url::parse(&format!("https://{s}")).map_err(|e| anyhow!("URL invalid „{s}”: {e}"))
+    Url::parse(&format!("https://{s}"))
+        .map_err(|e| anyhow!(trf!("URL invalid „{s}”: {e}", "invalid URL “{s}”: {e}")))
 }
 
 /// Prefixul de director al unui URL de start (până la ultimul „/”).

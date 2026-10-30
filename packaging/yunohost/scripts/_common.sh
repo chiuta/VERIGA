@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2154  # variabilele ($app, $install_dir, $data_dir) sunt injectate de YunoHost
 # Funcții comune pentru scripturile de instalare/actualizare/restaurare.
 
 # Instalează fișierele aplicației din arhiva de lansare: veriga (CLI) + veriga.html (ediția web)

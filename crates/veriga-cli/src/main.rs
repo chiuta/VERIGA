@@ -3,12 +3,14 @@
 mod guardian;
 
 use anyhow::{Context, Result, anyhow, bail};
-use clap::Parser;
+use clap::{CommandFactory, FromArgMatches, Parser};
 use std::io::{IsTerminal, Write};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::mpsc::unbounded_channel;
+use veriga_core::i18n::{self, tr};
 use veriga_core::report;
+use veriga_core::trf;
 use veriga_core::{Config, Control, Event, OrphanConfig, Session};
 
 #[derive(Parser, Debug)]
@@ -159,9 +161,9 @@ struct Cli {
     /// În CSV/TSV exportă doar legăturile rupte
     #[arg(long)]
     only_broken: bool,
-    /// Limba rapoartelor: ro sau en
-    #[arg(long, default_value = "ro")]
-    lang: String,
+    /// Limba interfeței și a rapoartelor: ro sau en (implicit: din LANG / VERIGA_LANG)
+    #[arg(long)]
+    lang: Option<String>,
     /// Fără progres și fără listă pe ecran
     #[arg(short = 'q', long)]
     quiet: bool,
@@ -207,27 +209,37 @@ fn build_config(c: &Cli) -> Result<Config> {
     if let Some(id) = &c.proxy_preset {
         let p = veriga_core::proxy::preset(id).ok_or_else(|| {
             let ids: Vec<_> = veriga_core::proxy::PRESETS.iter().map(|p| p.id).collect();
-            anyhow!(
+            anyhow!(trf!(
                 "preset de proxy necunoscut „{id}”; disponibile: {}",
+                "unknown proxy preset “{id}”; available: {}",
                 ids.join(", ")
-            )
+            ))
         })?;
         veriga_core::proxy::apply(&mut cfg, p);
         eprintln!(
             "Proxy: {} ({}). {} {}",
-            p.label, p.url, p.requires_ro, p.caveat_ro
+            tr(p.label, p.label_en),
+            p.url,
+            tr(p.requires_ro, p.requires_en),
+            tr(p.caveat_ro, p.caveat_en)
         );
     }
     if let Some(a) = &c.auth {
-        let (u, p) = a
-            .split_once(':')
-            .ok_or_else(|| anyhow!("--auth trebuie să aibă forma utilizator:parolă"))?;
+        let (u, p) = a.split_once(':').ok_or_else(|| {
+            anyhow!(tr(
+                "--auth trebuie să aibă forma utilizator:parolă",
+                "--auth must have the form user:password"
+            ))
+        })?;
         cfg.basic_auth = Some((u.to_string(), p.to_string()));
     }
     for h in &c.headers {
-        let (k, v) = h
-            .split_once(':')
-            .ok_or_else(|| anyhow!("antet invalid „{h}” (formă: Nume: valoare)"))?;
+        let (k, v) = h.split_once(':').ok_or_else(|| {
+            anyhow!(trf!(
+                "antet invalid „{h}” (formă: Nume: valoare)",
+                "invalid header “{h}” (form: Name: value)"
+            ))
+        })?;
         cfg.headers
             .push((k.trim().to_string(), v.trim().to_string()));
     }
@@ -239,11 +251,7 @@ fn build_config(c: &Cli) -> Result<Config> {
             ..Default::default()
         });
     }
-    cfg.lang = if c.lang == "en" {
-        "en".into()
-    } else {
-        "ro".into()
-    };
+    cfg.lang = i18n::code().into();
     Ok(cfg)
 }
 
@@ -279,17 +287,199 @@ fn write_outputs(s: &Session, outs: &[PathBuf], only_broken: bool) -> Result<()>
                 s.save(p)?;
                 continue;
             }
-            other => bail!(
+            other => bail!(trf!(
                 "extensie de ieșire necunoscută „.{other}” pentru {}",
+                "unknown output extension “.{other}” for {}",
                 p.display()
-            ),
+            )),
         };
-        std::fs::write(p, data).with_context(|| format!("nu pot scrie {}", p.display()))?;
+        std::fs::write(p, data)
+            .with_context(|| trf!("nu pot scrie {}", "cannot write {}", p.display()))?;
         if !s.config.start.is_empty() {
             eprintln!("→ {}", p.display());
         }
     }
     Ok(())
+}
+
+/// Limba din `--lang X` / `--lang=X`, altfel din mediu (`VERIGA_LANG`, `LC_ALL`, `LC_MESSAGES`, `LANG`).
+pub(crate) fn pick_lang(argv: &[std::ffi::OsString]) -> String {
+    let mut it = argv.iter().skip(1).map(|a| a.to_string_lossy().to_string());
+    while let Some(a) = it.next() {
+        if a == "--" {
+            break;
+        }
+        if a == "--lang" {
+            if let Some(v) = it.next() {
+                return v;
+            }
+        } else if let Some(v) = a.strip_prefix("--lang=") {
+            return v.to_string();
+        }
+    }
+    i18n::detect().to_string()
+}
+
+/// Textele de ajutor în engleză (sursa derivată este în română): id argument → (ajutor, nume valoare).
+const HELP_EN: &[(&str, &str, Option<&str>)] = &[
+    (
+        "start",
+        "URLs, HTML files or local directories to start from",
+        None,
+    ),
+    ("threads", "Number of simultaneous checks", None),
+    (
+        "per_host",
+        "Maximum simultaneous connections to the same host",
+        None,
+    ),
+    ("timeout", "Maximum time per request (seconds)", None),
+    ("retries", "Retries on transient errors", None),
+    ("depth", "Maximum crawl depth", None),
+    ("max_urls", "Maximum number of URLs", None),
+    (
+        "max_per_pattern",
+        "Traps: pages crawled at most per path template (digits → N); 0 = unlimited",
+        None,
+    ),
+    ("max_redirects", "Maximum redirects followed", None),
+    ("no_external", "Do not check external links", None),
+    (
+        "stay_in_dir",
+        "Do not crawl pages outside the start directory",
+        None,
+    ),
+    (
+        "pages_only",
+        "Do not check images/CSS/JS/media (pages only)",
+        None,
+    ),
+    ("forms", "Also check form actions", None),
+    ("no_mailto", "Do not check mailto: addresses", None),
+    ("no_ftp", "Do not check ftp:// links", None),
+    ("fragments", "Check #fragment anchors", None),
+    ("redirects_as_errors", "Treat redirects as errors", None),
+    (
+        "exclude",
+        "Regex: URLs ignored completely (repeatable)",
+        Some("REGEX"),
+    ),
+    (
+        "no_follow",
+        "Regex: URLs checked but not crawled (repeatable)",
+        Some("REGEX"),
+    ),
+    (
+        "only",
+        "Regex: crawl only pages that match (repeatable)",
+        Some("REGEX"),
+    ),
+    (
+        "internal_host",
+        "Additional host treated as internal (repeatable)",
+        Some("HOST"),
+    ),
+    (
+        "ignore_status",
+        "HTTP code treated as OK (repeatable, e.g. 999)",
+        Some("CODE"),
+    ),
+    ("user_agent", "The User-Agent header", None),
+    ("no_robots", "Ignore robots.txt", None),
+    ("sitemap", "Also start from sitemap.xml", None),
+    (
+        "allow_private",
+        "Allow contacting private/local addresses found on a public site (blocked by default: anti-SSRF)",
+        None,
+    ),
+    ("insecure", "Accept invalid TLS certificates", None),
+    ("no_cookies", "Disable cookies", None),
+    ("proxy", "Proxy (http://, https://, socks5://)", None),
+    (
+        "proxy_preset",
+        "Free, ethical proxy from a preset: tor, tor-browser, warp (see --list-proxy-presets)",
+        Some("PRESET"),
+    ),
+    (
+        "list_proxy_presets",
+        "Show the proxy presets, their requirements and warnings, then exit",
+        None,
+    ),
+    (
+        "auth",
+        "Basic authentication for internal hosts: user:password",
+        Some("USER:PASSWORD"),
+    ),
+    (
+        "headers",
+        "Extra header \"Name: value\" (repeatable)",
+        Some("HEADER"),
+    ),
+    (
+        "delay",
+        "Minimum pause between requests to the same host (ms)",
+        None,
+    ),
+    (
+        "orphans",
+        "Local directory to search for orphan files",
+        Some("DIR"),
+    ),
+    (
+        "orphan_base",
+        "URL corresponding to the root of the orphan directory",
+        Some("URL"),
+    ),
+    (
+        "recheck",
+        "Re-check only the broken links of a saved session",
+        Some("FILE"),
+    ),
+    (
+        "out",
+        "Output file; the format follows the extension: .html .csv .tsv .json .txt .xml (sitemap) .tree .veriga (session). Repeatable.",
+        Some("FILE"),
+    ),
+    (
+        "only_broken",
+        "In CSV/TSV export only the broken links",
+        None,
+    ),
+    (
+        "lang",
+        "Interface and report language: ro or en (default: from LANG / VERIGA_LANG)",
+        None,
+    ),
+    ("quiet", "No progress and no on-screen list", None),
+    (
+        "no_fail",
+        "Exit code 0 even when broken links were found",
+        None,
+    ),
+];
+
+const ABOUT_EN: &str = "VERIGA — link checker (clean-room), for websites and local directories";
+const LONG_ABOUT_EN: &str = "Crawls a website (or a local directory), checks every link — pages, images, CSS, \
+scripts, frames, media, objects, e-mail, FTP, anchors — and produces HTML/CSV/TSV/JSON/text/sitemap reports.\n\n\
+Examples:\n  veriga https://example.org -o report.html -o broken.csv\n  veriga ./site --orphans ./site\n  veriga --recheck session.veriga -o report.html";
+
+/// Comanda clap, cu textele de ajutor în limba curentă.
+pub(crate) fn localized_command() -> clap::Command {
+    let mut cmd = Cli::command();
+    if i18n::is_en() {
+        cmd = cmd.about(ABOUT_EN).long_about(LONG_ABOUT_EN);
+        for (id, help, vn) in HELP_EN {
+            let (help, vn) = (*help, *vn);
+            cmd = cmd.mut_arg(*id, move |a| {
+                let a = a.help(help);
+                match vn {
+                    Some(v) => a.value_name(v),
+                    None => a,
+                }
+            });
+        }
+    }
+    cmd
 }
 
 #[tokio::main]
@@ -304,21 +494,36 @@ async fn main() -> Result<()> {
     if argv.get(1).is_some_and(|a| a == "check") {
         argv.remove(1);
     }
-    let cli = Cli::parse_from(argv);
+    i18n::set(&pick_lang(&argv));
+    let cli = match localized_command().try_get_matches_from(argv) {
+        Ok(m) => Cli::from_arg_matches(&m).unwrap_or_else(|e| e.exit()),
+        Err(e) => e.exit(),
+    };
     if cli.list_proxy_presets {
         for p in veriga_core::proxy::PRESETS {
             println!(
                 "{}\t{}\t{}\n  {}\n  {}",
-                p.id, p.url, p.label, p.requires_ro, p.caveat_ro
+                p.id,
+                p.url,
+                tr(p.label, p.label_en),
+                tr(p.requires_ro, p.requires_en),
+                tr(p.caveat_ro, p.caveat_en)
             );
         }
         println!(
-            "\nListele de proxy-uri publice deschise nu sunt incluse: sunt adesea mașini compromise sau intercepteaz\u{103} traficul."
+            "\n{}",
+            tr(
+                "Listele de proxy-uri publice deschise nu sunt incluse: sunt adesea mașini compromise sau interceptează traficul.",
+                "Open public proxy lists are not included: they are often compromised machines or intercept traffic."
+            )
         );
         return Ok(());
     }
     if cli.recheck.is_none() && cli.start.is_empty() {
-        bail!("indică cel puțin un URL, fișier sau director de start (vezi --help)");
+        bail!(tr(
+            "indică cel puțin un URL, fișier sau director de start (vezi --help)",
+            "give at least one start URL, file or directory (see --help)"
+        ));
     }
     // validăm ieșirile ÎNAINTE de o verificare care poate dura ore (nu pierdem rezultatele la final)
     for p in &cli.out {
@@ -332,15 +537,20 @@ async fn main() -> Result<()> {
         ]
         .contains(&ext.as_str())
         {
-            bail!(
+            bail!(trf!(
                 "extensie de ieșire necunoscută „.{ext}” pentru {} (acceptate: .html .csv .tsv .json .txt .xml .tree .veriga)",
+                "unknown output extension “.{ext}” for {} (accepted: .html .csv .tsv .json .txt .xml .tree .veriga)",
                 p.display()
-            );
+            ));
         }
         if let Some(dir) = p.parent().filter(|d| !d.as_os_str().is_empty())
             && !dir.is_dir()
         {
-            bail!("directorul de ieșire {} nu există", dir.display());
+            bail!(trf!(
+                "directorul de ieșire {} nu există",
+                "the output directory {} does not exist",
+                dir.display()
+            ));
         }
     }
     let quiet = cli.quiet;
@@ -351,13 +561,19 @@ async fn main() -> Result<()> {
         let c = ctl.clone();
         tokio::spawn(async move {
             if tokio::signal::ctrl_c().await.is_ok() {
-                eprintln!("\nOprire cerută — se salvează rezultatele parțiale…");
+                eprintln!(
+                    "\n{}",
+                    tr(
+                        "Oprire cerută — se salvează rezultatele parțiale…",
+                        "Stop requested — saving partial results…"
+                    )
+                );
                 c.cancel();
             }
         });
     }
     let (tx, mut rx) = unbounded_channel();
-    let lang = if cli.lang == "en" { "en" } else { "ro" };
+    let lang = i18n::code();
     let printer = tokio::spawn(async move {
         let mut last_line = 0usize;
         while let Some(ev) = rx.recv().await {
@@ -378,8 +594,9 @@ async fn main() -> Result<()> {
                     }
                 }
                 Event::Progress(p) if !quiet && tty => {
-                    let line = format!(
+                    let line = trf!(
                         "  verificate: {} · în coadă: {} · active: {} · rupte: {} · {:.0}s",
+                        "  checked: {} · queued: {} · active: {} · broken: {} · {:.0}s",
                         p.checked,
                         p.queued,
                         p.in_flight,
@@ -399,8 +616,13 @@ async fn main() -> Result<()> {
     });
 
     let session = if let Some(p) = &cli.recheck {
-        let mut s =
-            Session::load(p).with_context(|| format!("nu pot încărca sesiunea {}", p.display()))?;
+        let mut s = Session::load(p).with_context(|| {
+            trf!(
+                "nu pot încărca sesiunea {}",
+                "cannot load the session {}",
+                p.display()
+            )
+        })?;
         // setările de securitate vin din linia de comandă, nu din fișierul sesiunii
         let cur = build_config(&cli)?;
         adopt_security(&mut s.config, &cur);
@@ -416,8 +638,16 @@ async fn main() -> Result<()> {
     } else if !cli.quiet {
         let sm = report::Summary::from(&session);
         eprintln!(
-            "Gata: {} URL-uri · {} OK · {} rupte · {} redirecționări · {} orfane",
-            sm.total, sm.ok, sm.broken, sm.redirected, sm.orphans
+            "{}",
+            trf!(
+                "Gata: {} URL-uri · {} OK · {} rupte · {} redirecționări · {} orfane",
+                "Done: {} URLs · {} OK · {} broken · {} redirects · {} orphans",
+                sm.total,
+                sm.ok,
+                sm.broken,
+                sm.redirected,
+                sm.orphans
+            )
         );
     }
     write_outputs(&session, &cli.out, cli.only_broken)?;
@@ -428,17 +658,27 @@ async fn main() -> Result<()> {
     if session.cancelled || session.truncated {
         if !cli.quiet {
             eprintln!(
-                "Atenție: verificare incompletă ({}) — cod de ieșire 3{}",
-                if session.cancelled {
-                    "oprită / cancelled"
-                } else {
-                    "trunchiată la --max-urls / --max-per-pattern (posibilă capcană) / truncated"
-                },
-                if broken > 0 {
-                    format!(" ({broken} rupte până la oprire)")
-                } else {
-                    String::new()
-                }
+                "{}",
+                trf!(
+                    "Atenție: verificare incompletă ({}) — cod de ieșire 3{}",
+                    "Warning: incomplete check ({}) — exit code 3{}",
+                    if session.cancelled {
+                        tr("oprită", "cancelled")
+                    } else {
+                        tr(
+                            "trunchiată la --max-urls / --max-per-pattern (posibilă capcană)",
+                            "truncated at --max-urls / --max-per-pattern (possible trap)",
+                        )
+                    },
+                    if broken > 0 {
+                        trf!(
+                            " ({broken} rupte până la oprire)",
+                            " ({broken} broken before stopping)"
+                        )
+                    } else {
+                        String::new()
+                    }
+                )
             );
         }
         std::process::exit(3);
@@ -451,6 +691,38 @@ async fn main() -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
+    #[test]
+    fn every_option_has_an_english_help_text() {
+        for a in Cli::command().get_arguments() {
+            let id = a.get_id().as_str();
+            if matches!(id, "help" | "version") {
+                continue;
+            }
+            assert!(
+                HELP_EN.iter().any(|(k, _, _)| *k == id),
+                "lipsește ajutorul în engleză pentru --{id}"
+            );
+        }
+        for (k, _, _) in HELP_EN {
+            assert!(
+                Cli::command().get_arguments().any(|a| a.get_id() == *k),
+                "intrare învechită: {k}"
+            );
+        }
+    }
+
+    #[test]
+    fn lang_flag_beats_environment() {
+        let v = |a: &[&str]| a.iter().map(std::ffi::OsString::from).collect::<Vec<_>>();
+        assert_eq!(pick_lang(&v(&["veriga", "--lang", "en", "x"])), "en");
+        assert_eq!(pick_lang(&v(&["veriga", "--lang=ro"])), "ro");
+        assert_eq!(
+            pick_lang(&v(&["veriga", "--", "--lang", "en"])),
+            i18n::detect()
+        );
+    }
     #[test]
     fn proxy_preset_conflicts_with_manual_proxy() {
         assert!(
@@ -469,7 +741,6 @@ mod tests {
         assert_eq!(cli.proxy_preset.as_deref(), Some("tor"));
     }
 
-    use super::*;
     use clap::CommandFactory;
 
     #[test]

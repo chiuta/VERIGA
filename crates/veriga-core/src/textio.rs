@@ -6,6 +6,8 @@
 //! Dacă decodarea nu e reversibilă sau un caracter nou nu poate fi reprezentat,
 //! scrierea este refuzată (fișierul rămâne neatins).
 
+use crate::i18n::tr;
+use crate::trf;
 use anyhow::{Result, anyhow, bail};
 use encoding_rs::{Encoding, UTF_8, WINDOWS_1250};
 use regex::Regex;
@@ -60,7 +62,12 @@ pub fn decode(bytes: &[u8]) -> Option<Decoded> {
 
 pub fn read(path: &Path) -> Result<Decoded> {
     let bytes = std::fs::read(path)?;
-    decode(&bytes).ok_or_else(|| anyhow!("codificare necunoscută sau nereversibilă"))
+    decode(&bytes).ok_or_else(|| {
+        anyhow!(tr(
+            "codificare necunoscută sau nereversibilă",
+            "unknown or non-reversible encoding"
+        ))
+    })
 }
 
 /// Codifică textul în codificarea originală; eroare dacă apar caractere nereprezentabile.
@@ -70,10 +77,11 @@ pub fn encode(text: &str, enc: &'static Encoding) -> Result<Vec<u8>> {
     }
     let (out, _, unmappable) = enc.encode(text);
     if unmappable {
-        bail!(
+        bail!(trf!(
             "textul nou conține caractere care nu există în {} — fișier neatins",
+            "the new text contains characters that do not exist in {} — file untouched",
             enc.name()
-        );
+        ));
     }
     Ok(out.into_owned())
 }

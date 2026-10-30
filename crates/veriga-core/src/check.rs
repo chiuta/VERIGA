@@ -2,8 +2,10 @@
 
 use crate::config::Config;
 use crate::extract::{RawLink, extract_css, extract_html};
+use crate::i18n::tr;
 use crate::model::*;
 use crate::robots::RobotsCache;
+use crate::trf;
 use crate::urlutil::{is_html_ext, looks_like_html};
 use futures::FutureExt;
 use regex::Regex;
@@ -223,7 +225,11 @@ pub async fn check(sh: Arc<Shared>, t: Task) -> Outcome {
         Err(_) => {
             let mut r = fallback;
             r.status = Status::ClientError;
-            r.message = "eroare internă la verificare".into();
+            r.message = tr(
+                "eroare internă la verificare",
+                "internal error while checking",
+            )
+            .into();
             Outcome {
                 idx,
                 host,
@@ -248,13 +254,22 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
         other => {
             if let Some(want) = crate::urlutil::scheme_typo_target(other) {
                 r.status = Status::InvalidUrl;
-                r.message = format!("schemă greșită „{other}:” — probabil {want}:");
+                r.message = trf!(
+                    "schemă greșită „{other}:” — probabil {want}:",
+                    "wrong scheme “{other}:” — probably {want}:"
+                );
             } else if t.kind == LinkKind::Start {
                 r.status = Status::InvalidUrl;
-                r.message = format!("schemă neacceptată „{other}:” pentru pagina de start");
+                r.message = trf!(
+                    "schemă neacceptată „{other}:” pentru pagina de start",
+                    "unsupported scheme “{other}:” for the start page"
+                );
             } else {
                 r.status = Status::Skipped;
-                r.message = format!("schemă neacceptată „{other}:”");
+                r.message = trf!(
+                    "schemă neacceptată „{other}:”",
+                    "unsupported scheme “{other}:”"
+                );
             }
         }
     }
@@ -353,7 +368,11 @@ fn classify_error(e: &reqwest::Error) -> (Status, String, bool) {
     }
     let l = chain.to_ascii_lowercase();
     if e.is_timeout() || l.contains("timed out") {
-        return (Status::Timeout, "timp de răspuns depășit".into(), true);
+        return (
+            Status::Timeout,
+            tr("timp de răspuns depășit", "response timed out").into(),
+            true,
+        );
     }
     if l.contains("dns")
         || l.contains("failed to lookup")
@@ -365,7 +384,7 @@ fn classify_error(e: &reqwest::Error) -> (Status, String, bool) {
     {
         return (
             Status::DnsFailure,
-            "gazda nu a fost găsită (DNS)".into(),
+            tr("gazda nu a fost găsită (DNS)", "host not found (DNS)").into(),
             true,
         );
     }
@@ -376,14 +395,14 @@ fn classify_error(e: &reqwest::Error) -> (Status, String, bool) {
     {
         return (
             Status::TlsError,
-            format!("eroare TLS: {}", short(&chain)),
+            trf!("eroare TLS: {}", "TLS error: {}", short(&chain)),
             false,
         );
     }
     if e.is_redirect() {
         return (
             Status::TooManyRedirects,
-            "buclă de redirecționări".into(),
+            tr("buclă de redirecționări", "redirect loop").into(),
             false,
         );
     }
@@ -391,20 +410,36 @@ fn classify_error(e: &reqwest::Error) -> (Status, String, bool) {
         return (Status::InvalidUrl, short(&chain), false);
     }
     let msg = if l.contains("socks") || l.contains("proxy") {
-        "proxy-ul nu răspunde sau refuză conexiunea (pornit? adresă/port corecte? pentru Tor/WARP vezi --list-proxy-presets)".to_string()
+        tr("proxy-ul nu răspunde sau refuză conexiunea (pornit? adresă/port corecte? pentru Tor/WARP vezi --list-proxy-presets)", "the proxy is not answering or refuses the connection (is it running? correct address/port? for Tor/WARP see --list-proxy-presets)").to_string()
     } else if l.contains("connection refused") {
-        "conexiune refuzată de server".to_string()
+        tr(
+            "conexiune refuzată de server",
+            "connection refused by the server",
+        )
+        .to_string()
     } else if l.contains("connection reset") || l.contains("broken pipe") {
-        "conexiune resetată de server".to_string()
+        tr(
+            "conexiune resetată de server",
+            "connection reset by the server",
+        )
+        .to_string()
     } else if l.contains("closed before message completed")
         || l.contains("unexpected eof")
         || l.contains("incomplete message")
     {
-        "serverul a închis conexiunea fără să răspundă complet".to_string()
+        tr(
+            "serverul a închis conexiunea fără să răspundă complet",
+            "the server closed the connection without a complete response",
+        )
+        .to_string()
     } else if l.contains("unreachable") {
-        "rețea sau gazdă inaccesibilă".to_string()
+        tr(
+            "rețea sau gazdă inaccesibilă",
+            "network or host unreachable",
+        )
+        .to_string()
     } else {
-        format!("eroare de rețea: {}", short(&chain))
+        trf!("eroare de rețea: {}", "network error: {}", short(&chain))
     };
     (Status::NoConnection, msg, true)
 }
@@ -458,7 +493,11 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
     loop {
         if sh.is_private_target(&cur).await {
             a.status = Some(Status::Skipped);
-            a.msg = "adresă privată/locală blocată (anti-SSRF; vezi --allow-private)".into();
+            a.msg = tr(
+                "adresă privată/locală blocată (anti-SSRF; vezi --allow-private)",
+                "private/local address blocked (anti-SSRF; see --allow-private)",
+            )
+            .into();
             return a;
         }
         let hk = crate::urlutil::host_key(&cur);
@@ -510,7 +549,10 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
             else {
                 a.status = Some(Status::BadRedirect);
                 a.http = Some(code);
-                a.msg = format!("HTTP {code} fără antet Location");
+                a.msg = trf!(
+                    "HTTP {code} fără antet Location",
+                    "HTTP {code} without a Location header"
+                );
                 return a;
             };
             a.chain.push(Hop {
@@ -521,7 +563,11 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
             if hops > cfg.max_redirects {
                 a.status = Some(Status::TooManyRedirects);
                 a.http = Some(code);
-                a.msg = format!("peste {} redirecționări", cfg.max_redirects);
+                a.msg = trf!(
+                    "peste {} redirecționări",
+                    "more than {} redirects",
+                    cfg.max_redirects
+                );
                 return a;
             }
             let next = match cur.join(&loc) {
@@ -529,14 +575,18 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
                 Err(_) => {
                     a.status = Some(Status::BadRedirect);
                     a.http = Some(code);
-                    a.msg = format!("țintă de redirecționare invalidă: {}", short(&loc));
+                    a.msg = trf!(
+                        "țintă de redirecționare invalidă: {}",
+                        "invalid redirect target: {}",
+                        short(&loc)
+                    );
                     return a;
                 }
             };
             if !visited.insert(next.to_string()) {
                 a.status = Some(Status::TooManyRedirects);
                 a.http = Some(code);
-                a.msg = "buclă de redirecționări".into();
+                a.msg = tr("buclă de redirecționări", "redirect loop").into();
                 return a;
             }
             if !matches!(next.scheme(), "http" | "https") {
@@ -545,8 +595,9 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
                 a.status = Some(Status::BadRedirect);
                 a.http = Some(code);
                 a.final_url = Some(format!("{}:…", next.scheme()));
-                a.msg = format!(
+                a.msg = trf!(
                     "redirecționare către schemă neacceptată ({})",
+                    "redirect to an unsupported scheme ({})",
                     next.scheme()
                 );
                 return a;
@@ -595,7 +646,10 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
         let mut st = status_from_code(code);
         if cfg.ignore_status.contains(&code) {
             st = Status::Ok;
-            a.msg = format!("HTTP {code} ignorat conform configurației");
+            a.msg = trf!(
+                "HTTP {code} ignorat conform configurației",
+                "HTTP {code} ignored per configuration"
+            );
         } else if st != Status::Ok {
             a.msg = format!(
                 "HTTP {code} {}",
@@ -666,8 +720,9 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
                     let declared = a.size;
                     a.size = Some(buf.len() as u64);
                     if a.status == Some(Status::Ok) {
-                        a.msg = format!(
+                        a.msg = trf!(
                             "răspuns trunchiat: primit {} din {} octeți",
+                            "truncated response: received {} of {} bytes",
                             buf.len(),
                             declared.map_or("?".to_string(), |d| d.to_string())
                         );
@@ -702,7 +757,7 @@ async fn http_check(sh: &Shared, t: &Task, r: &mut LinkResult) -> Option<Body> {
         }
         if !rules.allowed(&pq) {
             r.status = Status::RobotsBlocked;
-            r.message = "exclus de robots.txt".into();
+            r.message = tr("exclus de robots.txt", "excluded by robots.txt").into();
             return None;
         }
         if let Some(d) = rules.crawl_delay.filter(|d| d.is_finite()) {
@@ -741,7 +796,7 @@ async fn file_check(sh: &Shared, t: &Task, r: &mut LinkResult) -> Option<Body> {
         Ok(p) => p,
         Err(_) => {
             r.status = Status::InvalidUrl;
-            r.message = "cale de fișier invalidă".into();
+            r.message = tr("cale de fișier invalidă", "invalid file path").into();
             return None;
         }
     };
@@ -754,19 +809,20 @@ async fn file_check(sh: &Shared, t: &Task, r: &mut LinkResult) -> Option<Body> {
         Ok(_) if sh.case_mismatch(&path).await.is_some() => {
             let actual = sh.case_mismatch(&path).await.unwrap_or_default();
             r.status = Status::LocalMissing;
-            r.message = format!(
-                "diferență de majuscule: există „{actual}” — pe servere Linux linkul va eșua"
+            r.message = trf!(
+                "diferență de majuscule: există „{actual}” — pe servere Linux linkul va eșua",
+                "case mismatch: “{actual}” exists — the link will fail on Linux servers"
             );
             None
         }
         Ok(m) if m.is_dir() => {
             r.status = Status::Ok;
-            r.message = "director".into();
+            r.message = tr("director", "directory").into();
             None
         }
         Ok(m) if !m.is_file() => {
             r.status = Status::Skipped;
-            r.message = "nu este un fișier obișnuit".into();
+            r.message = tr("nu este un fișier obișnuit", "not a regular file").into();
             None
         }
         Ok(m) => {
@@ -836,10 +892,10 @@ fn mailto_check(t: &Task, r: &mut LinkResult) {
     if dec.trim().is_empty() {
         if query.is_empty() {
             r.status = Status::InvalidEmail;
-            r.message = "adresă de e-mail lipsă".into();
+            r.message = tr("adresă de e-mail lipsă", "missing e-mail address").into();
         } else {
             r.status = Status::Ok;
-            r.message = "mailto fără destinatar".into();
+            r.message = tr("mailto fără destinatar", "mailto without a recipient").into();
         }
         return;
     }
@@ -850,12 +906,16 @@ fn mailto_check(t: &Task, r: &mut LinkResult) {
         }
         if !email_re().is_match(a) {
             r.status = Status::InvalidEmail;
-            r.message = format!("adresă invalidă: {}", short(a));
+            r.message = trf!("adresă invalidă: {}", "invalid address: {}", short(a));
             return;
         }
     }
     r.status = Status::Ok;
-    r.message = "sintaxă validă (existența căsuței nu se verifică)".into();
+    r.message = tr(
+        "sintaxă validă (existența căsuței nu se verifică)",
+        "valid syntax (mailbox existence is not checked)",
+    )
+    .into();
 }
 
 // ───────────────────────────── FTP ─────────────────────────────
@@ -875,14 +935,14 @@ async fn ftp_reply<R: tokio::io::AsyncBufRead + Unpin>(
         if n == 0 {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::UnexpectedEof,
-                "conexiune închisă",
+                tr("conexiune închisă", "connection closed"),
             ));
         }
         lines += 1;
         if (n as u64 >= MAX_LINE && !line.ends_with('\n')) || lines > MAX_LINES {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
-                "răspuns FTP prea lung",
+                tr("răspuns FTP prea lung", "FTP response too long"),
             ));
         }
         let l = line.trim_end();
@@ -946,7 +1006,10 @@ async fn ftp_probe(u: &Url) -> Result<(Option<u64>, String), (Status, String)> {
         .map_err(|e| {
             let m = e.to_string().to_ascii_lowercase();
             if m.contains("lookup") || m.contains("resolve") || m.contains("name or service") {
-                (Status::DnsFailure, "gazda FTP nu a fost găsită".to_string())
+                (
+                    Status::DnsFailure,
+                    tr("gazda FTP nu a fost găsită", "FTP host not found").to_string(),
+                )
             } else {
                 (Status::NoConnection, short(&e.to_string()))
             }
@@ -958,7 +1021,11 @@ async fn ftp_probe(u: &Url) -> Result<(Option<u64>, String), (Status, String)> {
     if code != 220 {
         return Err((
             Status::FtpError,
-            format!("salut neașteptat: {}", short(&txt)),
+            trf!(
+                "salut neașteptat: {}",
+                "unexpected greeting: {}",
+                short(&txt)
+            ),
         ));
     }
     let user = percent_encoding::percent_decode_str(u.username())
@@ -992,14 +1059,22 @@ async fn ftp_probe(u: &Url) -> Result<(Option<u64>, String), (Status, String)> {
             if c2 != 230 {
                 return Err((
                     Status::FtpError,
-                    format!("autentificare refuzată: {}", short(&t2)),
+                    trf!(
+                        "autentificare refuzată: {}",
+                        "authentication refused: {}",
+                        short(&t2)
+                    ),
                 ));
             }
         }
         _ => {
             return Err((
                 Status::FtpError,
-                format!("autentificare refuzată: {}", short(&txt)),
+                trf!(
+                    "autentificare refuzată: {}",
+                    "authentication refused: {}",
+                    short(&txt)
+                ),
             ));
         }
     }
@@ -1026,7 +1101,7 @@ async fn ftp_probe(u: &Url) -> Result<(Option<u64>, String), (Status, String)> {
                 .split_whitespace()
                 .nth(1)
                 .and_then(|s| s.parse::<u64>().ok());
-            result = Ok((size, "fișier FTP".into()));
+            result = Ok((size, tr("fișier FTP", "FTP file").into()));
         } else if c == 550 {
             let (c2, _) = ftp_cmd(&mut wr, &mut rd, &format!("CWD {path}"))
                 .await
@@ -1034,12 +1109,19 @@ async fn ftp_probe(u: &Url) -> Result<(Option<u64>, String), (Status, String)> {
             result = if c2 == 250 {
                 Ok((None, "director FTP".into()))
             } else {
-                Err((Status::FtpError, "fișierul nu există (550)".into()))
+                Err((
+                    Status::FtpError,
+                    tr("fișierul nu există (550)", "file does not exist (550)").into(),
+                ))
             };
         } else if c == 500 || c == 502 || c == 504 {
             result = Ok((
                 None,
-                "serverul nu acceptă SIZE; existența nu a putut fi confirmată".into(),
+                tr(
+                    "serverul nu acceptă SIZE; existența nu a putut fi confirmată",
+                    "the server does not support SIZE; existence could not be confirmed",
+                )
+                .into(),
             ));
         } else {
             result = Err((Status::FtpError, short(&t)));
@@ -1052,14 +1134,18 @@ async fn ftp_probe(u: &Url) -> Result<(Option<u64>, String), (Status, String)> {
 async fn ftp_check(sh: &Shared, t: &Task, r: &mut LinkResult) {
     if sh.is_private_target(&t.url).await {
         r.status = Status::Skipped;
-        r.message = "adresă privată/locală blocată (anti-SSRF; vezi --allow-private)".into();
+        r.message = tr(
+            "adresă privată/locală blocată (anti-SSRF; vezi --allow-private)",
+            "private/local address blocked (anti-SSRF; see --allow-private)",
+        )
+        .into();
         return;
     }
     let to = Duration::from_secs(sh.cfg.timeout_secs.max(1));
     match tokio::time::timeout(to, ftp_probe(&t.url)).await {
         Err(_) => {
             r.status = Status::Timeout;
-            r.message = "timp de răspuns FTP depășit".into();
+            r.message = tr("timp de răspuns FTP depășit", "FTP response timed out").into();
         }
         Ok(Ok((size, msg))) => {
             r.status = Status::Ok;
