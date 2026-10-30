@@ -35,10 +35,10 @@ def build(l):
     s = EL.sub(sub, s)
     s = s.replace('<html lang="ro">', f'<html lang="{l}">', 1)
     title, desc = META[l]
-    s = re.sub(r'<title>.*?</title>', lambda m: f'<title>{html.escape(title, quote=False)}</title>', s, 1)
-    s = re.sub(r'(<meta name="description" content=")[^"]*(")', lambda m: m.group(1) + html.escape(desc) + m.group(2), s, 1)
-    s = re.sub(r'(<meta property="og:title" content=")[^"]*(")', lambda m: m.group(1) + html.escape(title) + m.group(2), s, 1)
-    s = re.sub(r'(<meta property="og:description" content=")[^"]*(")', lambda m: m.group(1) + html.escape(desc) + m.group(2), s, 1)
+    s = re.sub(r'<title>.*?</title>', lambda m: f'<title>{html.escape(title, quote=False)}</title>', s, count=1)
+    s = re.sub(r'(<meta name="description" content=")[^"]*(")', lambda m: m.group(1) + html.escape(desc) + m.group(2), s, count=1)
+    s = re.sub(r'(<meta property="og:title" content=")[^"]*(")', lambda m: m.group(1) + html.escape(title) + m.group(2), s, count=1)
+    s = re.sub(r'(<meta property="og:description" content=")[^"]*(")', lambda m: m.group(1) + html.escape(desc) + m.group(2), s, count=1)
     s = s.replace('content="ro_RO"', f'content="{LOCALE[l]}"', 1)
     s = s.replace(f'<meta property="og:url" content="{SITE}">', f'<meta property="og:url" content="{url(l)}">', 1)
     s = s.replace(CANON, f'<link rel="canonical" href="{url(l)}">\n', 1)
@@ -47,9 +47,9 @@ def build(l):
     s = s.replace('href="web/veriga.html"', 'href="../web/veriga.html"').replace('href="app/"', 'href="../app/"')
     # limba este cea a paginii; selectorul duce la pagina limbii alese
     s, n = re.subn(r"let LANG = \(\(\) => \{.*?\}\)\(\);", f"let LANG = '{l}';", s, count=1, flags=re.S); assert n == 1
-    s, n = re.subn(r"if \(LANGS\.some\(l => l\[0\] === s\)\) LANG = s;\n?", '', s, 1); assert n == 1
+    s, n = re.subn(r"if \(LANGS\.some\(l => l\[0\] === s\)\) LANG = s;\n?", '', s, count=1); assert n == 1
     s, n = re.subn(r"\$\('#lang'\)\.addEventListener\('change', e => \{ LANG = e\.target\.value; lsSet\('veriga\.site\.lang', LANG\); applyLang\(\); \}\);",
-                   "$('#lang').addEventListener('change', e => { const n = e.target.value; lsSet('veriga.site.lang', n); location.href = n === 'ro' ? '../' : (n === LANG ? '' : '../' + n + '/'); });", s, 1); assert n == 1
+                   "$('#lang').addEventListener('change', e => { const n = e.target.value; lsSet('veriga.site.lang', n); location.href = n === 'ro' ? '../' : (n === LANG ? '' : '../' + n + '/'); });", s, count=1); assert n == 1
     return s
 
 out = {src_path: src}
