@@ -80,7 +80,11 @@ for p, t in out.items():
     if p.endswith('.html'): t = stamped(t)
     if CHECK:
         cur = pathlib.Path(p).read_text(encoding='utf-8') if os.path.exists(p) else None
-        if cur != t: print('învechit:', os.path.relpath(p, root)); bad += 1
+        if cur != t:
+            print('învechit:', os.path.relpath(p, root)); bad += 1
+            import difflib
+            d = list(difflib.unified_diff((cur or '').splitlines(), t.splitlines(), 'repo', 'generat', lineterm='', n=0))
+            for ln in d[:12]: print('   ', ln[:200])
     else:
         os.makedirs(os.path.dirname(p), exist_ok=True)
         pathlib.Path(p).write_text(t, encoding='utf-8')
