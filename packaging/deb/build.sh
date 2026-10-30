@@ -1,7 +1,7 @@
 #!/bin/bash
 # Construiește .deb și .rpm din binarul musl static deja compilat.
 # Utilizare: packaging/deb/build.sh <versiune> <rust-target> <binar> <outdir>
-#   ex.: packaging/deb/build.sh 1.0.3 x86_64-unknown-linux-musl target/x86_64-unknown-linux-musl/release/veriga dist
+#   ex.: packaging/deb/build.sh 1.1.0 x86_64-unknown-linux-musl target/x86_64-unknown-linux-musl/release/veriga dist
 set -euo pipefail
 ver=$1; target=$2; bin=$3; out=$4
 root=$(cd "$(dirname "$0")/../.." && pwd)

@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+## [1.1.0] — 2026-10-30
+
 ### Adăugat
 - CLI, GUI și ghidul `guardian` bilingve (ro/en): limba se alege cu `--lang`, apoi `VERIGA_LANG`, apoi `LC_ALL`/`LC_MESSAGES`/`LANG` (`ro*` → română, orice altceva → engleză; fără nimic setat rămâne româna). Textele `--help` sunt traduse. / CLI, GUI and the `guardian` wizard are now bilingual.
 - Pagini statice per limbă (`/en/`, `/fr/`, `/it/`, `/es/`, `/pt/`, `/de/`, `/hu/`) cu `hreflang` pe toate paginile și alternate în `sitemap.xml`; generate de `web/build-i18n.py` (CI verifică cu `--check`).

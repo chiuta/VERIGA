@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/veriga-core", "crates/veriga-cli", "crates/veriga-gui", "crates/veriga-launcher"]
 
 [workspace.package]
-version = "1.0.3"
+version = "1.1.0"
 edition = "2024"
 rust-version = "1.88"
 license = "MIT"
