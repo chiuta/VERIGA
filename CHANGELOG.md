@@ -4,6 +4,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+### Adăugat
+- Lanțul de surse „fără frontiere” (plic FFF): `--fff-in FISIER` citește un plic `citation/csl` (de ex. din `tezaur bib --fff-out`), iar URL-urile și DOI-urile (`https://doi.org/…`) devin puncte de start cu adâncime 0; `--fff-out FISIER` scrie plicul cu fiecare referință adnotată în `custom.veriga` (`status`: `ok`, `redirected`, `broken`, `unreachable`, `unchecked`, `no-link`, `bad-doi`; `checked`; `http`; `doi_syntax`). Fără legături de verificat nu se face nicio cerere de rețea (referințele rămân `no-link`); lipsa rețelei dă `unreachable`, nu „rupt”. / FFF envelope support for the offline source chain LegatorOCR -> TEZAUR -> VERIGA -> AcademiSearch.
+
 ## [1.1.0] — 2026-10-30
 
 ### Adăugat

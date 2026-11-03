@@ -1,5 +1,6 @@
 //! VERIGA — verificator de legături în linie de comandă.
 
+mod fff;
 mod guardian;
 
 use anyhow::{Context, Result, anyhow, bail};
@@ -155,6 +156,14 @@ struct Cli {
     /// Reverifică doar linkurile rupte dintr-o sesiune salvată
     #[arg(long, value_name = "FISIER")]
     recheck: Option<PathBuf>,
+    /// Plic FFF (.fff.json) `citation/csl` de verificat (ex. din `tezaur bib --fff-out`): URL-urile și DOI-urile devin
+    /// puncte de start (adâncime 0); fără legături nu se face nicio cerere. Folosește cu --fff-out.
+    #[arg(long, value_name = "FISIER")]
+    fff_in: Option<PathBuf>,
+    /// Scrie plicul FFF `citation/csl` cu fiecare referință adnotată (custom.veriga: status, checked, http) pentru
+    /// AcademiSearch. Fără rețea rezultatele rămân „unchecked”; nu se inventează verdicte. Cere --fff-in.
+    #[arg(long, value_name = "FISIER")]
+    fff_out: Option<PathBuf>,
     /// Fișier de ieșire; formatul se alege după extensie: .html .csv .tsv .json .txt .xml (sitemap) .tree .veriga (sesiune). Repetabil.
     #[arg(short = 'o', long = "out", value_name = "FISIER")]
     out: Vec<PathBuf>,
@@ -431,6 +440,16 @@ const HELP_EN: &[(&str, &str, Option<&str>)] = &[
         Some("URL"),
     ),
     (
+        "fff_in",
+        "FFF envelope (.fff.json) of type citation/csl to check (e.g. from `tezaur bib --fff-out`): URLs and DOIs become start points (depth 0); with no links no request is made. Use with --fff-out",
+        Some("FILE"),
+    ),
+    (
+        "fff_out",
+        "Write the FFF citation/csl envelope with every reference annotated (custom.veriga: status, checked, http) for AcademiSearch. Offline results stay \"unchecked\"; no verdicts are invented. Needs --fff-in",
+        Some("FILE"),
+    ),
+    (
         "recheck",
         "Re-check only the broken links of a saved session",
         Some("FILE"),
@@ -495,10 +514,40 @@ async fn main() -> Result<()> {
         argv.remove(1);
     }
     i18n::set(&pick_lang(&argv));
-    let cli = match localized_command().try_get_matches_from(argv) {
+    let mut cli = match localized_command().try_get_matches_from(argv) {
         Ok(m) => Cli::from_arg_matches(&m).unwrap_or_else(|e| e.exit()),
         Err(e) => e.exit(),
     };
+    // Lanțul de surse (plic FFF): referințele din plic → puncte de start; fără legături nu pornește motorul.
+    let mut fff_input: Option<fff::Input> = None;
+    if cli.fff_out.is_some() && cli.fff_in.is_none() {
+        bail!(tr("--fff-out cere --fff-in", "--fff-out needs --fff-in"));
+    }
+    if let Some(p) = &cli.fff_in {
+        let inp = fff::read(p).with_context(|| trf!("plic FFF necitibil: {}", "cannot read the FFF envelope: {}", p.display()))?;
+        let links: Vec<String> = inp.items.iter().filter_map(fff::link_of).collect();
+        if !cli.no_external {
+            cli.start.extend(links);
+        }
+        if cli.depth.is_none() {
+            cli.depth = Some(0);
+        }
+        fff_input = Some(inp);
+    }
+    if let Some(inp) = &fff_input {
+        if cli.start.is_empty() && cli.recheck.is_none() {
+            // nimic de verificat în rețea: se adnotează local și se iese
+            let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
+            if let Some(o) = &cli.fff_out {
+                let items = fff::annotate(&inp.items, None, &now);
+                std::fs::write(o, fff::envelope(inp, items, &now)).with_context(|| trf!("nu pot scrie {}", "cannot write {}", o.display()))?;
+                if !cli.quiet {
+                    eprintln!("{}", trf!("Plic FFF scris: {} (fără legături de verificat în rețea)", "FFF envelope written: {} (no network links to check)", o.display()));
+                }
+            }
+            return Ok(());
+        }
+    }
     if cli.list_proxy_presets {
         for p in veriga_core::proxy::PRESETS {
             println!(
@@ -651,6 +700,14 @@ async fn main() -> Result<()> {
         );
     }
     write_outputs(&session, &cli.out, cli.only_broken)?;
+    if let (Some(inp), Some(o)) = (&fff_input, &cli.fff_out) {
+        let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
+        let items = fff::annotate(&inp.items, Some(&session), &now);
+        std::fs::write(o, fff::envelope(inp, items, &now)).with_context(|| trf!("nu pot scrie {}", "cannot write {}", o.display()))?;
+        if !cli.quiet {
+            eprintln!("→ {}", o.display());
+        }
+    }
 
     let broken = session.broken_count();
     let _ = Arc::strong_count(&ctl);
