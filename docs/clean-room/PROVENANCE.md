@@ -20,9 +20,33 @@ Folosește fluxul din acest kit (1-analiza → 2-filtru → 3-implementare). Ori
 ## Recomandare
 Pentru lansări comerciale sau donații semnificative, cere o opinie de la un avocat de proprietate intelectuală și fă căutare de mărci (EUIPO), cum ai făcut pentru OSATURA.
 
-## Constatări din audit automat (2026-11-08, doar observații)
-- Numele „Xenu” apare doar într-un comentariu (`veriga-core/src/config.rs`: terminologie pentru „threads”) și în `CONTRIBUTING.md` (interdicția de a copia cod/resurse). Nu s-au găsit alte urme ale țintei în sursă.
-- 490 de dependențe, 39 de licențe distincte. Singurele expresii cu GPL/LGPL sunt duale și oferă alternativă permisivă: `self_cell` (Apache-2.0 OR GPL-2.0-only), `r-efi` (MIT OR Apache-2.0 OR LGPL-2.1-or-later).
-- Nicio dependență fără licență declarată.
+## Constatări din audit adversarial (2026-11-08) — fapte verificate în repo
 
-**Limite ale auditului:** căutarea după nume nu poate detecta cod copiat fără nume. Rămân de răspuns întrebările din secțiunea „Ce a existat până acum".
+**Corectură:** o versiune anterioară a acestei secțiuni spunea că „Xenu" apare doar într-un comentariu și în `CONTRIBUTING.md`. Era greșit; auditul inițial a căutat doar în cod. Mențiunile reale sunt mai jos.
+
+### Istoric
+- Tot proiectul a intrat într-un singur commit: `07f1b35` (2026-10-27, 42 de fișiere, 18.299 de linii). Nu există istoric incremental care să dovedească evoluția independentă a codului.
+- Commit-urile poartă `Co-Authored-By: Claude`: codul a fost scris în mare parte cu un model AI. Titularul drepturilor asupra părții generate și eventualele influențe din datele de antrenare ale modelului nu pot fi stabilite din repo.
+- Licența a fost schimbată din `MIT OR Apache-2.0` în MIT în `9093b22` (2026-10-28), la o zi după 1.0.0. Copiile obținute înainte sub Apache-2.0 rămân valabile sub acel termen.
+- Kitul clean-room din `docs/clean-room/` a fost adăugat după fapt (2026-11-08). Folderele `evidence/`, `candidat/`, `spec/` și `src/` sunt goale: **nu a existat separare analiză/implementare și nicio specificație filtrată**.
+
+### Mențiuni ale țintei (15 fișiere)
+`CONTRIBUTING.md`, `config.rs:39` („Xenu: threads"), `index.html` și cele 7 variante lingvistice (câte 2 apariții; ex. „replică clean-room a funcțiilor Xenu Link Sleuth"), `Dockerfile`, `packaging/docker/Dockerfile.release`, `packaging/deb/build.sh`, `packaging/yunohost/manifest.toml`, `packaging/yunohost/doc/DESCRIPTION.md`.
+
+### Constatări
+- **Termenul „clean-room" nu e susținut în sens strict.** Formularea apărabilă pe fapte: *implementare independentă, fără acces la codul sau binarul Xenu*. Nu pretinde mai mult decât poți dovedi.
+- **„Replică a funcțiilor Xenu"** (site, metadate de pachet) arată că setul de funcții al țintei a fost urmărit și folosește numele unui produs terț în metadate comerciale. Recomandare: descrie funcția („link checker"), elimină „Xenu-like" din pachete, menționează Xenu cel mult factual și cu precizarea că nu ești afiliat.
+- `threads: 30` (`config.rs:108`) pare să coincidă cu valoarea implicită a Xenu din cunoștințele auditorului; neverificat din sursă oficială. Valoare generică, risc scăzut.
+- Coloanele CSV/TSV din `report.rs` (Address, Status-Code, Status, Type, …) nu au putut fi comparate cu un export Xenu real. De verificat manual doar ca output; dacă ordinea e identică, schimb-o.
+- Nu s-au găsit antete de copyright străine, comentarii „adapted from/ported from", URL-uri către cod terț sau texte/asset-uri Xenu.
+- Fonturile din `assets/fonts/` sunt terțe sub OFL-1.1; `portableapps/.../readme.txt:19` le descrie greșit ca „proprii". De corectat.
+- Pachetele (.deb, portable, Docker) nu includ note de licență pentru dependențe (Apache-2.0, BSD, ISC, MPL, OFL cer păstrarea notelor). Recomandare: generează `THIRD-PARTY-LICENSES` (`cargo about`) și include-l.
+- Dependențe: 490 de pachete externe, toate cu licență declarată; expresiile cu GPL/LGPL (`self_cell`, `r-efi`) sunt duale cu alternativă permisivă; câteva crate-uri MPL-2.0 (copyleft la nivel de fișier).
+- Funcțiile din Trade-Free Link Guardian: README spune că lista a fost reconstruită din descrierea publică și „conversații anterioare", nu din codul pluginului. Documentează titularul și licența pluginului original.
+
+### De completat de către titular (nu pot fi deduse din repo)
+- Dacă sesiunile de dezvoltare au avut acces la codul/binarul Xenu sau la documentația lui: ______
+- Dacă EULA Xenu a fost citit și ce clauze are: ______
+- Titularul și licența Trade-Free Link Guardian: ______
+
+**Limite:** nu s-a avut acces la Xenu; căutarea după nume nu detectează copierea fără nume. Nu este opinie juridică.
