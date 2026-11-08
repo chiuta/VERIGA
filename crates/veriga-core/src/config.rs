@@ -128,7 +128,7 @@ impl Default for Config {
             internal_hosts: vec![],
             ignore_status: vec![],
             user_agent: format!(
-                "Veriga/{} (+link-checker; clean-room)",
+                "Veriga/{} (+link-checker)",
                 env!("CARGO_PKG_VERSION")
             ),
             respect_robots: true,
