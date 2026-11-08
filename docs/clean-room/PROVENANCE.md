@@ -19,3 +19,10 @@ Folosește fluxul din acest kit (1-analiza → 2-filtru → 3-implementare). Ori
 
 ## Recomandare
 Pentru lansări comerciale sau donații semnificative, cere o opinie de la un avocat de proprietate intelectuală și fă căutare de mărci (EUIPO), cum ai făcut pentru OSATURA.
+
+## Constatări din audit automat (2026-11-08, doar observații)
+- Numele „Xenu” apare doar într-un comentariu (`veriga-core/src/config.rs`: terminologie pentru „threads”) și în `CONTRIBUTING.md` (interdicția de a copia cod/resurse). Nu s-au găsit alte urme ale țintei în sursă.
+- 490 de dependențe, 39 de licențe distincte. Singurele expresii cu GPL/LGPL sunt duale și oferă alternativă permisivă: `self_cell` (Apache-2.0 OR GPL-2.0-only), `r-efi` (MIT OR Apache-2.0 OR LGPL-2.1-or-later).
+- Nicio dependență fără licență declarată.
+
+**Limite ale auditului:** căutarea după nume nu poate detecta cod copiat fără nume. Rămân de răspuns întrebările din secțiunea „Ce a existat până acum".
