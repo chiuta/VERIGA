@@ -44,9 +44,11 @@ Pentru lansări comerciale sau donații semnificative, cere o opinie de la un av
 - Dependențe: 490 de pachete externe, toate cu licență declarată; expresiile cu GPL/LGPL (`self_cell`, `r-efi`) sunt duale cu alternativă permisivă; câteva crate-uri MPL-2.0 (copyleft la nivel de fișier).
 - Funcțiile din Trade-Free Link Guardian: README spune că lista a fost reconstruită din descrierea publică și „conversații anterioare", nu din codul pluginului. Documentează titularul și licența pluginului original.
 
-### De completat de către titular (nu pot fi deduse din repo)
-- Dacă sesiunile de dezvoltare au avut acces la codul/binarul Xenu sau la documentația lui: ______
-- Dacă EULA Xenu a fost citit și ce clauze are: ______
-- Titularul și licența Trade-Free Link Guardian: ______
+### Completat din istoricul conversațiilor Claude (2026-11-08)
+Sursa: conversația claude.ai 385f3bdf-… (dezvoltare VERIGA) și 
+ec6ab1f3-… (plugin Trade-Free Link Guardian). Nu au fost citite integral.
+- **Acces la Xenu:** în porțiunile citite, sesiunea a pornit doar de la cererea titularului și de la o verificare a toolchain-ului. Nu apare descărcare, rulare sau decompilare a Xenu ori citirea documentației lui. Absența nu este dovedită pentru ture necitite. Titularul confirmă: ______
+- **EULA Xenu:** nu apare în istoricul citit că ar fi fost citit. Neconfirmat; de verificat de titular: ______
+- **Trade-Free Link Guardian:** plugin construit pentru titular (Alexio) de Claude în conversații din septembrie 2026; proprietar de drepturi: titularul, în măsura în care nu există contribuții terțe. Licența plugin-ului rămâne de stabilit explicit: ______
 
 **Limite:** nu s-a avut acces la Xenu; căutarea după nume nu detectează copierea fără nume. Nu este opinie juridică.
