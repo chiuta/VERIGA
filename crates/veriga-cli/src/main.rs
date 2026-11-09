@@ -697,13 +697,14 @@ async fn main() -> Result<()> {
             .unwrap_or("")
             .to_ascii_lowercase();
         if ![
-            "html", "htm", "csv", "tsv", "json", "txt", "log", "xml", "tree", "veriga",
+            "html", "htm", "csv", "tsv", "json", "txt", "log", "xml", "tree", "veriga", "sarif",
+            "junit",
         ]
         .contains(&ext.as_str())
         {
             bail!(trf!(
-                "extensie de ieșire necunoscută „.{ext}” pentru {} (acceptate: .html .csv .tsv .json .txt .xml .tree .veriga)",
-                "unknown output extension “.{ext}” for {} (accepted: .html .csv .tsv .json .txt .xml .tree .veriga)",
+                "extensie de ieșire necunoscută „.{ext}” pentru {} (acceptate: .html .csv .tsv .json .txt .xml .sarif .junit .tree .veriga)",
+                "unknown output extension “.{ext}” for {} (accepted: .html .csv .tsv .json .txt .xml .sarif .junit .tree .veriga)",
                 p.display()
             ));
         }
