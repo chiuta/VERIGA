@@ -118,6 +118,9 @@ struct Cli {
     /// Pornește și din sitemap.xml
     #[arg(long)]
     sitemap: bool,
+    /// Verifică legăturile din câmpurile HTTP Link (RFC 8288) ale paginilor parcurse
+    #[arg(long)]
+    check_link_header: bool,
     /// Semnalează legăturile fără nume accesibil sau cu nume nesemnificativ (WCAG 2.4.4)
     #[arg(long)]
     check_link_names: bool,
@@ -225,6 +228,7 @@ fn build_config(c: &Cli) -> Result<Config> {
     cfg.seed_sitemaps = c.sitemap;
     cfg.honor_nofollow = c.honor_nofollow;
     cfg.check_nonweb = c.check_schemes;
+    cfg.check_link_header = c.check_link_header;
     cfg.check_link_names = c.check_link_names;
     cfg.check_ambiguous_names = c.check_ambiguous_names;
     cfg.ignore_tls_errors = c.insecure;
@@ -428,6 +432,11 @@ const HELP_EN: &[(&str, &str, Option<&str>)] = &[
     ("user_agent", "The User-Agent header", None),
     ("no_robots", "Ignore robots.txt", None),
     ("sitemap", "Also start from sitemap.xml", None),
+    (
+        "check_link_header",
+        "Check links declared in the HTTP Link header (RFC 8288) of crawled pages",
+        None,
+    ),
     (
         "check_link_names",
         "Flag links without an accessible name or with a meaningless name (WCAG 2.4.4)",

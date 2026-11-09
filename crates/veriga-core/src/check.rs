@@ -39,6 +39,8 @@ pub struct Outcome {
     pub anchors: Option<HashSet<String>>,
     /// Constatări de accesibilitate ale numelor de legături din pagină.
     pub a11y: Vec<crate::a11y::A11yFinding>,
+    /// Avertismente de sintaxă (de pildă antetul `Link`).
+    pub warnings: Vec<String>,
 }
 
 /// Pauză minimă între cererile către aceeași gazdă.
@@ -214,6 +216,8 @@ struct Attempt {
     size: Option<u64>,
     last_modified: Option<String>,
     body: Option<Body>,
+    /// Valorile câmpurilor `Link` ale răspunsului final (dacă sunt cerute).
+    link_values: Vec<String>,
     retryable: bool,
     retry_after_ms: Option<u64>,
 }
@@ -240,6 +244,7 @@ pub async fn check(sh: Arc<Shared>, t: Task) -> Outcome {
                 bad: vec![],
                 anchors: None,
                 a11y: vec![],
+                warnings: vec![],
             }
         }
     }
@@ -249,8 +254,9 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
     let started = Instant::now();
     let mut r = LinkResult::new(t.url.as_str(), t.kind, t.depth, t.internal);
     let mut body: Option<Body> = None;
+    let mut link_values: Vec<String> = vec![];
     match t.url.scheme() {
-        "http" | "https" => body = http_check(&sh, &t, &mut r).await,
+        "http" | "https" => body = http_check(&sh, &t, &mut r, &mut link_values).await,
         "file" => body = file_check(&sh, &t, &mut r).await,
         "ftp" => ftp_check(&sh, &t, &mut r).await,
         "mailto" => mailto_check(&t, &mut r),
@@ -333,6 +339,28 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
         r.parsed = true;
         r.links_found = links.len() as u32;
     }
+    let mut warnings: Vec<String> = vec![];
+    if !link_values.is_empty() {
+        let req = r
+            .final_url
+            .as_deref()
+            .and_then(|u| Url::parse(u).ok())
+            .unwrap_or_else(|| t.url.clone());
+        let parsed = crate::linkheader::parse(&link_values, &req, sh.cfg.max_link_header_links);
+        for h in parsed.links {
+            if h.target == req {
+                continue; // «<>» sau auto-referință: nu se verifică a doua oară
+            }
+            links.push(crate::linkheader::to_raw_link(h));
+        }
+        warnings.extend(
+            parsed
+                .warnings
+                .into_iter()
+                .map(|w| format!("{}: {w}", req.as_str())),
+        );
+        r.links_found = links.len() as u32;
+    }
     r.elapsed_ms = started.elapsed().as_millis() as u64;
     Outcome {
         idx: t.idx,
@@ -342,6 +370,7 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
         bad,
         anchors,
         a11y,
+        warnings,
     }
 }
 
@@ -675,6 +704,13 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
         });
         a.last_modified = lm;
         a.size = cl;
+        if cfg.check_link_header && t.parse && code < 300 {
+            a.link_values = headers
+                .get_all(reqwest::header::LINK)
+                .iter()
+                .filter_map(|v| v.to_str().ok().map(str::to_string))
+                .collect();
+        }
         if !a.chain.is_empty() || cur != t.url {
             a.final_url = Some(cur.to_string());
         }
@@ -779,7 +815,12 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
 /// Limita superioară a reîncercărilor (protecție la valori absurde din configurație).
 pub const MAX_RETRIES: u32 = 10;
 
-async fn http_check(sh: &Shared, t: &Task, r: &mut LinkResult) -> Option<Body> {
+async fn http_check(
+    sh: &Shared,
+    t: &Task,
+    r: &mut LinkResult,
+    link_values: &mut Vec<String>,
+) -> Option<Body> {
     let cfg = &sh.cfg;
     let mut delay = Duration::from_millis(cfg.delay_ms);
     // Pagina de start a fost cerută explicit de utilizator: robots.txt nu o poate
@@ -822,6 +863,7 @@ async fn http_check(sh: &Shared, t: &Task, r: &mut LinkResult) -> Option<Body> {
     r.content_type = last.ctype;
     r.size = last.size;
     r.last_modified = last.last_modified;
+    *link_values = last.link_values;
     last.body
 }
 

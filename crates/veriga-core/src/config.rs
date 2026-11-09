@@ -86,6 +86,10 @@ pub struct Config {
     pub check_nonweb: bool,
     /// Semnalează legăturile fără nume accesibil sau cu nume nesemnificativ.
     pub check_link_names: bool,
+    /// Verifică legăturile declarate în câmpurile HTTP `Link` ale paginilor parcurse.
+    pub check_link_header: bool,
+    /// Plafon de legături citite dintr-un antet `Link`.
+    pub max_link_header_links: usize,
     /// Semnalează și numele identice spre adrese diferite (notă informativă).
     pub check_ambiguous_names: bool,
     pub ignore_tls_errors: bool,
@@ -144,6 +148,8 @@ impl Default for Config {
             honor_nofollow: false,
             check_nonweb: false,
             check_link_names: false,
+            check_link_header: false,
+            max_link_header_links: 100,
             check_ambiguous_names: false,
             ignore_tls_errors: false,
             cookies: true,

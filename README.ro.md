@@ -46,6 +46,8 @@ antete și cookie-uri, certificate invalide, pauză între cereri.
 
 `--check-link-names` — calculează numele accesibil al fiecărui `<a href>` (aria-labelledby, aria-label, conținut incl. `alt` de imagine, apoi `title`; conținutul ascuns se ignoră) și raportează legăturile fără nume sau doar cu semne de punctuație (WCAG 2.4.4 / 4.1.2) în rapoartele text și JSON (`a11y`). `--check-ambiguous-names` adaugă o notă informativă când nume identice (fără distincție majuscule) duc la adrese diferite în aceeași pagină. Ambele sunt dezactivate implicit.
 
+`--check-link-header` — citește câmpurile HTTP `Link` (RFC 8288) ale paginilor parcurse și verifică fiecare țintă declarată ca orice altă legătură (sursa = pagina cerută, afișată „Link header: …”; jetoanele `rel` se păstrează). Valorile malformate sunt omise cu un avertisment (rapoartele text/JSON, `warnings`); se citesc cel mult 100 de legături per răspuns. Implicit dezactivat.
+
 ## Proxy-uri gratuite și etice
 
 Alege un preset cu `--proxy-preset tor|tor-browser|warp` (listă: `--list-proxy-presets`) sau, în GUI, din „Proxy gratuit etic…”. Toate sunt puncte SOCKS5 locale (`socks5h://127.0.0.1:…`), deci numele sunt rezolvate de proxy, nu de sistemul tău. Tor (voluntari, fără profit, cod deschis) este alegerea recomandată; verificarea e limitată la 4 fire și 2 conexiuni per server, iar unele site-uri blochează ieșirile Tor, deci pot apărea false „linkuri rupte”. Cloudflare WARP e gratuit, dar este un serviciu comercial cu client închis. Listele de proxy-uri publice deschise lipsesc intenționat: sunt adesea compromise sau interceptează traficul. Proxy-ul propriu rămâne disponibil cu `--proxy`.

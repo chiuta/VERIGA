@@ -91,6 +91,7 @@ struct Coord {
     /// ținte al căror `parse` a fost oprit doar din cauza lui nofollow
     nofollow_idx: HashSet<usize>,
     a11y: Vec<crate::a11y::A11yFinding>,
+    warnings: Vec<String>,
     alias_forms: HashMap<String, BTreeMap<String, BTreeSet<String>>>,
 }
 
@@ -126,6 +127,7 @@ impl Coord {
             start_urls: vec![],
             nofollow_idx: HashSet::new(),
             a11y: vec![],
+            warnings: vec![],
             alias_forms: HashMap::new(),
         })
     }
@@ -532,6 +534,7 @@ impl Coord {
             }
         }
         self.a11y.extend(o.a11y);
+        self.warnings.extend(o.warnings);
         self.done += 1;
         if res.status.is_broken(&self.cfg) {
             self.broken += 1;
@@ -925,6 +928,7 @@ pub async fn run(
     co.emit(Event::Finished);
 
     let aliases = co.alias_groups();
+    let warnings = std::mem::take(&mut co.warnings);
     let mut a11y = std::mem::take(&mut co.a11y);
     a11y.sort();
     let mut config = (*cfg).clone();
@@ -941,6 +945,7 @@ pub async fn run(
         cancelled,
         aliases,
         a11y,
+        warnings,
     })
 }
 
@@ -1009,6 +1014,7 @@ pub async fn recheck(
         cancelled,
         aliases: session.aliases,
         a11y: session.a11y,
+        warnings: session.warnings,
     })
 }
 

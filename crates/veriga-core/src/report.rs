@@ -245,6 +245,13 @@ pub fn to_text(s: &Session) -> String {
         }
         let _ = writeln!(o);
     }
+    if !s.warnings.is_empty() {
+        let _ = writeln!(o, "== {} ==", tr(lang, "Avertismente", "Warnings"));
+        for w in s.warnings.iter().take(200) {
+            let _ = writeln!(o, "{w}");
+        }
+        let _ = writeln!(o);
+    }
     if !s.a11y.is_empty() {
         let _ = writeln!(
             o,
@@ -955,6 +962,7 @@ mod tests {
             cancelled: false,
             aliases: vec![],
             a11y: vec![],
+            warnings: vec![],
         }
     }
 

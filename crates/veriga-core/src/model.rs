@@ -299,6 +299,9 @@ pub struct Session {
     /// Constatări de accesibilitate ale numelor de legături.
     #[serde(default)]
     pub a11y: Vec<crate::a11y::A11yFinding>,
+    /// Avertismente de sintaxă întâlnite la parcurgere (de pildă în antetul `Link`).
+    #[serde(default)]
+    pub warnings: Vec<String>,
 }
 
 /// Proxy fără `user:parolă@` (credențialele nu se salvează pe disc).
@@ -405,6 +408,7 @@ mod tests {
             cancelled: false,
             aliases: vec![],
             a11y: vec![],
+            warnings: vec![],
         }
     }
 
@@ -442,6 +446,7 @@ mod tests {
             cancelled: false,
             aliases: vec![],
             a11y: vec![],
+            warnings: vec![],
         };
         s.config.start = vec!["http://bob:s3cret@h/a".into()];
         let mut r = LinkResult::new("http://bob:s3cret@h/a", LinkKind::Page, 0, true);
@@ -473,6 +478,7 @@ mod tests {
             cancelled: false,
             aliases: vec![],
             a11y: vec![],
+            warnings: vec![],
         };
         s.config.lang = "x\"><script>alert(1)</script><i a=\"".into();
         let html = crate::report::to_html(&s);

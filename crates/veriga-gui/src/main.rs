@@ -729,6 +729,14 @@ impl eframe::App for App {
                         },
                     );
                     ui.checkbox(
+                        &mut c.check_link_header,
+                        if lang == "en" {
+                            "Check HTTP Link header"
+                        } else {
+                            "Verifică antetul HTTP Link"
+                        },
+                    );
+                    ui.checkbox(
                         &mut c.check_link_names,
                         if lang == "en" {
                             "Check link names (accessibility)"
