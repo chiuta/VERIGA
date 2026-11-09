@@ -85,18 +85,54 @@ fn unescape(s: &str) -> String {
         .replace("&amp;", "&")
 }
 
+/// Elementele rădăcină `urlset` / `sitemapindex` (la adâncimea 0, nu în comentarii, instrucțiuni,
+/// CDATA sau text) și dacă primul este un index. Citirea se oprește la prima eroare XML:
+/// ce s-a găsit până atunci rămâne valabil.
+fn root_elements(text: &str) -> (usize, bool) {
+    use quick_xml::{Reader, events::Event};
+    let mut rd = Reader::from_str(text);
+    let (mut depth, mut roots, mut index, mut first) = (0usize, 0usize, false, true);
+    let mut note = |name: &[u8]| {
+        if matches!(name, b"urlset" | b"sitemapindex") {
+            roots += 1;
+            if first {
+                index = name == b"sitemapindex";
+                first = false;
+            }
+        }
+    };
+    loop {
+        match rd.read_event() {
+            Ok(Event::Start(e)) => {
+                if depth == 0 {
+                    note(e.local_name().as_ref());
+                }
+                depth += 1;
+            }
+            Ok(Event::Empty(e)) => {
+                if depth == 0 {
+                    note(e.local_name().as_ref());
+                }
+            }
+            Ok(Event::End(_)) => depth = depth.saturating_sub(1),
+            Ok(Event::Eof) | Err(_) => break,
+            _ => {}
+        }
+    }
+    (roots, index)
+}
+
 /// Extrage adresele dintr-un set de adrese sau dintr-un index, comprimat sau nu.
 pub fn parse(bytes: &[u8]) -> Result<ParsedSitemap, SitemapError> {
     let raw = decode_bytes(bytes)?;
     let text = String::from_utf8_lossy(&raw);
-    let roots = text.matches("<urlset").count() + text.matches("<sitemapindex").count();
+    let (roots, is_index) = root_elements(&text);
     if roots == 0 {
         return Err(SitemapError::NotSitemap);
     }
     if roots > 1 {
         return Err(SitemapError::MultipleDocuments);
     }
-    let is_index = text.contains("<sitemapindex");
     let re = Regex::new(r"(?is)<loc>\s*([^<]+?)\s*</loc>").unwrap();
     let mut out = ParsedSitemap {
         is_index,
@@ -195,6 +231,21 @@ mod tests {
         let mut b = gz(SET2.as_bytes());
         b.extend(gz(SET2.as_bytes()));
         assert_eq!(parse(&b), Err(SitemapError::MultipleDocuments));
+    }
+
+    #[test]
+    fn root_name_in_a_comment_or_text_is_not_a_second_document() {
+        let s = "<?xml version=\"1.0\"?><!-- generated for <urlset> consumers --><urlset><url><loc>http://e.org/a</loc></url></urlset>";
+        let p = parse(s.as_bytes()).unwrap();
+        assert_eq!(p.locs, vec!["http://e.org/a"]);
+        assert!(!p.is_index);
+        let s = "<!-- <sitemapindex> --><sitemapindex><sitemap><loc>http://e.org/s.xml</loc></sitemap></sitemapindex>";
+        let p = parse(s.as_bytes()).unwrap();
+        assert!(p.is_index);
+        assert_eq!(p.locs, vec!["http://e.org/s.xml"]);
+        // două rădăcini reale rămân respinse
+        let two = "<urlset></urlset><urlset></urlset>";
+        assert_eq!(parse(two.as_bytes()), Err(SitemapError::MultipleDocuments));
     }
 
     #[test]

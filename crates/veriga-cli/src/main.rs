@@ -811,6 +811,10 @@ async fn main() -> Result<()> {
                         }
                     }
                 }
+                // hartă de site ilizibilă (--sitemap): nu se ignoră în tăcere
+                Event::Phase(m) if !quiet && m.starts_with("sitemap ") => {
+                    eprintln!("{m}");
+                }
                 Event::Progress(p) if !quiet && tty => {
                     let line = trf!(
                         "  verificate: {} · în coadă: {} · active: {} · rupte: {} · {:.0}s",

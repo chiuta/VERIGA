@@ -31,12 +31,14 @@ async fn serve(l: TcpListener, base: String) {
                 .to_string();
             let (ctype, extra, body): (&str, &str, Vec<u8>) = match path.as_str() {
                 "/robots.txt" => ("text/plain", "", format!("Sitemap: {base}sitemap_index.xml\n").into_bytes()),
-                "/sitemap_index.xml" => ("application/xml", "", format!("<sitemapindex><sitemap><loc>{base}one.xml.gz</loc></sitemap><sitemap><loc>{base}two</loc></sitemap><sitemap><loc>{base}three.xml</loc></sitemap><sitemap><loc>{base}sitemap_index.xml</loc></sitemap></sitemapindex>").into_bytes()),
+                "/sitemap_index.xml" => ("application/xml", "", format!("<sitemapindex><sitemap><loc>{base}one.xml.gz</loc></sitemap><sitemap><loc>{base}two</loc></sitemap><sitemap><loc>{base}three.xml</loc></sitemap><sitemap><loc>{base}sitemap_index.xml</loc></sitemap><sitemap><loc>{base}comment.xml</loc></sitemap></sitemapindex>").into_bytes()),
                 "/one.xml.gz" => ("application/gzip", "", gz(format!("<urlset><url><loc>{base}p1.html</loc></url><url><loc>{base}p2.html</loc></url></urlset>").as_bytes())),
                 // fără extensie, doar octeții gzip
                 "/two" => ("application/octet-stream", "", gz(format!("<urlset><url><loc>{base}p3.html</loc></url></urlset>").as_bytes())),
                 // Content-Encoding gzip pe .xml: o singură decodare
                 "/three.xml" => ("application/xml", "Content-Encoding: gzip\r\n", gz(format!("<urlset><url><loc>{base}p4.html</loc></url></urlset>").as_bytes())),
+                // text `<urlset` într-un comentariu nu înseamnă al doilea document
+                "/comment.xml" => ("application/xml", "", format!("<?xml version=\"1.0\"?><!-- generated for <urlset> consumers --><urlset><url><loc>{base}p5.html</loc></url></urlset>").into_bytes()),
                 "/" => ("text/html", "", b"<html><body>home</body></html>".to_vec()),
                 p if p.starts_with("/p") => ("text/html", "", b"<html>ok</html>".to_vec()),
                 _ => ("text/html", "", b"nu".to_vec()),
@@ -72,7 +74,10 @@ async fn gz_sitemaps_seed_the_crawl() {
     cfg.retries = 0;
     cfg.timeout_secs = 5;
     let s = veriga_core::run(cfg, Control::new(), None).await.unwrap();
-    for p in ["p1.html", "p2.html", "p3.html", "p4.html"] {
-        assert!(s.results.iter().any(|r| r.url.ends_with(p)), "lipsește {p}");
+    for p in ["p1.html", "p2.html", "p3.html", "p4.html", "p5.html"] {
+        let hits: Vec<_> = s.results.iter().filter(|r| r.url.ends_with(p)).collect();
+        assert_eq!(hits.len(), 1, "{p} trebuie verificat exact o dată");
+        assert_eq!(hits[0].status, veriga_core::Status::Ok, "{p}");
+        assert_eq!(hits[0].http_status, Some(200), "{p}");
     }
 }
