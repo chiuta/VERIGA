@@ -693,28 +693,30 @@ async fn main() -> Result<()> {
         fff_input = Some(inp);
     }
     if let Some(inp) = &fff_input
-        && cli.start.is_empty() && cli.recheck.is_none() {
-            // nimic de verificat în rețea: se adnotează local și se iese
-            let now = chrono::Utc::now()
-                .format("%Y-%m-%dT%H:%M:%S%.3fZ")
-                .to_string();
-            if let Some(o) = &cli.fff_out {
-                let items = fff::annotate(&inp.items, None, &now);
-                std::fs::write(o, fff::envelope(inp, items, &now))
-                    .with_context(|| trf!("nu pot scrie {}", "cannot write {}", o.display()))?;
-                if !cli.quiet {
-                    eprintln!(
-                        "{}",
-                        trf!(
-                            "Plic FFF scris: {} (fără legături de verificat în rețea)",
-                            "FFF envelope written: {} (no network links to check)",
-                            o.display()
-                        )
-                    );
-                }
+        && cli.start.is_empty()
+        && cli.recheck.is_none()
+    {
+        // nimic de verificat în rețea: se adnotează local și se iese
+        let now = chrono::Utc::now()
+            .format("%Y-%m-%dT%H:%M:%S%.3fZ")
+            .to_string();
+        if let Some(o) = &cli.fff_out {
+            let items = fff::annotate(&inp.items, None, &now);
+            std::fs::write(o, fff::envelope(inp, items, &now))
+                .with_context(|| trf!("nu pot scrie {}", "cannot write {}", o.display()))?;
+            if !cli.quiet {
+                eprintln!(
+                    "{}",
+                    trf!(
+                        "Plic FFF scris: {} (fără legături de verificat în rețea)",
+                        "FFF envelope written: {} (no network links to check)",
+                        o.display()
+                    )
+                );
             }
-            return Ok(());
         }
+        return Ok(());
+    }
     if cli.list_proxy_presets {
         for p in veriga_core::proxy::PRESETS {
             println!(

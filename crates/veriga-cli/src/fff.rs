@@ -17,7 +17,8 @@ pub struct Input {
 }
 
 pub fn read(path: &Path) -> Result<Input> {
-    let raw = std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
+    let raw =
+        std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
     parse(&raw)
 }
 
@@ -33,17 +34,31 @@ pub fn parse(raw: &str) -> Result<Input> {
     if typ != "citation/csl" {
         bail!("envelope type {typ} is not accepted (citation/csl)");
     }
-    let items = payload.as_array().context("citation/csl payload must be a list")?.clone();
+    let items = payload
+        .as_array()
+        .context("citation/csl payload must be a list")?
+        .clone();
     let s = |k: &str| v.get(k).and_then(|x| x.as_str()).unwrap_or("").to_string();
-    Ok(Input { items, app: s("app"), title: s("title") })
+    Ok(Input {
+        items,
+        app: s("app"),
+        title: s("title"),
+    })
 }
 
 /// `10.xxxx/sufix` — doar sintaxa (prefix de registru, 4–9 cifre, `/`, sufix fără spații).
 pub fn doi_ok(d: &str) -> bool {
     let d = d.trim();
-    let Some((reg, suf)) = d.split_once('/') else { return false };
-    let Some(num) = reg.strip_prefix("10.") else { return false };
-    (4..=9).contains(&num.len()) && num.chars().all(|c| c.is_ascii_digit()) && !suf.is_empty() && !suf.chars().any(char::is_whitespace)
+    let Some((reg, suf)) = d.split_once('/') else {
+        return false;
+    };
+    let Some(num) = reg.strip_prefix("10.") else {
+        return false;
+    };
+    (4..=9).contains(&num.len())
+        && num.chars().all(|c| c.is_ascii_digit())
+        && !suf.is_empty()
+        && !suf.chars().any(char::is_whitespace)
 }
 
 /// Legătura de verificat pentru o referință: URL http(s) sau https://doi.org/<DOI> (doar dacă DOI-ul are sintaxă validă).
@@ -74,11 +89,17 @@ pub fn annotate(items: &[Value], session: Option<&Session>, now: &str) -> Vec<Va
             let doi = it.get("DOI").and_then(|x| x.as_str()).map(str::to_string);
             let mut v = serde_json::Map::new();
             if let Some(d) = &doi {
-                v.insert("doi_syntax".into(), json!(if doi_ok(d) { "ok" } else { "bad" }));
+                v.insert(
+                    "doi_syntax".into(),
+                    json!(if doi_ok(d) { "ok" } else { "bad" }),
+                );
             }
             match link_of(&it) {
                 None => {
-                    v.insert("status".into(), json!(if doi.is_some() { "bad-doi" } else { "no-link" }));
+                    v.insert(
+                        "status".into(),
+                        json!(if doi.is_some() { "bad-doi" } else { "no-link" }),
+                    );
                     v.insert("checked".into(), json!(false));
                 }
                 Some(link) => {
@@ -90,12 +111,19 @@ pub fn annotate(items: &[Value], session: Option<&Session>, now: &str) -> Vec<Va
                             let st = match r.status {
                                 S::Ok => "ok",
                                 S::Redirected => "redirected",
-                                S::NoConnection | S::DnsFailure | S::Timeout | S::TlsError | S::RobotsBlocked => "unreachable",
+                                S::NoConnection
+                                | S::DnsFailure
+                                | S::Timeout
+                                | S::TlsError
+                                | S::RobotsBlocked => "unreachable",
                                 x if x.is_error() => "broken",
                                 _ => "unchecked",
                             };
                             v.insert("status".into(), json!(st));
-                            v.insert("checked".into(), json!(st != "unchecked" && st != "unreachable"));
+                            v.insert(
+                                "checked".into(),
+                                json!(st != "unchecked" && st != "unreachable"),
+                            );
                             if let Some(c) = r.http_status {
                                 v.insert("http".into(), json!(c));
                             }
@@ -124,8 +152,14 @@ pub fn annotate(items: &[Value], session: Option<&Session>, now: &str) -> Vec<Va
 /// Plicul de ieșire (`fff:2`, `citation/csl`).
 pub fn envelope(input: &Input, items: Vec<Value>, now: &str) -> String {
     let n = items.len();
-    let broken = items.iter().filter(|i| i["custom"]["veriga"]["status"] == "broken").count();
-    let checked = items.iter().filter(|i| i["custom"]["veriga"]["checked"] == true).count();
+    let broken = items
+        .iter()
+        .filter(|i| i["custom"]["veriga"]["status"] == "broken")
+        .count();
+    let checked = items
+        .iter()
+        .filter(|i| i["custom"]["veriga"]["checked"] == true)
+        .count();
     let env = json!({
         "fff": 2,
         "type": "citation/csl",
@@ -145,7 +179,12 @@ mod tests {
     #[test]
     fn doi_syntax() {
         assert!(doi_ok("10.1000/xyz123"));
-        assert!(!doi_ok("11.1000/x") && !doi_ok("10.1/x") && !doi_ok("10.1000/") && !doi_ok("10.1000/a b"));
+        assert!(
+            !doi_ok("11.1000/x")
+                && !doi_ok("10.1/x")
+                && !doi_ok("10.1000/")
+                && !doi_ok("10.1000/a b")
+        );
     }
 
     #[test]
@@ -162,11 +201,16 @@ mod tests {
     #[test]
     fn doi_and_url_become_links_and_bad_doi_is_flagged() {
         let inp = parse(r#"{"fff":1,"type":"citation/csl","data":[{"title":"a","DOI":"10.1000/x"},{"title":"b","URL":"https://e.org/p"},{"title":"c","DOI":"zzz"}],"src":"t"}"#).unwrap();
-        assert_eq!(link_of(&inp.items[0]).as_deref(), Some("https://doi.org/10.1000/x"));
+        assert_eq!(
+            link_of(&inp.items[0]).as_deref(),
+            Some("https://doi.org/10.1000/x")
+        );
         assert_eq!(link_of(&inp.items[1]).as_deref(), Some("https://e.org/p"));
         let a = annotate(&inp.items, None, "t");
         assert_eq!(a[0]["custom"]["veriga"]["status"], "unchecked");
         assert_eq!(a[2]["custom"]["veriga"]["status"], "bad-doi");
-        assert!(parse(r#"{"fff":2,"type":"table/csv","payload":[],"created":"x","app":"y"}"#).is_err());
+        assert!(
+            parse(r#"{"fff":2,"type":"table/csv","payload":[],"created":"x","app":"y"}"#).is_err()
+        );
     }
 }
