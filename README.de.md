@@ -1,4 +1,4 @@
-# VERIGA — Link-Checker (Clean-Room)
+# VERIGA — Link-Checker (unabhängige Implementierung)
 
 [English](README.md) · [Română](README.ro.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [Español](README.es.md) · [Português](README.pt.md) · **Deutsch** · [Magyar](README.hu.md)
 
@@ -17,133 +17,9 @@ oder einen lokalen Ordner durchsucht und deren Links prüft. Sie gibt es in drei
 
 Sitzungen (`.veriga`, JSON) sind zwischen den drei Formen austauschbar.
 
-## Was geprüft wird
-
-- **HTML-Links**: `a`, `area`, `img` (+`srcset`, `data-src`), `source`, `video`/`audio`/`track`, `embed`, `object`/`param`,
-  `applet`, `iframe`/`frame`, `script`, `link` (Stile, Icons, Preload), `form[action]` (optional), `input[type=image]`,
-  `background=`, `meta refresh`, `og:image`/`twitter:image`, `cite`, SVG `image`/`use`, `<base href>`.
-- **CSS**: `url(...)` und `@import`, sowohl aus `.css`-Dateien als auch aus `<style>` und `style`-Attributen.
-- **Protokolle**: HTTP/HTTPS (HEAD mit Rückfall auf GET), `file://` und lokale Pfade, FTP (Authentifizierung, `SIZE`/`CWD`),
-  `mailto:` (Syntax).
-- **Weiterleitungen**: vollständige Kette mit Statuscodes, Schleifenerkennung, konfigurierbares Limit, Option „Weiterleitungen sind Fehler“.
-- **`#fragment`-Anker**: werden in den durchsuchten Seiten geprüft (`id` und `name`).
-- **Verwaiste Dateien**: Dateien im Site-Verzeichnis, auf die kein Link verweist.
-- **Groß-/Kleinschreibungsabweichungen** in lokalen Pfaden (funktioniert unter Windows/macOS, bricht unter Linux).
-- **robots.txt** (Gruppen, `Allow`/`Disallow` mit `*` und `$`, `Crawl-delay`) und Start aus der **sitemap.xml**.
-- **Beobachtungen**: doppelte/fehlende Titel, langsame Antworten, Statistiken nach MIME-Typ.
-- Zeichenkodierungen (Header, BOM, `<meta charset>`) — einschließlich alter Windows-1250-Seiten.
-
-## Wichtige Optionen
-
-Parallele Threads und ein Limit pro Host, Timeout, Wiederholungsversuche (unter Beachtung von `Retry-After`), maximale Tiefe, URL-Limit,
-externe Links ja/nein, „im Verzeichnis bleiben“, ausschließen / nicht folgen / nur diese (Regex), zusätzliche interne Hosts,
-als OK gewertete HTTP-Codes (z. B. 999), User-Agent, Proxy (HTTP/SOCKS), Basic-Authentifizierung (nur interne Hosts),
-Header und Cookies, ungültige Zertifikate, Verzögerung zwischen Anfragen.
-
-## Kostenlose, ethische Proxys
-
-Wähle eine Voreinstellung mit `--proxy-preset tor|tor-browser|warp` (Liste: `--list-proxy-presets`) oder in der GUI unter „Kostenloser ethischer Proxy…“. Alle sind lokale SOCKS5-Endpunkte (`socks5h://127.0.0.1:…`): Namen löst der Proxy auf, nicht dein System. Tor (Freiwillige, gemeinnützig, Open Source) ist die empfohlene Wahl; die Prüfung ist auf 4 Threads und 2 Verbindungen pro Server begrenzt, und manche Seiten sperren Tor-Ausgänge, daher sind falsche „defekte Links“ möglich. Cloudflare WARP ist kostenlos, aber ein kommerzieller Dienst mit geschlossenem Client. Listen offener öffentlicher Proxys fehlen absichtlich: Sie sind oft kompromittiert oder fangen Verkehr ab. Ein eigener Proxy bleibt mit `--proxy` möglich.
-
-## Berichte
-
-Eigenständiges HTML (öffnet sich überall), CSV, TSV, JSON, Text, sitemap.xml, ein Site-Baum, eine `.veriga`-Sitzung.
-**Erneute Prüfung defekter Links** aus einer gespeicherten Sitzung (`--recheck`, eine Schaltfläche in GUI/Web).
-
-## CLI
-
-```bash
-veriga https://example.com -o report.html -o broken.csv --only-broken
-veriga ./site --orphans ./site --fragments -o report.html          # lokaler Ordner + verwaiste Dateien
-veriga https://example.com --sitemap --stay-in-dir -d 4 -t 50
-veriga --recheck session.veriga -o report.html                      # nur defekte Links
-veriga https://example.com --ignore-status 999 --exclude '/logout' -o s.veriga
-```
-
-Exit-Code `2`, wenn defekte Links gefunden wurden (nützlich in CI); `--no-fail` schaltet das ab. `veriga --help` listet alles auf. Exit-Code `3`, wenn der Lauf abgebrochen oder durch `--max-urls` / `--max-per-pattern` (Crawler-Fallen, Standard 5000 Seiten pro Pfadmuster) abgeschnitten wurde; `3` hat Vorrang vor `2`. `veriga check URL` entspricht `veriga URL`.
-
-## Erstellen
-
-```bash
-cargo build --release                 # veriga + veriga-gui
-cargo build --release -p veriga-cli   # nur CLI
-cargo test --workspace
-```
-
-Der Workflow `.github/workflows/build.yml` erzeugt Archive für: Windows x64/ARM64, macOS Intel/Apple Silicon,
-Linux x64/ARM64 (glibc, mit GUI) und Linux x64/ARM64 (musl, statische CLI). Das `Dockerfile` baut ein minimales Image mit der CLI.
-
-## Video-Tutorials
-
-Zehn kurze Tutorials, aufgenommen mit der echten Anwendung und in 8 Sprachen untertitelt (ro, en, fr, it, es, pt, de, hu): erster Scan, Filter, Linkdetails, Optionen, Export, Guardian (Korrekturen; Domains, Karte, Trends), Kommandozeile, HTML-Edition und portable Edition. Zu sehen auf https://veriga.chiuta.ro/#tutoriale oder in `assets/tutorials/`: Jede `.mp4` enthält alle 8 Untertitelspuren, die `.vtt`-Dateien liegen daneben. Ohne Ton; die Erklärungen stehen in den Untertiteln.
-
-## Portable Ausgabe (PortableApps.com)
-
-VERIGA gibt es auch als **PortableApps.com-Format-3.9**-Paket, `VERIGAPortable_<Version>_Multilingual.zip` (Release-Dateien). Entpacke es beliebig (USB-Stick, synchronisierter Ordner) und starte `VERIGAPortable.exe`.
-
-- Alles, was die App erzeugt, bleibt in `Data\` (Guardian-Zustand in `Data\.veriga`); in die Registrierung oder nach `%APPDATA%` wird nichts geschrieben. `Data\` zu löschen ist unbedenklich: Der Ordner wird neu angelegt.
-- Der Launcher wählt die x64- oder ARM64-Version nach der nativen Architektur; `VERIGAPortable.exe sitzung.veriga` öffnet eine gespeicherte Sitzung (Dateizuordnung `.veriga`).
-- Die CLI ist `App\VERIGA\veriga.exe`. Die Struktur wird in der CI mit `portableapps/validate.py` geprüft; der Launcher-Quellcode liegt in `crates/veriga-launcher`.
-- Der offizielle `.paf.exe`-Installer wird mit dem PortableApps.com Installer (Windows-Werkzeug) gebaut; der Ordner hat bereits die geforderte Struktur.
-
-## Pakete für Mobilgeräte und Server
-
-PWA (installierbar, offline): <https://veriga.chiuta.ro/app/> · Termux: `packaging/termux/install.sh` · Docker: `docker run --rm ghcr.io/chiuta/veriga check https://example.org` · systemd-Timer, `.deb`/`.rpm`, Kubernetes-CronJob und **YunoHost**-Paket: siehe [`packaging/`](packaging/README.md). Eine native Android-APK wird nicht bereitgestellt.
-
-## Die Single-File-HTML-Edition
-
-`web/veriga.html` läuft zu 100 % im Browser, ohne Server:
-
-- **Lokaler Ordner** (den Site-Ordner hineinziehen oder „Ordner wählen“): vollständige Prüfung interner Links, CSS, Anker, verwaister Dateien,
-  Groß-/Kleinschreibungsabweichungen, doppelter Titel. Hier gibt es keine Browser-Einschränkung.
-- **Online-Site**: Ein Browser kann den HTTP-Status anderer Domains nicht lesen (CORS). Vollständige Ergebnisse, wenn die Datei von derselben
-  Site aus geöffnet wird oder über einen eigenen CORS-Proxy (Vorlage `https://proxy/?u={url}`). Andernfalls werden externe Links als
-  *nicht überprüfbar* markiert, wenn der Server antwortet, oder als *keine Verbindung*, wenn nicht — niemals ein falsches „OK“.
-- **URL-Liste / eingefügtes HTML**.
-- FTP wird nicht geprüft und robots.txt nicht gelesen (Browser-Einschränkungen). Dafür CLI/GUI verwenden.
-
-## Guardian — Reparatur, Verlauf, Compliance
-
-VERIGA enthält außerdem die Funktionen eines „Link-Guardians“ (inspiriert vom WordPress-Plugin *Trade-Free Link Guardian*), aber als unabhängiges Werkzeug, das auf **Dateien** arbeitet: HTML, Markdown, WordPress-Export (WXR `.xml`, Menüs eingeschlossen) und Sitemaps.
-
-* **Deterministische Reparaturen, live verifiziert** — `scheme_typo` (`htp://`, `https//`), `unmangle` (doppeltes Schema, `%20`, abschließende Satzzeichen), `missing_scheme` (`www.…`), `tracking` (`utm_*`, `fbclid`, `gclid`…), `protocol` (http→https), `www` (Konsistenz), `redirect` (nur 301/308). Eine Reparatur wird **nur dann** automatisch angewendet, wenn die neue URL erfolgreich geantwortet hat; ohne Verifizierung bleibt sie ein „Vorschlag“.
-* **Manuelle Reparaturen** — URL-Ersetzung, „Verlinkung entfernen“ (der Text bleibt), Wayback-Machine-Abfrage (Opt-in, nie automatisch aufgerufen).
-* **Sicherheit** — eine Sicherung pro Lauf, ein Änderungsprotokoll, einzelnes oder lauf-weises **Rückgängigmachen** (Byte für Byte, `&amp;` eingeschlossen); es werden nur die Bytes im Bereich geschrieben.
-* **401/403 = „einen zweiten Blick wert“**, kein defekter Link (eine Option, standardmäßig aktiv).
-* **Ansichten und Berichte** — Domains, Gesundheitskarte pro Seite, „Buch“-Ansicht, Weiterleitungen (dauerhaft/temporär), Inhaltsdrift (Titel/H1 gegenüber dem vorherigen Lauf), neu/behoben, Trends aus dem Verlauf, ein **Compliance-Bericht** für einen Zeitraum, ein Auswirkungs-Badge (im Menü oder auf ≥ 3 Seiten). CSV-Exporte neutralisieren Formelzellen.
-* **404-Fehler aus Zugriffsprotokollen** (Apache/nginx), mit Weiterleitungsvorschlägen und `.htaccess`-Export.
-* **Planung** — `veriga wizard` (4 Schritte) schreibt `veriga-guardian.json`; `veriga watch --config … [--once]` läuft periodisch (oder per cron/Aufgabenplanung), führt den Verlauf, repariert die gewählten Regeln automatisch und benachrichtigt per Webhook oder `sendmail`.
-
-```
-veriga lint ./site                       # Offline-Analyse
-veriga fix ./site --session s.veriga     # vorschlagen + live verifizieren (Probelauf)
-veriga fix ./site --apply                # schreiben, mit Sicherung und Protokoll
-veriga fix ./site --unlink https://dead.example/x --apply
-veriga undo --list ; veriga undo --run 20261027-173720
-veriga log404 access.log --known s.veriga -o redirect.htaccess
-veriga guardian s.veriga --prev old.veriga --record -o guardian.html
-veriga compliance s.veriga --days 30 -o compliance.html
-```
-
-GUI: die Schaltfläche **🛡 Guardian**. HTML-Edition: der Abschnitt **Guardian** (Änderungen erfolgen im Arbeitsspeicher; du lädst die Dateien herunter oder schreibst sie in einen Ordner, wo der Browser dies erlaubt; die Live-Verifizierung ist durch CORS eingeschränkt).
-
-**Was sich von einem WordPress-Plugin nicht nachbilden lässt:** die Datenbanksuche nach dem „alten Slug“, der Speicher-Hook des Editors, WP-Cron, Multisite und `wp_mail`. Stattdessen gibt es: WXR-Import, Dateien auf der Festplatte, `watch`/cron und `sendmail`/Webhook. Die Funktionsliste wurde aus der öffentlichen Beschreibung und aus früheren Gesprächen rekonstruiert, nicht aus dem Quellcode des Plugins.
-
-Unterstütze das Projekt: https://www.buymeacoffee.com/echo.of.the.strings
-
-## Bekannte Grenzen
-
-- Berichte werden nicht per E-Mail (SMTP) versendet, und verwaiste Dateien werden nicht über FTP erkannt — nur in einem lokalen Verzeichnis.
-- Komprimierte `.xml.gz`-Sitemaps werden nicht gelesen.
-- Seiten, die ihre Links mit JavaScript aufbauen, werden nicht gerendert (es gibt keine Browser-Engine); analysiert wird das ausgelieferte HTML.
-- Die grafische Oberfläche wurde nur unter einem virtuellen Display (Linux/X11) erprobt: Crawl, Filter, Detailbereich und Guardian. Die Windows- und macOS-Builds entstehen in der CI, wurden aber nicht interaktiv getestet.
-
 ## Zum Begriff „Clean-Room“
 
-Der Code ist von Grund auf neu geschrieben, auf Grundlage des allgemeinen Verhaltens von Link-Checkern und öffentlicher Spezifikationen
-(HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org). Er enthält keinen Code, keine Ressourcen, Texte oder Designs eines anderen Produkts und
-wurde nicht geschrieben, während der Code oder die ausführbare Datei eines anderen Programms eingesehen wurde.
-
-Lizenz: MIT.
+VERIGA ist eine **unabhängige Implementierung**, kein dokumentiertes Clean-Room-Projekt. Es wurde kein förmliches Clean-Room-Verfahren (getrennte Analyse- und Implementierungsteams, geprüfte Spezifikationen) angewandt, und der Verlauf des Repositorys beginnt mit einem einzigen großen Commit. Der Code entstand aus dem allgemeinen Verhalten von Link-Prüfern und aus öffentlichen Spezifikationen (HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org). Die Entwicklungssitzungen des Autors zeigen keine Verwendung von Code oder ausführbarer Datei eines anderen Link-Prüfers. Herkunftsnachweis und offene Punkte: [docs/clean-room/PROVENANCE.md](docs/clean-room/PROVENANCE.md).
 
 ## Sicherheit und Bedrohungsmodell
 
