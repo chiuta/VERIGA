@@ -500,5 +500,6 @@ Generated from `cargo metadata` on 2026-11-09 (name, version, declared SPDX lice
 | zune-jpeg | 0.5.15 | MIT OR Apache-2.0 OR Zlib | https://github.com/etemesi254/zune-image/tree/dev/crates/zune-jpeg |
 
 ## Dependencies made direct in lot 1 (all already in the table above)
-- `flate2` 1.1.10 (MIT OR Apache-2.0), runtime, pure-Rust backend: gzip sitemaps.
-- Dev/test only (not shipped): `quick-xml` 0.41.0 (MIT, JUnit well-formedness test), `tokio-rustls` 0.26.6 and `rustls-pki-types` 1.15.1 (MIT OR Apache-2.0, local TLS test server). `crates/veriga-core/tests/fixtures/test-*.pem` is a throw-away self-signed certificate and key generated for the tests; it protects nothing.
+- `flate2` 1.1.10 (MIT OR Apache-2.0), runtime, pure-Rust backend: gzip sitemaps. It was already a transitive dependency (via `reqwest`/`async-compression`) and is now also a direct one.
+- `quick-xml` 0.41.0 (MIT), **runtime** dependency of `veriga-core` and therefore of `veriga-cli` and the GUI: RSS/Atom feed parsing (`--check-feeds`) and sitemap parsing; it is also used by the JUnit well-formedness test. It was already a transitive dependency.
+- Dev/test only (not shipped): `tokio-rustls` 0.26.6 and `rustls-pki-types` 1.15.1 (MIT OR Apache-2.0, local TLS test server). `crates/veriga-core/tests/fixtures/test-*.pem` is a throw-away self-signed certificate and key generated for the tests; it protects nothing.
