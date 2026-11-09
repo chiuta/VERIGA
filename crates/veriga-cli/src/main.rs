@@ -692,8 +692,8 @@ async fn main() -> Result<()> {
         }
         fff_input = Some(inp);
     }
-    if let Some(inp) = &fff_input {
-        if cli.start.is_empty() && cli.recheck.is_none() {
+    if let Some(inp) = &fff_input
+        && cli.start.is_empty() && cli.recheck.is_none() {
             // nimic de verificat în rețea: se adnotează local și se iese
             let now = chrono::Utc::now()
                 .format("%Y-%m-%dT%H:%M:%S%.3fZ")
@@ -715,7 +715,6 @@ async fn main() -> Result<()> {
             }
             return Ok(());
         }
-    }
     if cli.list_proxy_presets {
         for p in veriga_core::proxy::PRESETS {
             println!(
