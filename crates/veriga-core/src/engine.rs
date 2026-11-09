@@ -59,6 +59,15 @@ fn compile_list(label: &str, pats: &[String]) -> Result<Vec<Regex>> {
         .collect()
 }
 
+/// O verificare `integrity` cerută de o pagină pentru o subresursă.
+struct SriPending {
+    page: String,
+    idx: usize,
+    integrity: String,
+    crossorigin: Option<String>,
+    page_origin: String,
+}
+
 struct Coord {
     cfg: Arc<Config>,
     sh: Arc<Shared>,
@@ -94,6 +103,9 @@ struct Coord {
     warnings: Vec<String>,
     seo: Vec<crate::seo::SeoFinding>,
     mixed: Vec<crate::mixed::MixedFinding>,
+    sri: Vec<crate::sri::SriFinding>,
+    sri_pending: Vec<SriPending>,
+    sri_data: HashMap<usize, (Option<crate::sri::Digests>, Option<String>)>,
     https_subs: Vec<(String, Url, crate::extract::Sub)>,
     canon: Vec<(String, Url)>,
     alias_forms: HashMap<String, BTreeMap<String, BTreeSet<String>>>,
@@ -134,6 +146,9 @@ impl Coord {
             warnings: vec![],
             seo: vec![],
             mixed: vec![],
+            sri: vec![],
+            sri_pending: vec![],
+            sri_data: HashMap::new(),
             https_subs: vec![],
             canon: vec![],
             alias_forms: HashMap::new(),
@@ -318,6 +333,7 @@ impl Coord {
             internal,
             idx,
             host,
+            sri_origin: None,
         });
     }
 
@@ -469,6 +485,7 @@ impl Coord {
         if let Some(&i) = self.index.get(&key) {
             self.add_parent(i, p);
             self.merge_rel(i, &l.rel);
+            self.note_sri(i, &url, l.integrity.as_ref(), l.crossorigin.as_ref(), parent, true);
             return;
         }
         let depth = parent_depth + 1;
@@ -516,6 +533,14 @@ impl Coord {
         self.results.push(r);
         self.index.insert(key, idx);
         let host = host_key(&url);
+        let sri_origin = self.note_sri(
+            idx,
+            &url,
+            l.integrity.as_ref(),
+            l.crossorigin.as_ref(),
+            parent,
+            false,
+        );
         self.push_task(Task {
             url,
             kind: l.kind,
@@ -524,7 +549,100 @@ impl Coord {
             internal,
             idx,
             host,
+            sri_origin,
         });
+    }
+
+    /// Înregistrează o verificare `integrity` cerută de `l`; întoarce originea paginii dacă
+    /// resursa trebuie descărcată și rezumată. Pentru o țintă deja în coadă, cererea se adaugă
+    /// sarcinii existente (`queued`).
+    fn note_sri(
+        &mut self,
+        idx: usize,
+        url: &Url,
+        integrity: Option<&String>,
+        crossorigin: Option<&String>,
+        parent: &Parent,
+        queued: bool,
+    ) -> Option<String> {
+        let integrity = integrity?;
+        if !self.cfg.check_sri || !matches!(url.scheme(), "http" | "https") {
+            return None;
+        }
+        let origin = Url::parse(&parent.url)
+            .map(|u| u.origin().ascii_serialization())
+            .unwrap_or_else(|_| "null".into());
+        self.sri_pending.push(SriPending {
+            page: parent.url.clone(),
+            idx,
+            integrity: integrity.clone(),
+            crossorigin: crossorigin.cloned(),
+            page_origin: origin.clone(),
+        });
+        if queued {
+            for q in self.queues.values_mut() {
+                if let Some(t) = q.iter_mut().find(|t| t.idx == idx)
+                    && t.sri_origin.is_none()
+                {
+                    t.sri_origin = Some(origin.clone());
+                }
+            }
+        }
+        Some(origin)
+    }
+
+    /// Verdictele `integrity`, pe baza rezumatelor și a antetelor CORS ale țintelor.
+    fn check_sri(&mut self) {
+        use crate::sri::{Metadata, SriFinding, SriVerdict, matches, parse_metadata};
+        let list = std::mem::take(&mut self.sri_pending);
+        for p in list {
+            let target = self.results[p.idx].url.clone();
+            let mk = |verdict| SriFinding {
+                page: p.page.clone(),
+                target: target.clone(),
+                verdict,
+            };
+            let entries = match parse_metadata(&p.integrity) {
+                Err(_) => {
+                    self.sri.push(mk(SriVerdict::InvalidSyntax));
+                    continue;
+                }
+                Ok(Metadata::Empty) => continue,
+                Ok(Metadata::NoAlgorithm) => {
+                    self.sri.push(mk(SriVerdict::NoAlgorithm));
+                    continue;
+                }
+                Ok(Metadata::Entries(e)) => e,
+            };
+            // mai întâi eroarea de descărcare (raportată deja ca legătură ruptă)
+            if self.results[p.idx].status.is_broken(&self.cfg) {
+                continue;
+            }
+            let cross = Url::parse(&target)
+                .map(|u| u.origin().ascii_serialization() != p.page_origin)
+                .unwrap_or(true);
+            let fetched = self.sri_data.get(&p.idx);
+            if cross {
+                let acao = fetched.and_then(|f| f.1.as_deref());
+                let creds = p.crossorigin.as_deref() == Some("use-credentials");
+                let allowed = p.crossorigin.is_some()
+                    && match acao {
+                        Some("*") => !creds,
+                        Some(o) => o == p.page_origin,
+                        None => false,
+                    };
+                if !allowed {
+                    self.sri.push(mk(SriVerdict::NoCors));
+                    continue;
+                }
+            }
+            let v = match fetched.and_then(|f| f.0.as_ref()) {
+                None => SriVerdict::NotVerified,
+                Some(d) if matches(&entries, d) => SriVerdict::Match,
+                Some(_) => SriVerdict::Mismatch,
+            };
+            self.sri.push(mk(v));
+        }
     }
 
     fn add_bad(&mut self, raw: String, kind: LinkKind, msg: String, parent: &Parent, depth: u32) {
@@ -600,6 +718,10 @@ impl Coord {
         self.warnings.extend(o.warnings);
         self.seo.extend(o.seo);
         self.mixed.extend(o.mixed);
+        self.sri.extend(o.sri);
+        if o.digests.is_some() || o.acao.is_some() {
+            self.sri_data.insert(idx, (o.digests, o.acao));
+        }
         for (u, sb) in o.https_subs {
             self.https_subs.push((res.url.clone(), u, sb));
         }
@@ -759,6 +881,8 @@ impl Coord {
                                 written: l.clone(),
                                 rel: vec![],
                                 sub: crate::extract::Sub::None,
+                                integrity: None,
+                                crossorigin: None,
                             },
                             &parent,
                             0,
@@ -1000,6 +1124,10 @@ pub async fn run(
     co.emit(Event::Finished);
 
     let aliases = co.alias_groups();
+    co.check_sri();
+    let mut sri = std::mem::take(&mut co.sri);
+    sri.sort();
+    sri.dedup();
     co.check_canonicals();
     co.check_mixed_redirects();
     let mut mixed = std::mem::take(&mut co.mixed);
@@ -1028,6 +1156,7 @@ pub async fn run(
         warnings,
         seo,
         mixed,
+        sri,
     })
 }
 
@@ -1077,6 +1206,7 @@ pub async fn recheck(
             internal,
             idx: i,
             host,
+            sri_origin: None,
         });
     }
     let started = session.started;
@@ -1099,6 +1229,7 @@ pub async fn recheck(
         warnings: session.warnings,
         seo: session.seo,
         mixed: session.mixed,
+        sri: session.sri,
     })
 }
 

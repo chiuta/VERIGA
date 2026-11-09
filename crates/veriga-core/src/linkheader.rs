@@ -63,6 +63,8 @@ pub fn to_raw_link(h: HeaderLink) -> crate::extract::RawLink {
             crate::extract::Sub::None
         },
         rel: h.rel,
+        integrity: None,
+        crossorigin: None,
     }
 }
 

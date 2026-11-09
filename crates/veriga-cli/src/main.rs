@@ -118,6 +118,9 @@ struct Cli {
     /// Pornește și din sitemap.xml
     #[arg(long)]
     sitemap: bool,
+    /// Verifică atributul integrity al subresurselor (SRI): sintaxă, CORS și rezumat SHA-2
+    #[arg(long)]
+    check_sri: bool,
     /// Citește fluxurile RSS/Atom găsite (link rel=alternate) și verifică legăturile din ele
     #[arg(long)]
     check_feeds: bool,
@@ -237,6 +240,7 @@ fn build_config(c: &Cli) -> Result<Config> {
     cfg.seed_sitemaps = c.sitemap;
     cfg.honor_nofollow = c.honor_nofollow;
     cfg.check_nonweb = c.check_schemes;
+    cfg.check_sri = c.check_sri;
     cfg.check_feeds = c.check_feeds;
     cfg.check_mixed_content = c.check_mixed_content;
     cfg.check_seo_links = c.check_seo_links;
@@ -444,6 +448,11 @@ const HELP_EN: &[(&str, &str, Option<&str>)] = &[
     ("user_agent", "The User-Agent header", None),
     ("no_robots", "Ignore robots.txt", None),
     ("sitemap", "Also start from sitemap.xml", None),
+    (
+        "check_sri",
+        "Verify the integrity attribute of subresources (SRI): syntax, CORS and SHA-2 digest",
+        None,
+    ),
     (
         "check_feeds",
         "Read the RSS/Atom feeds found (link rel=alternate) and check the links inside them",

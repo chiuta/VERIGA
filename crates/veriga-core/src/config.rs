@@ -94,6 +94,8 @@ pub struct Config {
     pub check_mixed_content: bool,
     /// Citește fluxurile RSS/Atom găsite (link rel=alternate) și verifică legăturile lor.
     pub check_feeds: bool,
+    /// Verifică atributul `integrity` al subresurselor (SRI): sintaxă, CORS, rezumat.
+    pub check_sri: bool,
     /// Plafon de legături citite dintr-un antet `Link`.
     pub max_link_header_links: usize,
     /// Semnalează și numele identice spre adrese diferite (notă informativă).
@@ -158,6 +160,7 @@ impl Default for Config {
             check_seo_links: false,
             check_mixed_content: false,
             check_feeds: false,
+            check_sri: false,
             max_link_header_links: 100,
             check_ambiguous_names: false,
             ignore_tls_errors: false,

@@ -948,6 +948,7 @@ mod tests {
                 warnings: vec![],
                 seo: vec![],
                 mixed: vec![],
+                sri: vec![],
             }
         };
         let a = mk(

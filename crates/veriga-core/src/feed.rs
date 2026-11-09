@@ -166,6 +166,8 @@ impl Out {
                 .map(|r| vec![r.to_ascii_lowercase()])
                 .unwrap_or_default(),
             sub: Sub::None,
+            integrity: None,
+            crossorigin: None,
         });
     }
 
@@ -175,6 +177,7 @@ impl Out {
             let mut l = l;
             l.text = format!("Feed: {}", l.text);
             l.sub = Sub::None;
+            l.integrity = None;
             self.links.push(l);
         }
     }

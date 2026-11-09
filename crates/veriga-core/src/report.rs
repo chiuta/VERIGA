@@ -245,6 +245,22 @@ pub fn to_text(s: &Session) -> String {
         }
         let _ = writeln!(o);
     }
+    if !s.sri.is_empty() {
+        use crate::sri::SriVerdict;
+        let ok = s.sri.iter().filter(|f| f.verdict == SriVerdict::Match).count();
+        let _ = writeln!(
+            o,
+            "== {} == ({} {})",
+            tr(lang, "Integritatea subresurselor (SRI)", "Subresource integrity (SRI)"),
+            ok,
+            tr(lang, "corespund", "match")
+        );
+        for f in s.sri.iter().filter(|f| f.verdict != SriVerdict::Match) {
+            let _ = writeln!(o, "{} — {}", f.page, f.verdict.label(lang));
+            let _ = writeln!(o, "    {}", f.target);
+        }
+        let _ = writeln!(o);
+    }
     if !s.mixed.is_empty() {
         let _ = writeln!(
             o,
@@ -996,6 +1012,7 @@ mod tests {
             warnings: vec![],
             seo: vec![],
             mixed: vec![],
+            sri: vec![],
         }
     }
 

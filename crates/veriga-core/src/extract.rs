@@ -52,6 +52,10 @@ pub struct RawLink {
     /// Tipurile de relație din atributul `rel` (minuscule, unice, în ordinea apariției).
     pub rel: Vec<String>,
     pub sub: Sub,
+    /// Valoarea atributului `integrity` (script, link stylesheet/preload/modulepreload).
+    pub integrity: Option<String>,
+    /// Atributul `crossorigin`, dacă există (valoarea în minuscule).
+    pub crossorigin: Option<String>,
 }
 
 #[derive(Debug, Default)]
@@ -67,6 +71,8 @@ pub struct Extracted {
     pub canonicals: Vec<Url>,
     /// Valorile `hreflang` de pe `link rel=alternate` și de pe `a`.
     pub hreflangs: Vec<String>,
+    /// Numele elementelor cu `integrity` la care atributul nu se aplică.
+    pub sri_notes: Vec<String>,
 }
 
 fn css_url_re() -> &'static Regex {
@@ -82,6 +88,18 @@ fn css_import_re() -> &'static Regex {
 fn refresh_re() -> &'static Regex {
     static R: OnceLock<Regex> = OnceLock::new();
     R.get_or_init(|| Regex::new(r#"(?i)url\s*=\s*['"]?([^'";]+)"#).unwrap())
+}
+
+/// `integrity` și `crossorigin` ale unui element (dacă `integrity` nu e gol).
+fn sri_of(v: &scraper::node::Element) -> Option<(String, Option<String>)> {
+    let i = v.attr("integrity")?.trim();
+    if i.is_empty() {
+        return None;
+    }
+    Some((
+        i.to_string(),
+        v.attr("crossorigin").map(|c| c.trim().to_ascii_lowercase()),
+    ))
 }
 
 fn has_scheme(s: &str) -> bool {
@@ -118,6 +136,8 @@ struct Sink<'a> {
     keep_nonweb: bool,
     /// Rol impus pentru următoarea legătură adăugată (consumat de `add`).
     sub_force: Option<Sub>,
+    /// `integrity` și `crossorigin` ale elementului în curs (consumate de `add`).
+    sri: Option<(String, Option<String>)>,
 }
 
 impl<'a> Sink<'a> {
@@ -142,6 +162,7 @@ impl<'a> Sink<'a> {
         }
         match self.base.join(raw) {
             Ok(u) => {
+                let sri = self.sri.take();
                 let sub = self
                     .sub_force
                     .take()
@@ -162,6 +183,8 @@ impl<'a> Sink<'a> {
                     text: truncate_chars(text, 120),
                     rel: std::mem::take(&mut self.rel),
                     sub,
+                    integrity: sri.as_ref().map(|x| x.0.clone()),
+                    crossorigin: sri.and_then(|x| x.1),
                 });
             }
             Err(e) => self
@@ -217,6 +240,7 @@ pub fn extract_css(page: &Url, css: &str) -> Vec<RawLink> {
         rel: vec![],
         keep_nonweb: false,
         sub_force: None,
+        sri: None,
     };
     s.add_css(css, LinkKind::Image);
     ex.links
@@ -292,6 +316,7 @@ pub fn extract_html_opts(
     let mut meta_robots = None;
     let mut canonicals: Vec<Url> = vec![];
     let mut hreflangs: Vec<String> = vec![];
+    let mut sri_notes: Vec<String> = vec![];
     {
         let mut tmp = Extracted::default();
         let mut s = Sink {
@@ -300,11 +325,25 @@ pub fn extract_html_opts(
             rel: vec![],
             keep_nonweb,
             sub_force: None,
+            sri: None,
         };
 
         for el in doc.select(&all) {
             let v = el.value();
             let name = v.name();
+
+            if v.attr("integrity").is_some() {
+                let applicable = match name {
+                    "script" => true,
+                    "link" => parse_rel(v.attr("rel").unwrap_or("")).iter().any(|t| {
+                        matches!(t.as_str(), "stylesheet" | "preload" | "modulepreload")
+                    }),
+                    _ => false,
+                };
+                if !applicable {
+                    sri_notes.push(name.to_string());
+                }
+            }
 
             if let Some(id) = v.attr("id")
                 && !id.is_empty()
@@ -398,9 +437,15 @@ pub fn extract_html_opts(
                         {
                             s.sub_force = Some(Sub::Blockable);
                         }
+                        if rel_tokens.iter().any(|t| {
+                            matches!(t.as_str(), "stylesheet" | "preload" | "modulepreload")
+                        }) {
+                            s.sri = sri_of(v);
+                        }
                         s.add(h, kind, "");
                         s.rel.clear();
                         s.sub_force = None;
+                        s.sri = None;
                     }
                     if let Some(x) = v.attr("imagesrcset") {
                         s.add_srcset(x, LinkKind::Image);
@@ -472,7 +517,9 @@ pub fn extract_html_opts(
                 }
                 "script" => {
                     if let Some(x) = v.attr("src") {
+                        s.sri = sri_of(v);
                         s.add(x, LinkKind::Script, "");
+                        s.sri = None;
                     }
                 }
                 "form" => {
@@ -546,6 +593,7 @@ pub fn extract_html_opts(
     out.meta_robots = meta_robots;
     out.canonicals = canonicals;
     out.hreflangs = hreflangs;
+    out.sri_notes = sri_notes;
     out
 }
 

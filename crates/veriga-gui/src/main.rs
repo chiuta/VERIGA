@@ -729,6 +729,14 @@ impl eframe::App for App {
                         },
                     );
                     ui.checkbox(
+                        &mut c.check_sri,
+                        if lang == "en" {
+                            "Verify subresource integrity"
+                        } else {
+                            "Verifică integritatea subresurselor"
+                        },
+                    );
+                    ui.checkbox(
                         &mut c.check_feeds,
                         if lang == "en" {
                             "Read RSS/Atom feeds"
