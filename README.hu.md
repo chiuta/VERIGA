@@ -1,4 +1,4 @@
-# VERIGA — hivatkozásellenőrző (clean-room)
+# VERIGA — hivatkozásellenőrző (független megvalósítás)
 
 [English](README.md) · [Română](README.ro.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [Español](README.es.md) · [Português](README.pt.md) · [Deutsch](README.de.md) · **Magyar**
 
@@ -139,11 +139,7 @@ A projekt támogatása: https://www.buymeacoffee.com/echo.of.the.strings
 
 ## A „clean-room” jelentéséről
 
-A kód az alapoktól íródott, a hivatkozásellenőrzők általános viselkedése és nyilvános specifikációk
-(HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org) alapján. Nem tartalmaz kódot, erőforrást, szöveget vagy dizájnt semmilyen más termékből, és
-nem egy másik program kódjának vagy futtatható fájljának nézegetése közben íródott.
-
-Licenc: MIT.
+A VERIGA **független megvalósítás**, nem dokumentált clean-room projekt. Nem alkalmaztak formális eljárást (külön elemző és megvalósító csapat, ellenőrzött specifikációk), és a tároló története egyetlen nagy commit-tal kezdődik. A kód a hivatkozás-ellenőrzők általános viselkedéséből és nyilvános specifikációkból (HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org) készült. A szerző fejlesztési munkamenetei nem mutatják más hivatkozás-ellenőrző kódjának vagy futtatható állományának használatát. A származási nyilvántartás és a nyitott pontok: [docs/clean-room/PROVENANCE.md](docs/clean-room/PROVENANCE.md).
 
 ## Biztonság és fenyegetésmodell
 

@@ -17,6 +17,8 @@ stage() {  # $1 = rădăcină de instalare
   install -Dm0755 "$bin" "$1/usr/bin/veriga"
   install -Dm0644 "$root/web/veriga.html" "$1/usr/share/veriga/veriga.html"
   install -Dm0644 "$root/LICENSE" "$1/usr/share/doc/veriga/copyright"
+  install -Dm0644 "$root/THIRD-PARTY-NOTICES.md" "$1/usr/share/doc/veriga/THIRD-PARTY-NOTICES.md"
+  install -Dm0644 "$root"/assets/fonts/LICENSE-*.txt -t "$1/usr/share/doc/veriga/fonts/"
   install -Dm0644 "$root/README.md" "$1/usr/share/doc/veriga/README.md"
   install -Dm0644 "$root/packaging/systemd/veriga-watch.service" "$1/usr/lib/systemd/system/veriga-watch.service"
   install -Dm0644 "$root/packaging/systemd/veriga-watch.timer" "$1/usr/lib/systemd/system/veriga-watch.timer"
@@ -35,7 +37,7 @@ Priority: optional
 Architecture: $darch
 Maintainer: Alexio <alexio@trom.tf>
 Homepage: https://veriga.chiuta.ro
-Description: link checker (Xenu-like) with scheduled Link Guardian
+Description: link checker with scheduled Link Guardian
  Finds broken links, redirects and slow pages; static binary, no dependencies.
  Enable the daily Guardian with: systemctl enable --now veriga-watch.timer
  after creating /etc/veriga/guardian.json (see /usr/share/doc/veriga).
@@ -74,7 +76,7 @@ if command -v rpmbuild >/dev/null; then
 Name: veriga
 Version: $ver
 Release: 1
-Summary: Link checker (Xenu-like) with scheduled Link Guardian
+Summary: Link checker with scheduled Link Guardian
 License: MIT
 URL: https://veriga.chiuta.ro
 BuildArch: $rarch

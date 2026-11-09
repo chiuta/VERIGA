@@ -1,4 +1,4 @@
-//! VERIGA — motor clean-room de verificare a legăturilor.
+//! VERIGA — motor independent de verificare a legăturilor.
 //!
 //! Scris de la zero, pe baza comportamentului documentat al verificatoarelor de
 //! legături în general; nu conține cod sau resurse din alte produse.

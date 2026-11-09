@@ -1,4 +1,4 @@
-# VERIGA — link checker (clean-room)
+# VERIGA — link checker (independent implementation)
 
 **English** · [Română](README.ro.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [Español](README.es.md) · [Português](README.pt.md) · [Deutsch](README.de.md) · [Magyar](README.hu.md)
 
@@ -139,13 +139,14 @@ Support the project: https://www.buymeacoffee.com/echo.of.the.strings
 - Pages that build their links with JavaScript are not rendered (there is no browser engine); the served HTML is analysed.
 - The graphical interface was exercised under a virtual display (Linux/X11) only: crawl, filters, detail panel and Guardian. The Windows and macOS builds are produced by CI but not tested interactively.
 
-## About "clean-room"
+## About the "clean-room" label
 
-The code is written from scratch, based on the general behaviour of link checkers and on public specifications
-(HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org). It contains no code, resources, text or design from any other product and
-was not written while looking at the code or the executable of another program.
+VERIGA is an **independent implementation**, not a documented clean-room one. No formal two-team clean-room procedure (separate analysis and
+implementation teams, reviewed specifications) was applied, and the repository history begins with a single large commit. The code was written from the
+general behaviour of link checkers and from public specifications (HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org). The author's
+development sessions show no use of the code or executable of another link checker. The provenance record and its open items are in
+[docs/clean-room/PROVENANCE.md](docs/clean-room/PROVENANCE.md).
 
-License: MIT.
 
 ## Security and threat model
 

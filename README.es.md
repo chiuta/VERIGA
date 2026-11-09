@@ -1,4 +1,4 @@
-# VERIGA — verificador de enlaces (clean-room)
+# VERIGA — verificador de enlaces (implementación independiente)
 
 [English](README.md) · [Română](README.ro.md) · [Français](README.fr.md) · [Italiano](README.it.md) · **Español** · [Português](README.pt.md) · [Deutsch](README.de.md) · [Magyar](README.hu.md)
 
@@ -139,11 +139,7 @@ Apoye el proyecto: https://www.buymeacoffee.com/echo.of.the.strings
 
 ## Sobre «clean-room»
 
-El código está escrito desde cero, a partir del comportamiento general de los verificadores de enlaces y de especificaciones públicas
-(HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org). No contiene código, recursos, texto ni diseño de ningún otro producto y
-no se escribió observando el código ni el ejecutable de otro programa.
-
-Licencia: MIT.
+VERIGA es una **implementación independiente**, no un proyecto clean-room documentado. No se aplicó un procedimiento formal (equipos separados de análisis e implementación, especificaciones revisadas) y el historial del repositorio empieza con un único commit grande. El código se escribió a partir del comportamiento general de los verificadores de enlaces y de especificaciones públicas (HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org). Las sesiones de desarrollo del autor no muestran el uso del código o del ejecutable de otro verificador. El registro de procedencia y los puntos abiertos están en [docs/clean-room/PROVENANCE.md](docs/clean-room/PROVENANCE.md).
 
 ## Seguridad y modelo de amenazas
 

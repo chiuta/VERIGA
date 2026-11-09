@@ -6,7 +6,7 @@ rust-version.workspace = true
 license.workspace = true
 publish = false
 authors.workspace = true
-description = "Motor clean-room de verificare a legăturilor (link checker) — VERIGA"
+description = "Motor independent de verificare a legăturilor (link checker) — VERIGA"
 
 [dependencies]
 tokio.workspace = true

@@ -1,4 +1,4 @@
-# VERIGA — verificator de legături (clean-room)
+# VERIGA — verificator de legături (implementare independentă)
 
 [English](README.md) · **Română** · [Français](README.fr.md) · [Italiano](README.it.md) · [Español](README.es.md) · [Português](README.pt.md) · [Deutsch](README.de.md) · [Magyar](README.hu.md)
 
@@ -139,13 +139,14 @@ Susține proiectul: https://www.buymeacoffee.com/echo.of.the.strings
 - Paginile care își construiesc linkurile din JavaScript nu sunt randate (nu există motor de browser); se analizează HTML-ul servit.
 - Interfața grafică a fost exersată doar sub un ecran virtual (Linux/X11): parcurgere, filtre, panou de detalii și Guardian. Variantele pentru Windows și macOS sunt produse de CI, dar nu au fost testate interactiv.
 
-## Despre „clean-room”
+## Despre eticheta „clean-room”
 
-Codul este scris de la zero, pe baza comportamentului general al verificatoarelor de legături și a specificațiilor publice
-(HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org). Nu conține cod, resurse, texte sau designul vreunui alt produs și
-nu a fost scris privind codul sau executabilul altui program.
+VERIGA este o **implementare independentă**, nu una clean-room documentată. Nu s-a aplicat o procedură formală clean-room (echipe separate de analiză și
+implementare, specificații verificate), iar istoricul depozitului începe cu un singur commit mare. Codul a fost scris pe baza comportamentului general
+al verificatoarelor de legături și a specificațiilor publice (HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org). Sesiunile de dezvoltare ale autorului
+nu arată folosirea codului sau a executabilului altui verificator. Evidența de proveniență și punctele deschise sunt în
+[docs/clean-room/PROVENANCE.md](docs/clean-room/PROVENANCE.md).
 
-Licență: MIT.
 
 ## Securitate și model de amenințare / Security & threat model
 

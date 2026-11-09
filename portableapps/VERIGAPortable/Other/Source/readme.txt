@@ -16,5 +16,5 @@ Linia de comandă / Command line
 - VERIGAPortable.exe sesiune.veriga     deschide o sesiune salvată / opens a saved session
 - Varianta CLI / the CLI: App\VERIGA\veriga.exe (rulează dintr-un terminal / run from a terminal)
 
-Licență / License: MIT (vezi / see LICENSE). Fonturile și pictogramele proprii sunt incluse sub aceeași licență.
+Licență / License: MIT (vezi / see LICENSE). Codul este MIT; fonturile incluse sunt terțe, sub SIL OFL-1.1 (vezi assets/fonts).
 Sursa completă / Full source: https://github.com/chiuta/VERIGA

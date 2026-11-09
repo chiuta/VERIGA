@@ -18,7 +18,7 @@ use veriga_core::{Config, Control, Event, OrphanConfig, Session};
 #[command(
     name = "veriga",
     version,
-    about = "VERIGA — verificator de legături (clean-room), pentru site-uri și directoare locale",
+    about = "VERIGA — verificator de legături (implementare independentă), pentru site-uri și directoare locale",
     long_about = "Parcurge un site (sau un director local), verifică toate legăturile — pagini, imagini, CSS, \
 scripturi, cadre, media, obiecte, e-mail, FTP, ancore — și produce rapoarte HTML/CSV/TSV/JSON/text/sitemap.\n\n\
 Exemple:\n  veriga https://exemplu.ro -o raport.html -o rupte.csv\n  veriga ./site --orphans ./site\n  veriga --recheck sesiune.veriga -o raport.html",
@@ -477,7 +477,7 @@ const HELP_EN: &[(&str, &str, Option<&str>)] = &[
     ),
 ];
 
-const ABOUT_EN: &str = "VERIGA — link checker (clean-room), for websites and local directories";
+const ABOUT_EN: &str = "VERIGA — link checker (independent implementation), for websites and local directories";
 const LONG_ABOUT_EN: &str = "Crawls a website (or a local directory), checks every link — pages, images, CSS, \
 scripts, frames, media, objects, e-mail, FTP, anchors — and produces HTML/CSV/TSV/JSON/text/sitemap reports.\n\n\
 Examples:\n  veriga https://example.org -o report.html -o broken.csv\n  veriga ./site --orphans ./site\n  veriga --recheck session.veriga -o report.html";

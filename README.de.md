@@ -1,4 +1,4 @@
-# VERIGA — Link-Checker (Clean-Room)
+# VERIGA — Link-Checker (unabhängige Implementierung)
 
 [English](README.md) · [Română](README.ro.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [Español](README.es.md) · [Português](README.pt.md) · **Deutsch** · [Magyar](README.hu.md)
 
@@ -139,11 +139,7 @@ Unterstütze das Projekt: https://www.buymeacoffee.com/echo.of.the.strings
 
 ## Zum Begriff „Clean-Room“
 
-Der Code ist von Grund auf neu geschrieben, auf Grundlage des allgemeinen Verhaltens von Link-Checkern und öffentlicher Spezifikationen
-(HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org). Er enthält keinen Code, keine Ressourcen, Texte oder Designs eines anderen Produkts und
-wurde nicht geschrieben, während der Code oder die ausführbare Datei eines anderen Programms eingesehen wurde.
-
-Lizenz: MIT.
+VERIGA ist eine **unabhängige Implementierung**, kein dokumentiertes Clean-Room-Projekt. Es wurde kein förmliches Clean-Room-Verfahren (getrennte Analyse- und Implementierungsteams, geprüfte Spezifikationen) angewandt, und der Verlauf des Repositorys beginnt mit einem einzigen großen Commit. Der Code entstand aus dem allgemeinen Verhalten von Link-Prüfern und aus öffentlichen Spezifikationen (HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org). Die Entwicklungssitzungen des Autors zeigen keine Verwendung von Code oder ausführbarer Datei eines anderen Link-Prüfers. Herkunftsnachweis und offene Punkte: [docs/clean-room/PROVENANCE.md](docs/clean-room/PROVENANCE.md).
 
 ## Sicherheit und Bedrohungsmodell
 

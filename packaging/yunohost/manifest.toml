@@ -2,9 +2,9 @@ packaging_format = 2
 
 id = "veriga"
 name = "VERIGA"
-description.en = "Link checker (Xenu-like): finds broken links, redirects and slow pages; includes the single-file HTML edition and an optional scheduled Link Guardian."
-description.fr = "Vérificateur de liens (type Xenu) : liens cassés, redirections et pages lentes ; édition HTML autonome et Link Guardian planifié en option."
-description.ro = "Verificator de legături (tip Xenu): legături rupte, redirecționări și pagini lente; ediția HTML dintr-un singur fișier și Link Guardian programat, opțional."
+description.en = "Link checker: finds broken links, redirects and slow pages; includes the single-file HTML edition and an optional scheduled Link Guardian."
+description.fr = "Vérificateur de liens : liens cassés, redirections et pages lentes ; édition HTML autonome et Link Guardian planifié en option."
+description.ro = "Verificator de legături: legături rupte, redirecționări și pagini lente; ediția HTML dintr-un singur fișier și Link Guardian programat, opțional."
 
 version = "1.1.0~ynh1"
 

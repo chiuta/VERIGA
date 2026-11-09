@@ -347,7 +347,7 @@ impl Default for ProposeOpts {
             verify: true,
             timeout_secs: 20,
             user_agent: format!(
-                "Veriga/{} (+link-checker; clean-room)",
+                "Veriga/{} (+link-checker)",
                 env!("CARGO_PKG_VERSION")
             ),
             only: None,
