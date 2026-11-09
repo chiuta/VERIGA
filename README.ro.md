@@ -167,9 +167,10 @@ Susține proiectul: https://www.buymeacoffee.com/echo.of.the.strings
 
 VERIGA este o **implementare independentă**, nu una clean-room documentată. Nu s-a aplicat o procedură formală clean-room (echipe separate de analiză și
 implementare, specificații verificate), iar istoricul depozitului începe cu un singur commit mare. Codul a fost scris pe baza comportamentului general
-al verificatoarelor de legături și a specificațiilor publice (HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org). Sesiunile de dezvoltare ale autorului
-nu arată folosirea codului sau a executabilului altui verificator. Evidența de proveniență și punctele deschise sunt în
+al verificatoarelor de legături și a specificațiilor publice (HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org). Faptul că nu s-a folosit codul sau executabilul altui verificator este o declarație a autorului și nu este dovedit: sesiunile de dezvoltare au fost examinate doar în parte, iar absența unei asemenea folosiri în părțile neexaminate nu poate fi demonstrată. Evidența de proveniență și punctele deschise sunt în
 [docs/clean-room/PROVENANCE.md](docs/clean-room/PROVENANCE.md).
+
+Licență: MIT.
 
 
 ## Securitate și model de amenințare / Security & threat model

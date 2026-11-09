@@ -139,7 +139,10 @@ A projekt támogatása: https://www.buymeacoffee.com/echo.of.the.strings
 
 ## A „clean-room” jelentéséről
 
-A VERIGA **független megvalósítás**, nem dokumentált clean-room projekt. Nem alkalmaztak formális eljárást (külön elemző és megvalósító csapat, ellenőrzött specifikációk), és a tároló története egyetlen nagy commit-tal kezdődik. A kód a hivatkozás-ellenőrzők általános viselkedéséből és nyilvános specifikációkból (HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org) készült. A szerző fejlesztési munkamenetei nem mutatják más hivatkozás-ellenőrző kódjának vagy futtatható állományának használatát. A származási nyilvántartás és a nyitott pontok: [docs/clean-room/PROVENANCE.md](docs/clean-room/PROVENANCE.md).
+A VERIGA **független megvalósítás**, nem dokumentált clean-room projekt. Nem alkalmaztak formális eljárást (külön elemző és megvalósító csapat, ellenőrzött specifikációk), és a tároló története egyetlen nagy commit-tal kezdődik. A kód a hivatkozás-ellenőrzők általános viselkedéséből és nyilvános specifikációkból (HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org) készült. Az, hogy más hivatkozás-ellenőrző kódját vagy futtatható állományát nem használták, a szerző nyilatkozata, és nem bizonyított: a fejlesztési munkameneteket csak részben vizsgálták át, a nem vizsgált részekben az ilyen használat hiánya nem igazolható. A származási nyilvántartás és a nyitott pontok:
+[docs/clean-room/PROVENANCE.md](docs/clean-room/PROVENANCE.md).
+
+Licenc: MIT.
 
 ## Biztonság és fenyegetésmodell
 

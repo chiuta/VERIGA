@@ -139,7 +139,10 @@ Sostieni il progetto: https://www.buymeacoffee.com/echo.of.the.strings
 
 ## Sul "clean-room"
 
-VERIGA è un'**implementazione indipendente**, non un progetto clean-room documentato. Non è stata applicata una procedura formale (team separati di analisi e implementazione, specifiche riviste) e la cronologia del repository inizia con un unico grande commit. Il codice è stato scritto a partire dal comportamento generale dei verificatori di link e da specifiche pubbliche (HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org). Le sessioni di sviluppo dell'autore non mostrano l'uso del codice o dell'eseguibile di un altro verificatore. Il registro di provenienza e i punti aperti sono in [docs/clean-room/PROVENANCE.md](docs/clean-room/PROVENANCE.md).
+VERIGA è un'**implementazione indipendente**, non un progetto clean-room documentato. Non è stata applicata una procedura formale (team separati di analisi e implementazione, specifiche riviste) e la cronologia del repository inizia con un unico grande commit. Il codice è stato scritto a partire dal comportamento generale dei verificatori di link e da specifiche pubbliche (HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org). Che non siano stati usati codice o eseguibile di un altro verificatore è una dichiarazione dell'autore e non è dimostrato: le sessioni di sviluppo sono state esaminate solo in parte, e l'assenza di tale uso nelle parti non esaminate non può essere provata. Il registro di provenienza e i punti aperti sono in
+[docs/clean-room/PROVENANCE.md](docs/clean-room/PROVENANCE.md).
+
+Licenza: MIT.
 
 ## Sicurezza e modello di minaccia
 

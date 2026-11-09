@@ -4,9 +4,9 @@ Document de completat cu fapte reale. Nu declara clean-room pentru ce nu s-a în
 
 ## Ce a existat până acum (completează onest)
 - Ținta/țintele: Xenu's Link Sleuth
-- Cum s-a documentat comportamentul țintei (documentație publică, utilizare, formate observate, decompilare?): ______
-- A fost folosit vreun cod, pseudocod, decompilare sau asset al țintei în sesiunile de dezvoltare? DA / NU / NU ȘTIU: ______
-- Sesiunile de dezvoltare au avut vreodată acces la binarul sau codul țintei? ______
+- Cum s-a documentat comportamentul țintei (documentație publică, utilizare, formate observate, decompilare?): (deschis — de completat de titular; neînregistrat în acest document)
+- A fost folosit vreun cod, pseudocod, decompilare sau asset al țintei în sesiunile de dezvoltare? DA / NU / NU ȘTIU: (deschis — de completat de titular; neînregistrat în acest document)
+- Sesiunile de dezvoltare au avut vreodată acces la binarul sau codul țintei? (deschis — de completat de titular; neînregistrat în acest document)
 
 ## Risc de licență
 Freeware proprietar (nu open source). Verifică EULA pentru clauze de reverse engineering. Replicarea funcționalității din comportament observabil este abordarea sigură.
@@ -48,7 +48,7 @@ Pentru lansări comerciale sau donații semnificative, cere o opinie de la un av
 Sursa: conversația claude.ai 385f3bdf-… (dezvoltare VERIGA) și 
 ec6ab1f3-… (plugin Trade-Free Link Guardian). Nu au fost citite integral.
 - **Acces la Xenu:** în porțiunile citite, sesiunea a pornit doar de la cererea titularului și de la o verificare a toolchain-ului. Nu apare descărcare, rulare sau decompilare a Xenu ori citirea documentației lui. Absența nu este dovedită pentru ture necitite. **Confirmare titular (2026-11-08, în conversație):** a confirmat că nu a avut acces la codul sursă, binarul sau documentația internă Xenu, în afara materialelor publice. Declarația este a titularului; istoricul nu o contrazice, dar nici nu o poate dovedi.
-- **EULA Xenu:** nu apare în istoricul citit că ar fi fost citit. Neconfirmat; de verificat de titular: ______
-- **Trade-Free Link Guardian:** plugin construit pentru titular (Alexio) de Claude în conversații din septembrie 2026; proprietar de drepturi: titularul, în măsura în care nu există contribuții terțe. Din declarațiile titularului: pluginul a fost comandat ca „link checker local, trade-free, care repară linkurile", rulează pe site-ul CNRED și se urmărește publicarea pe WordPress.org (care cere licență compatibilă GPL). Atenție: dacă s-a portat COD (nu doar funcții) din plugin în VERIGA (MIT), licențele trebuie să fie compatibile, iar rularea pe site-ul instituției poate ridica o chestiune de drepturi față de angajator. Licența plugin-ului și titularul de drept: ______
+- **EULA Xenu:** nu apare în istoricul citit că ar fi fost citit. Neconfirmat; de verificat de titular: (deschis — de completat de titular; neînregistrat în acest document)
+- **Trade-Free Link Guardian:** plugin construit pentru titular (Alexio) de Claude în conversații din septembrie 2026; proprietar de drepturi: titularul, în măsura în care nu există contribuții terțe. Din declarațiile titularului: pluginul a fost comandat ca „link checker local, trade-free, care repară linkurile", rulează pe site-ul CNRED și se urmărește publicarea pe WordPress.org (care cere licență compatibilă GPL). Atenție: dacă s-a portat COD (nu doar funcții) din plugin în VERIGA (MIT), licențele trebuie să fie compatibile, iar rularea pe site-ul instituției poate ridica o chestiune de drepturi față de angajator. Licența plugin-ului și titularul de drept: (deschis — de completat de titular; neînregistrat în acest document)
 
 **Limite:** nu s-a avut acces la Xenu; căutarea după nume nu detectează copierea fără nume. Nu este opinie juridică.

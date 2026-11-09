@@ -167,9 +167,10 @@ Support the project: https://www.buymeacoffee.com/echo.of.the.strings
 
 VERIGA is an **independent implementation**, not a documented clean-room one. No formal two-team clean-room procedure (separate analysis and
 implementation teams, reviewed specifications) was applied, and the repository history begins with a single large commit. The code was written from the
-general behaviour of link checkers and from public specifications (HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org). The author's
-development sessions show no use of the code or executable of another link checker. The provenance record and its open items are in
+general behaviour of link checkers and from public specifications (HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org). That no code or executable of another link checker was used is the author's declaration; it is not proven. The development sessions were reviewed only in part, and the absence of such use in the parts not reviewed cannot be shown. The provenance record and its open items are in
 [docs/clean-room/PROVENANCE.md](docs/clean-room/PROVENANCE.md).
+
+License: MIT.
 
 
 ## Security and threat model
