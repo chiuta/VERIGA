@@ -729,6 +729,14 @@ impl eframe::App for App {
                         },
                     );
                     ui.checkbox(
+                        &mut c.check_nonweb,
+                        if lang == "en" {
+                            "Validate tel:/geo:/data: syntax"
+                        } else {
+                            "Validează sintaxa tel:/geo:/data:"
+                        },
+                    );
+                    ui.checkbox(
                         &mut c.honor_nofollow,
                         if lang == "en" {
                             "Do not crawl rel=nofollow targets"

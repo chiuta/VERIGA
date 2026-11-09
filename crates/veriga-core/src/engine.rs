@@ -207,6 +207,9 @@ impl Coord {
                 }
             }
             other => {
+                if cfg.check_nonweb && crate::nonweb::handles(other) {
+                    return Some((true, false));
+                }
                 // Scheme non-web legitime (tel:, javascript:, data:…) se ignoră;
                 // orice altceva (htp:, hxxp:, scheme necunoscute) ajunge în raport.
                 if crate::urlutil::NON_WEB_SCHEMES.contains(&other) {

@@ -13,6 +13,7 @@ pub mod insights;
 pub mod junit;
 pub mod model;
 pub mod netguard;
+pub mod nonweb;
 pub mod proxy;
 pub mod report;
 pub mod robots;

@@ -82,6 +82,8 @@ pub struct Config {
     pub seed_sitemaps: bool,
     /// Legăturile cu `rel="nofollow"` se verifică, dar ținta lor nu se parcurge.
     pub honor_nofollow: bool,
+    /// Validează sintaxa adreselor `tel:`, `geo:` și `data:` (fără cereri în rețea).
+    pub check_nonweb: bool,
     pub ignore_tls_errors: bool,
     pub cookies: bool,
     /// Nu contacta adrese private/loopback/link-local (anti-SSRF) când punctul de start e public.
@@ -136,6 +138,7 @@ impl Default for Config {
             respect_robots: true,
             seed_sitemaps: false,
             honor_nofollow: false,
+            check_nonweb: false,
             ignore_tls_errors: false,
             cookies: true,
             block_private: true,

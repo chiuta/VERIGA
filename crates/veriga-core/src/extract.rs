@@ -75,6 +75,8 @@ struct Sink<'a> {
     out: &'a mut Extracted,
     /// `rel` al elementului în curs de prelucrare; consumat de prima legătură adăugată.
     rel: Vec<String>,
+    /// Păstrează `tel:` și `data:` (validate ulterior) în loc să le ignore.
+    keep_nonweb: bool,
 }
 
 impl<'a> Sink<'a> {
@@ -85,8 +87,8 @@ impl<'a> Sink<'a> {
         }
         let lower = raw.to_ascii_lowercase();
         if lower.starts_with("javascript:")
-            || lower.starts_with("data:")
-            || lower.starts_with("tel:")
+            || (!self.keep_nonweb && lower.starts_with("data:"))
+            || (!self.keep_nonweb && lower.starts_with("tel:"))
             || lower.starts_with("sms:")
             || lower.starts_with("blob:")
             || lower.starts_with("about:")
@@ -165,6 +167,7 @@ pub fn extract_css(page: &Url, css: &str) -> Vec<RawLink> {
         base: page,
         out: &mut ex,
         rel: vec![],
+        keep_nonweb: false,
     };
     s.add_css(css, LinkKind::Image);
     ex.links
@@ -178,6 +181,16 @@ fn parent_name(el: &ElementRef) -> String {
 }
 
 pub fn extract_html(page: &Url, html: &str, check_forms: bool) -> Extracted {
+    extract_html_opts(page, html, check_forms, false)
+}
+
+/// Ca `extract_html`; cu `keep_nonweb`, adresele `tel:` și `data:` se păstrează (pentru validare).
+pub fn extract_html_opts(
+    page: &Url,
+    html: &str,
+    check_forms: bool,
+    keep_nonweb: bool,
+) -> Extracted {
     // `<noscript>` este text brut pentru parserul cu scripting activ, dar conține linkuri reale
     // pentru vizitatorii fără JavaScript: îi eliminăm doar etichetele, ca să fie parcurs conținutul.
     static NOSCRIPT: OnceLock<Regex> = OnceLock::new();
@@ -234,6 +247,7 @@ pub fn extract_html(page: &Url, html: &str, check_forms: bool) -> Extracted {
             base: &base,
             out: &mut tmp,
             rel: vec![],
+            keep_nonweb,
         };
 
         for el in doc.select(&all) {

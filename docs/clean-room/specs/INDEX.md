@@ -11,7 +11,7 @@ Toate au statusul **candidat** (neaprobate; „Aprobată de mine” nebifat). Di
 | 3 | 05 | relatii-legatura | implementat (teste trec) | HTML Living Standard (link types) | S | — |
 | 4 | 03 | raport-sarif | implementat (teste trec) | OASIS SARIF 2.1.0 | M | — |
 | 5 | 04 | raport-junit | implementat (teste trec) | Apache Ant JUnitReport; W3C XML 1.0 | S | — |
-| 6 | 11 | scheme-nonweb | candidat | RFC 3966, 5870, 2397; Fetch | S | — |
+| 6 | 11 | scheme-nonweb | implementat (teste trec) | RFC 3966, 5870, 2397; Fetch | S | — |
 | 7 | 12 | nume-accesibil-legatura | candidat | WCAG 2.2; Accname 1.2 | M | — |
 | 8 | 02 | antet-link | candidat | RFC 8288; RFC 9110 | M | — |
 | 9 | 07 | canonica-hreflang | candidat | RFC 6596; RFC 5646 | M | 05 (tipuri rel), 02 (opțional: canonică în antet) |

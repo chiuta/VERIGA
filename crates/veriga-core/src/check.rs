@@ -1,7 +1,7 @@
 //! Verificarea unui singur URL: HTTP(S), fișier local, FTP, mailto.
 
 use crate::config::Config;
-use crate::extract::{RawLink, extract_css, extract_html};
+use crate::extract::{RawLink, extract_css, extract_html_opts};
 use crate::i18n::tr;
 use crate::model::*;
 use crate::robots::RobotsCache;
@@ -251,6 +251,21 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
         "file" => body = file_check(&sh, &t, &mut r).await,
         "ftp" => ftp_check(&sh, &t, &mut r).await,
         "mailto" => mailto_check(&t, &mut r),
+        "tel" | "geo" | "data" if sh.cfg.check_nonweb => match crate::nonweb::validate(&t.url) {
+            Some(crate::nonweb::Verdict::Valid(n)) => {
+                r.status = Status::Ok;
+                r.message = n;
+            }
+            Some(crate::nonweb::Verdict::Invalid(why)) => {
+                r.status = Status::InvalidUrl;
+                r.message = why;
+            }
+            Some(crate::nonweb::Verdict::Unchecked(why)) => {
+                r.status = Status::Skipped;
+                r.message = why;
+            }
+            None => {}
+        },
         other => {
             if let Some(want) = crate::urlutil::scheme_typo_target(other) {
                 r.status = Status::InvalidUrl;
@@ -284,7 +299,12 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
             .unwrap_or_else(|| t.url.clone());
         match b.kind {
             BodyKind::Html => {
-                let e = extract_html(&page_url, &b.text, sh.cfg.check_forms);
+                let e = extract_html_opts(
+                    &page_url,
+                    &b.text,
+                    sh.cfg.check_forms,
+                    sh.cfg.check_nonweb,
+                );
                 r.title = e.title;
                 r.h1 = e.h1;
                 links = e.links;
