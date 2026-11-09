@@ -285,6 +285,7 @@ mod tests {
             truncated: false,
             cancelled: false,
             aliases: vec![],
+            a11y: vec![],
         };
         let mk = |u: &str, st: Status, parent: &str| {
             let mut r = LinkResult::new(u, LinkKind::Page, 1, true);

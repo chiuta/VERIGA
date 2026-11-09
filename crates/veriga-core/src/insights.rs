@@ -944,6 +944,7 @@ mod tests {
                 truncated: false,
                 cancelled: false,
                 aliases: vec![],
+                a11y: vec![],
             }
         };
         let a = mk(

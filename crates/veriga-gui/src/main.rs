@@ -729,6 +729,22 @@ impl eframe::App for App {
                         },
                     );
                     ui.checkbox(
+                        &mut c.check_link_names,
+                        if lang == "en" {
+                            "Check link names (accessibility)"
+                        } else {
+                            "Verifică numele legăturilor (accesibilitate)"
+                        },
+                    );
+                    ui.checkbox(
+                        &mut c.check_ambiguous_names,
+                        if lang == "en" {
+                            "Flag ambiguous link names"
+                        } else {
+                            "Semnalează nume de legături ambigue"
+                        },
+                    );
+                    ui.checkbox(
                         &mut c.check_nonweb,
                         if lang == "en" {
                             "Validate tel:/geo:/data: syntax"

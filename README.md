@@ -44,6 +44,8 @@ headers and cookies, invalid certificates, delay between requests.
 
 `--check-schemes` — validates the syntax of `tel:`, `geo:` and `data:` addresses (RFC 3966, RFC 5870, RFC 2397 with the Fetch base64 tolerance); no network request is made. Invalid ones are reported as "Invalid URL" with the reason; `data:` addresses over 1 MiB are reported as not verified. Off by default (those schemes are silently ignored).
 
+`--check-link-names` — computes the accessible name of every `<a href>` (aria-labelledby, aria-label, content incl. image `alt`, then `title`; hidden content ignored) and reports links with no name or only punctuation (WCAG 2.4.4 / 4.1.2) in the text and JSON reports (`a11y`). `--check-ambiguous-names` adds an informational note when identical names (case-insensitive) point to different addresses on one page. Both off by default.
+
 ## Free, ethical proxies
 
 Pick a preset with `--proxy-preset tor|tor-browser|warp` (list them with `--list-proxy-presets`), or in the GUI under "Free ethical proxy…". All presets are local SOCKS5 endpoints (`socks5h://127.0.0.1:…`), so names are resolved by the proxy, not by your system. Tor (volunteer, non-profit, open source) is the recommended choice; the check is capped at 4 threads and 2 connections per server and some sites block Tor exits, so expect false "broken links". Cloudflare WARP is free but a commercial service with a closed-source client. Lists of open public proxies are deliberately not included: they are often compromised or intercept traffic. Your own proxy is still available with `--proxy`.

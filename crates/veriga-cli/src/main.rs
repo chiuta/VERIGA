@@ -118,6 +118,12 @@ struct Cli {
     /// Pornește și din sitemap.xml
     #[arg(long)]
     sitemap: bool,
+    /// Semnalează legăturile fără nume accesibil sau cu nume nesemnificativ (WCAG 2.4.4)
+    #[arg(long)]
+    check_link_names: bool,
+    /// Semnalează numele identice spre adrese diferite (notă informativă; implică analiza numelor)
+    #[arg(long)]
+    check_ambiguous_names: bool,
     /// Validează sintaxa adreselor tel:, geo: și data: (fără cereri în rețea)
     #[arg(long)]
     check_schemes: bool,
@@ -219,6 +225,8 @@ fn build_config(c: &Cli) -> Result<Config> {
     cfg.seed_sitemaps = c.sitemap;
     cfg.honor_nofollow = c.honor_nofollow;
     cfg.check_nonweb = c.check_schemes;
+    cfg.check_link_names = c.check_link_names;
+    cfg.check_ambiguous_names = c.check_ambiguous_names;
     cfg.ignore_tls_errors = c.insecure;
     cfg.block_private = !c.allow_private;
     cfg.cookies = !c.no_cookies;
@@ -420,6 +428,16 @@ const HELP_EN: &[(&str, &str, Option<&str>)] = &[
     ("user_agent", "The User-Agent header", None),
     ("no_robots", "Ignore robots.txt", None),
     ("sitemap", "Also start from sitemap.xml", None),
+    (
+        "check_link_names",
+        "Flag links without an accessible name or with a meaningless name (WCAG 2.4.4)",
+        None,
+    ),
+    (
+        "check_ambiguous_names",
+        "Flag identical link names pointing to different addresses (informational)",
+        None,
+    ),
     (
         "check_schemes",
         "Validate the syntax of tel:, geo: and data: addresses (no network requests)",

@@ -1759,6 +1759,7 @@ mod tests {
             truncated: false,
             cancelled: false,
             aliases: vec![],
+            a11y: vec![],
         };
         let m: HashMap<String, &crate::model::LinkResult> =
             s.results.iter().map(|r| (norm_cmp(&r.url), r)).collect();

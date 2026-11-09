@@ -37,6 +37,8 @@ pub struct Outcome {
     pub links: Vec<RawLink>,
     pub bad: Vec<(String, LinkKind, String)>,
     pub anchors: Option<HashSet<String>>,
+    /// Constatări de accesibilitate ale numelor de legături din pagină.
+    pub a11y: Vec<crate::a11y::A11yFinding>,
 }
 
 /// Pauză minimă între cererile către aceeași gazdă.
@@ -237,6 +239,7 @@ pub async fn check(sh: Arc<Shared>, t: Task) -> Outcome {
                 links: vec![],
                 bad: vec![],
                 anchors: None,
+                a11y: vec![],
             }
         }
     }
@@ -291,6 +294,7 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
     let mut links = vec![];
     let mut bad = vec![];
     let mut anchors = None;
+    let mut a11y = vec![];
     if let Some(b) = body {
         let page_url = r
             .final_url
@@ -310,6 +314,17 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
                 links = e.links;
                 bad = e.bad;
                 anchors = Some(e.anchors);
+                if sh.cfg.check_link_names || sh.cfg.check_ambiguous_names {
+                    let names = crate::a11y::link_names(&b.text, &page_url);
+                    a11y = crate::a11y::findings(
+                        t.url.as_str(),
+                        &names,
+                        sh.cfg.check_ambiguous_names,
+                    );
+                    if !sh.cfg.check_link_names {
+                        a11y.retain(|f| f.kind == crate::a11y::A11yKind::Ambiguous);
+                    }
+                }
             }
             BodyKind::Css => {
                 links = extract_css(&page_url, &b.text);
@@ -326,6 +341,7 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
         links,
         bad,
         anchors,
+        a11y,
     }
 }
 

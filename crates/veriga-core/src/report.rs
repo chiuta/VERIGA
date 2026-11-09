@@ -245,6 +245,27 @@ pub fn to_text(s: &Session) -> String {
         }
         let _ = writeln!(o);
     }
+    if !s.a11y.is_empty() {
+        let _ = writeln!(
+            o,
+            "== {} ==",
+            tr(
+                lang,
+                "Accesibilitatea numelor de legături",
+                "Link name accessibility"
+            )
+        );
+        for f in &s.a11y {
+            let _ = writeln!(o, "{} — {}", f.page, f.kind.label(lang));
+            if !f.name.is_empty() {
+                let _ = writeln!(o, "    „{}”", f.name);
+            }
+            for t in f.targets.iter().take(5) {
+                let _ = writeln!(o, "    ↳ {t}");
+            }
+        }
+        let _ = writeln!(o);
+    }
     let groups = broken_grouped(s);
     if groups.is_empty() {
         let _ = writeln!(
@@ -933,6 +954,7 @@ mod tests {
             truncated: false,
             cancelled: false,
             aliases: vec![],
+            a11y: vec![],
         }
     }
 

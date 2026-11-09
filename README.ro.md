@@ -44,6 +44,8 @@ antete și cookie-uri, certificate invalide, pauză între cereri.
 
 `--check-schemes` — validează sintaxa adreselor `tel:`, `geo:` și `data:` (RFC 3966, RFC 5870, RFC 2397, cu toleranța base64 din Fetch); nu se face nicio cerere în rețea. Cele invalide apar ca „URL invalid”, cu motivul; adresele `data:` peste 1 MiB sunt raportate ca neverificate. Implicit dezactivat (aceste scheme sunt ignorate fără zgomot).
 
+`--check-link-names` — calculează numele accesibil al fiecărui `<a href>` (aria-labelledby, aria-label, conținut incl. `alt` de imagine, apoi `title`; conținutul ascuns se ignoră) și raportează legăturile fără nume sau doar cu semne de punctuație (WCAG 2.4.4 / 4.1.2) în rapoartele text și JSON (`a11y`). `--check-ambiguous-names` adaugă o notă informativă când nume identice (fără distincție majuscule) duc la adrese diferite în aceeași pagină. Ambele sunt dezactivate implicit.
+
 ## Proxy-uri gratuite și etice
 
 Alege un preset cu `--proxy-preset tor|tor-browser|warp` (listă: `--list-proxy-presets`) sau, în GUI, din „Proxy gratuit etic…”. Toate sunt puncte SOCKS5 locale (`socks5h://127.0.0.1:…`), deci numele sunt rezolvate de proxy, nu de sistemul tău. Tor (voluntari, fără profit, cod deschis) este alegerea recomandată; verificarea e limitată la 4 fire și 2 conexiuni per server, iar unele site-uri blochează ieșirile Tor, deci pot apărea false „linkuri rupte”. Cloudflare WARP e gratuit, dar este un serviciu comercial cu client închis. Listele de proxy-uri publice deschise lipsesc intenționat: sunt adesea compromise sau interceptează traficul. Proxy-ul propriu rămâne disponibil cu `--proxy`.

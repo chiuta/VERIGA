@@ -90,6 +90,7 @@ struct Coord {
     /// canonic -> scriere -> pagini în care apare
     /// ținte al căror `parse` a fost oprit doar din cauza lui nofollow
     nofollow_idx: HashSet<usize>,
+    a11y: Vec<crate::a11y::A11yFinding>,
     alias_forms: HashMap<String, BTreeMap<String, BTreeSet<String>>>,
 }
 
@@ -124,6 +125,7 @@ impl Coord {
             last_progress: Instant::now() - Duration::from_secs(1),
             start_urls: vec![],
             nofollow_idx: HashSet::new(),
+            a11y: vec![],
             alias_forms: HashMap::new(),
         })
     }
@@ -529,6 +531,7 @@ impl Coord {
                 self.anchors.insert(normalize(&u), a);
             }
         }
+        self.a11y.extend(o.a11y);
         self.done += 1;
         if res.status.is_broken(&self.cfg) {
             self.broken += 1;
@@ -922,6 +925,8 @@ pub async fn run(
     co.emit(Event::Finished);
 
     let aliases = co.alias_groups();
+    let mut a11y = std::mem::take(&mut co.a11y);
+    a11y.sort();
     let mut config = (*cfg).clone();
     config.basic_auth = None;
     Ok(Session {
@@ -935,6 +940,7 @@ pub async fn run(
         truncated: co.truncated,
         cancelled,
         aliases,
+        a11y,
     })
 }
 
@@ -1002,6 +1008,7 @@ pub async fn recheck(
         truncated: session.truncated,
         cancelled,
         aliases: session.aliases,
+        a11y: session.a11y,
     })
 }
 

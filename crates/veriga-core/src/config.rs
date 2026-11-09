@@ -84,6 +84,10 @@ pub struct Config {
     pub honor_nofollow: bool,
     /// Validează sintaxa adreselor `tel:`, `geo:` și `data:` (fără cereri în rețea).
     pub check_nonweb: bool,
+    /// Semnalează legăturile fără nume accesibil sau cu nume nesemnificativ.
+    pub check_link_names: bool,
+    /// Semnalează și numele identice spre adrese diferite (notă informativă).
+    pub check_ambiguous_names: bool,
     pub ignore_tls_errors: bool,
     pub cookies: bool,
     /// Nu contacta adrese private/loopback/link-local (anti-SSRF) când punctul de start e public.
@@ -139,6 +143,8 @@ impl Default for Config {
             seed_sitemaps: false,
             honor_nofollow: false,
             check_nonweb: false,
+            check_link_names: false,
+            check_ambiguous_names: false,
             ignore_tls_errors: false,
             cookies: true,
             block_private: true,

@@ -157,6 +157,7 @@ mod tests {
             truncated: false,
             cancelled: false,
             aliases: vec![],
+            a11y: vec![],
         };
         for (u, st, parent, msg) in items {
             let mut r = LinkResult::new(u, LinkKind::Page, 1, true);
