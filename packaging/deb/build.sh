@@ -17,6 +17,8 @@ stage() {  # $1 = rădăcină de instalare
   install -Dm0755 "$bin" "$1/usr/bin/veriga"
   install -Dm0644 "$root/web/veriga.html" "$1/usr/share/veriga/veriga.html"
   install -Dm0644 "$root/LICENSE" "$1/usr/share/doc/veriga/copyright"
+  install -Dm0644 "$root/THIRD-PARTY-NOTICES.md" "$1/usr/share/doc/veriga/THIRD-PARTY-NOTICES.md"
+  install -Dm0644 "$root"/assets/fonts/LICENSE-*.txt -t "$1/usr/share/doc/veriga/fonts/"
   install -Dm0644 "$root/README.md" "$1/usr/share/doc/veriga/README.md"
   install -Dm0644 "$root/packaging/systemd/veriga-watch.service" "$1/usr/lib/systemd/system/veriga-watch.service"
   install -Dm0644 "$root/packaging/systemd/veriga-watch.timer" "$1/usr/lib/systemd/system/veriga-watch.timer"

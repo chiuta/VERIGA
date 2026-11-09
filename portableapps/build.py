@@ -8,7 +8,7 @@ import argparse, os, re, shutil, subprocess, sys, tempfile, zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE = os.path.join(HERE, "VERIGAPortable")
-KEEP = {"veriga.exe", "veriga-gui.exe", "README.md", "LICENSE", "SECURITY.md", "veriga.html"}
+KEEP = {"veriga.exe", "veriga-gui.exe", "README.md", "LICENSE", "THIRD-PARTY-NOTICES.md", "SECURITY.md", "veriga.html"}
 
 
 def extract(zpath, dest):
