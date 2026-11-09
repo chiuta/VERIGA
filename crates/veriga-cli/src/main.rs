@@ -118,6 +118,9 @@ struct Cli {
     /// Pornește și din sitemap.xml
     #[arg(long)]
     sitemap: bool,
+    /// Semnalează subresurse http: încărcate de pagini https: (conținut mixt)
+    #[arg(long)]
+    check_mixed_content: bool,
     /// Verifică legăturile canonice (țintă ruptă/redirecționată, multiple) și etichetele hreflang
     #[arg(long)]
     check_seo_links: bool,
@@ -231,6 +234,7 @@ fn build_config(c: &Cli) -> Result<Config> {
     cfg.seed_sitemaps = c.sitemap;
     cfg.honor_nofollow = c.honor_nofollow;
     cfg.check_nonweb = c.check_schemes;
+    cfg.check_mixed_content = c.check_mixed_content;
     cfg.check_seo_links = c.check_seo_links;
     cfg.check_link_header = c.check_link_header;
     cfg.check_link_names = c.check_link_names;
@@ -436,6 +440,11 @@ const HELP_EN: &[(&str, &str, Option<&str>)] = &[
     ("user_agent", "The User-Agent header", None),
     ("no_robots", "Ignore robots.txt", None),
     ("sitemap", "Also start from sitemap.xml", None),
+    (
+        "check_mixed_content",
+        "Flag http: subresources loaded by https: pages (mixed content)",
+        None,
+    ),
     (
         "check_seo_links",
         "Check canonical links (broken/redirected target, multiple) and hreflang language tags",

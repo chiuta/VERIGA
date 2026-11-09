@@ -45,6 +45,10 @@ pub struct Outcome {
     pub seo: Vec<crate::seo::SeoFinding>,
     /// Adresele canonice ale paginii (verificate la sfârșit față de rezultatele țintelor).
     pub canon: Vec<Url>,
+    /// Conținut mixt găsit pe pagină.
+    pub mixed: Vec<crate::mixed::MixedFinding>,
+    /// Subresurse https de pe o pagină https (verificate la sfârșit pentru redirecționări la http).
+    pub https_subs: Vec<(Url, crate::extract::Sub)>,
 }
 
 /// Pauză minimă între cererile către aceeași gazdă.
@@ -204,6 +208,13 @@ enum BodyKind {
     Css,
 }
 
+/// Informații din antetele răspunsului final, necesare după verificare.
+#[derive(Default)]
+struct HeaderInfo {
+    link_values: Vec<String>,
+    upgrade_insecure: bool,
+}
+
 struct Body {
     kind: BodyKind,
     text: String,
@@ -221,7 +232,7 @@ struct Attempt {
     last_modified: Option<String>,
     body: Option<Body>,
     /// Valorile câmpurilor `Link` ale răspunsului final (dacă sunt cerute).
-    link_values: Vec<String>,
+    hdr: HeaderInfo,
     retryable: bool,
     retry_after_ms: Option<u64>,
 }
@@ -251,6 +262,8 @@ pub async fn check(sh: Arc<Shared>, t: Task) -> Outcome {
                 warnings: vec![],
                 seo: vec![],
                 canon: vec![],
+                mixed: vec![],
+                https_subs: vec![],
             }
         }
     }
@@ -260,9 +273,9 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
     let started = Instant::now();
     let mut r = LinkResult::new(t.url.as_str(), t.kind, t.depth, t.internal);
     let mut body: Option<Body> = None;
-    let mut link_values: Vec<String> = vec![];
+    let mut hdr = HeaderInfo::default();
     match t.url.scheme() {
-        "http" | "https" => body = http_check(&sh, &t, &mut r, &mut link_values).await,
+        "http" | "https" => body = http_check(&sh, &t, &mut r, &mut hdr).await,
         "file" => body = file_check(&sh, &t, &mut r).await,
         "ftp" => ftp_check(&sh, &t, &mut r).await,
         "mailto" => mailto_check(&t, &mut r),
@@ -309,6 +322,8 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
     let mut a11y = vec![];
     let mut seo = vec![];
     let mut canon: Vec<Url> = vec![];
+    let mut mixed = vec![];
+    let mut https_subs: Vec<(Url, crate::extract::Sub)> = vec![];
     if let Some(b) = body {
         let page_url = r
             .final_url
@@ -352,13 +367,13 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
         r.links_found = links.len() as u32;
     }
     let mut warnings: Vec<String> = vec![];
-    if !link_values.is_empty() {
+    if !hdr.link_values.is_empty() {
         let req = r
             .final_url
             .as_deref()
             .and_then(|u| Url::parse(u).ok())
             .unwrap_or_else(|| t.url.clone());
-        let parsed = crate::linkheader::parse(&link_values, &req, sh.cfg.max_link_header_links);
+        let parsed = crate::linkheader::parse(&hdr.link_values, &req, sh.cfg.max_link_header_links);
         for h in parsed.links {
             if sh.cfg.check_seo_links && h.rel.iter().any(|r| r == "canonical") {
                 canon.push(h.target.clone());
@@ -376,6 +391,21 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
         );
         r.links_found = links.len() as u32;
     }
+    if sh.cfg.check_mixed_content && !links.is_empty() {
+        let page = r
+            .final_url
+            .as_deref()
+            .and_then(|u| Url::parse(u).ok())
+            .unwrap_or_else(|| t.url.clone());
+        mixed = crate::mixed::findings(&page, &links, hdr.upgrade_insecure);
+        if page.scheme() == "https" {
+            for l in &links {
+                if l.url.scheme() == "https" && l.sub != crate::extract::Sub::None {
+                    https_subs.push((l.url.clone(), l.sub));
+                }
+            }
+        }
+    }
     r.elapsed_ms = started.elapsed().as_millis() as u64;
     Outcome {
         idx: t.idx,
@@ -388,6 +418,8 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
         warnings,
         seo,
         canon,
+        mixed,
+        https_subs,
     }
 }
 
@@ -721,8 +753,18 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
         });
         a.last_modified = lm;
         a.size = cl;
+        if cfg.check_mixed_content && t.parse && code < 300 {
+            a.hdr.upgrade_insecure = headers
+                .get_all(reqwest::header::CONTENT_SECURITY_POLICY)
+                .iter()
+                .filter_map(|v| v.to_str().ok())
+                .any(|v| {
+                    v.split(';')
+                        .any(|d| d.trim().eq_ignore_ascii_case("upgrade-insecure-requests"))
+                });
+        }
         if cfg.check_link_header && t.parse && code < 300 {
-            a.link_values = headers
+            a.hdr.link_values = headers
                 .get_all(reqwest::header::LINK)
                 .iter()
                 .filter_map(|v| v.to_str().ok().map(str::to_string))
@@ -836,7 +878,7 @@ async fn http_check(
     sh: &Shared,
     t: &Task,
     r: &mut LinkResult,
-    link_values: &mut Vec<String>,
+    hdr: &mut HeaderInfo,
 ) -> Option<Body> {
     let cfg = &sh.cfg;
     let mut delay = Duration::from_millis(cfg.delay_ms);
@@ -880,7 +922,7 @@ async fn http_check(
     r.content_type = last.ctype;
     r.size = last.size;
     r.last_modified = last.last_modified;
-    *link_values = last.link_values;
+    *hdr = last.hdr;
     last.body
 }
 

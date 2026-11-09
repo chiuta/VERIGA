@@ -32,3 +32,5 @@ flate2 = { version = "1", default-features = false, features = ["rust_backend"] 
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 tokio = { workspace = true, features = ["net"] }
 quick-xml = "0.41"
+tokio-rustls = "0.26"
+rustls-pki-types = "1"

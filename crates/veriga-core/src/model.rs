@@ -305,6 +305,9 @@ pub struct Session {
     /// Constatări despre legături canonice și etichete hreflang.
     #[serde(default)]
     pub seo: Vec<crate::seo::SeoFinding>,
+    /// Subresurse `http:` pe pagini `https:`.
+    #[serde(default)]
+    pub mixed: Vec<crate::mixed::MixedFinding>,
 }
 
 /// Proxy fără `user:parolă@` (credențialele nu se salvează pe disc).
@@ -413,6 +416,7 @@ mod tests {
             a11y: vec![],
             warnings: vec![],
             seo: vec![],
+            mixed: vec![],
         }
     }
 
@@ -452,6 +456,7 @@ mod tests {
             a11y: vec![],
             warnings: vec![],
             seo: vec![],
+            mixed: vec![],
         };
         s.config.start = vec!["http://bob:s3cret@h/a".into()];
         let mut r = LinkResult::new("http://bob:s3cret@h/a", LinkKind::Page, 0, true);
@@ -485,6 +490,7 @@ mod tests {
             a11y: vec![],
             warnings: vec![],
             seo: vec![],
+            mixed: vec![],
         };
         s.config.lang = "x\"><script>alert(1)</script><i a=\"".into();
         let html = crate::report::to_html(&s);

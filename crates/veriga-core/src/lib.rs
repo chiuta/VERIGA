@@ -13,6 +13,7 @@ pub mod i18n;
 pub mod insights;
 pub mod junit;
 pub mod linkheader;
+pub mod mixed;
 pub mod model;
 pub mod netguard;
 pub mod nonweb;

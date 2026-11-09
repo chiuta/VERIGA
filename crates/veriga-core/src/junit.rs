@@ -160,6 +160,7 @@ mod tests {
             a11y: vec![],
             warnings: vec![],
             seo: vec![],
+            mixed: vec![],
         };
         for (u, st, parent, msg) in items {
             let mut r = LinkResult::new(u, LinkKind::Page, 1, true);

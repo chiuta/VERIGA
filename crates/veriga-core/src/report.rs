@@ -245,6 +245,21 @@ pub fn to_text(s: &Session) -> String {
         }
         let _ = writeln!(o);
     }
+    if !s.mixed.is_empty() {
+        let _ = writeln!(
+            o,
+            "== {} ==",
+            tr(lang, "Conținut mixt (http în https)", "Mixed content (http in https)")
+        );
+        for f in &s.mixed {
+            let _ = writeln!(o, "{} — {}", f.page, f.category.label(lang));
+            let _ = writeln!(o, "    {}", f.target);
+            if let Some(n) = &f.note {
+                let _ = writeln!(o, "    ({n})");
+            }
+        }
+        let _ = writeln!(o);
+    }
     if !s.seo.is_empty() {
         let _ = writeln!(
             o,
@@ -980,6 +995,7 @@ mod tests {
             a11y: vec![],
             warnings: vec![],
             seo: vec![],
+            mixed: vec![],
         }
     }
 

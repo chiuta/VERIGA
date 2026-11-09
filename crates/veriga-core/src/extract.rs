@@ -8,6 +8,40 @@ use std::collections::HashSet;
 use std::sync::OnceLock;
 use url::Url;
 
+/// Rolul unei legături ca subresursă încărcată de pagină (pentru conținutul mixt).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Sub {
+    /// Nu este subresursă (navigare, referință informativă).
+    #[default]
+    None,
+    /// Imagini, audio, video: «opțional blocabilă».
+    Optional,
+    /// Orice altă subresursă: «blocabilă».
+    Blockable,
+}
+
+fn is_font_path(p: &str) -> bool {
+    let p = p.to_ascii_lowercase();
+    [".woff2", ".woff", ".ttf", ".otf", ".eot"]
+        .iter()
+        .any(|e| p.ends_with(e))
+}
+
+/// Rolul implicit după tipul legăturii.
+pub fn default_sub(kind: LinkKind, u: &Url) -> Sub {
+    match kind {
+        LinkKind::Image if is_font_path(u.path()) => Sub::Blockable,
+        LinkKind::Image | LinkKind::Media => Sub::Optional,
+        LinkKind::Stylesheet
+        | LinkKind::Script
+        | LinkKind::Frame
+        | LinkKind::Object
+        | LinkKind::Icon
+        | LinkKind::Form => Sub::Blockable,
+        _ => Sub::None,
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct RawLink {
     pub url: Url,
@@ -17,6 +51,7 @@ pub struct RawLink {
     pub written: String,
     /// Tipurile de relație din atributul `rel` (minuscule, unice, în ordinea apariției).
     pub rel: Vec<String>,
+    pub sub: Sub,
 }
 
 #[derive(Debug, Default)]
@@ -81,6 +116,8 @@ struct Sink<'a> {
     rel: Vec<String>,
     /// Păstrează `tel:` și `data:` (validate ulterior) în loc să le ignore.
     keep_nonweb: bool,
+    /// Rol impus pentru următoarea legătură adăugată (consumat de `add`).
+    sub_force: Option<Sub>,
 }
 
 impl<'a> Sink<'a> {
@@ -104,22 +141,29 @@ impl<'a> Sink<'a> {
             return;
         }
         match self.base.join(raw) {
-            Ok(u) => self.out.links.push(RawLink {
-                // tipul urmează schema: un `mailto:` nu este „Pagină”
-                kind: match (u.scheme(), kind) {
-                    ("mailto", _) => LinkKind::Mailto,
-                    ("ftp" | "ftps", LinkKind::Page | LinkKind::Link) => LinkKind::Ftp,
-                    _ => kind,
-                },
-                written: if has_scheme(raw) {
-                    raw.to_string()
-                } else {
-                    u.to_string()
-                },
-                url: u,
-                text: truncate_chars(text, 120),
-                rel: std::mem::take(&mut self.rel),
-            }),
+            Ok(u) => {
+                let sub = self
+                    .sub_force
+                    .take()
+                    .unwrap_or_else(|| default_sub(kind, &u));
+                self.out.links.push(RawLink {
+                    // tipul urmează schema: un `mailto:` nu este „Pagină”
+                    kind: match (u.scheme(), kind) {
+                        ("mailto", _) => LinkKind::Mailto,
+                        ("ftp" | "ftps", LinkKind::Page | LinkKind::Link) => LinkKind::Ftp,
+                        _ => kind,
+                    },
+                    written: if has_scheme(raw) {
+                        raw.to_string()
+                    } else {
+                        u.to_string()
+                    },
+                    url: u,
+                    text: truncate_chars(text, 120),
+                    rel: std::mem::take(&mut self.rel),
+                    sub,
+                });
+            }
             Err(e) => self
                 .out
                 .bad
@@ -172,6 +216,7 @@ pub fn extract_css(page: &Url, css: &str) -> Vec<RawLink> {
         out: &mut ex,
         rel: vec![],
         keep_nonweb: false,
+        sub_force: None,
     };
     s.add_css(css, LinkKind::Image);
     ex.links
@@ -254,6 +299,7 @@ pub fn extract_html_opts(
             out: &mut tmp,
             rel: vec![],
             keep_nonweb,
+            sub_force: None,
         };
 
         for el in doc.select(&all) {
@@ -342,8 +388,15 @@ pub fn extract_html_opts(
                             LinkKind::Link
                         };
                         s.rel = parse_rel(v.attr("rel").unwrap_or(""));
+                        if rel_tokens
+                            .iter()
+                            .any(|t| matches!(t.as_str(), "preload" | "prefetch" | "modulepreload"))
+                        {
+                            s.sub_force = Some(Sub::Blockable);
+                        }
                         s.add(h, kind, "");
                         s.rel.clear();
+                        s.sub_force = None;
                     }
                     if let Some(x) = v.attr("imagesrcset") {
                         s.add_srcset(x, LinkKind::Image);
@@ -465,7 +518,9 @@ pub fn extract_html_opts(
                         nm.as_str(),
                         "og:image" | "twitter:image" | "msapplication-tileimage"
                     ) {
+                        s.sub_force = Some(Sub::None);
                         s.add(content, LinkKind::Image, "");
+                        s.sub_force = None;
                     } else if nm == "robots" {
                         meta_robots = Some(content.to_ascii_lowercase());
                     }

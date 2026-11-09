@@ -729,6 +729,14 @@ impl eframe::App for App {
                         },
                     );
                     ui.checkbox(
+                        &mut c.check_mixed_content,
+                        if lang == "en" {
+                            "Detect mixed content"
+                        } else {
+                            "Detectează conținut mixt"
+                        },
+                    );
+                    ui.checkbox(
                         &mut c.check_seo_links,
                         if lang == "en" {
                             "Check canonical and hreflang"

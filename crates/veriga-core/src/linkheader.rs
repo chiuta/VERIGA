@@ -57,6 +57,11 @@ pub fn to_raw_link(h: HeaderLink) -> crate::extract::RawLink {
         url: h.target,
         kind,
         text: crate::urlutil::truncate_chars(&format!("Link header: {label}"), 120),
+        sub: if has("stylesheet") || has("preload") || has("prefetch") || has("icon") {
+            crate::extract::Sub::Blockable
+        } else {
+            crate::extract::Sub::None
+        },
         rel: h.rel,
     }
 }

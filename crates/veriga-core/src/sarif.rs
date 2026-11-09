@@ -288,6 +288,7 @@ mod tests {
             a11y: vec![],
             warnings: vec![],
             seo: vec![],
+            mixed: vec![],
         };
         let mk = |u: &str, st: Status, parent: &str| {
             let mut r = LinkResult::new(u, LinkKind::Page, 1, true);

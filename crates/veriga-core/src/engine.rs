@@ -93,6 +93,8 @@ struct Coord {
     a11y: Vec<crate::a11y::A11yFinding>,
     warnings: Vec<String>,
     seo: Vec<crate::seo::SeoFinding>,
+    mixed: Vec<crate::mixed::MixedFinding>,
+    https_subs: Vec<(String, Url, crate::extract::Sub)>,
     canon: Vec<(String, Url)>,
     alias_forms: HashMap<String, BTreeMap<String, BTreeSet<String>>>,
 }
@@ -131,6 +133,8 @@ impl Coord {
             a11y: vec![],
             warnings: vec![],
             seo: vec![],
+            mixed: vec![],
+            https_subs: vec![],
             canon: vec![],
             alias_forms: HashMap::new(),
         })
@@ -341,6 +345,35 @@ impl Coord {
         let r = &mut self.results[idx];
         if r.parents.len() < 100 && !r.parents.iter().any(|x| x.url == p.url && x.text == p.text) {
             r.parents.push(p);
+        }
+    }
+
+    /// Subresurse https care redirecționează la http (cererea ajunge nesigură).
+    fn check_mixed_redirects(&mut self) {
+        let list = std::mem::take(&mut self.https_subs);
+        for (page, target, sb) in list {
+            let key = normalize(&target);
+            let Some(&i) = self.index.get(&key) else {
+                continue;
+            };
+            let Some(fin) = self.results[i]
+                .final_url
+                .as_deref()
+                .and_then(|u| Url::parse(u).ok())
+            else {
+                continue;
+            };
+            if fin.scheme() != "http" || crate::mixed::potentially_trustworthy(&fin) {
+                continue;
+            }
+            if let Some(category) = crate::mixed::category(sb) {
+                self.mixed.push(crate::mixed::MixedFinding {
+                    page,
+                    target: key,
+                    category,
+                    note: Some(format!("redirecționează la {fin}")),
+                });
+            }
         }
     }
 
@@ -565,6 +598,10 @@ impl Coord {
         self.a11y.extend(o.a11y);
         self.warnings.extend(o.warnings);
         self.seo.extend(o.seo);
+        self.mixed.extend(o.mixed);
+        for (u, sb) in o.https_subs {
+            self.https_subs.push((res.url.clone(), u, sb));
+        }
         for c in o.canon {
             self.canon.push((res.url.clone(), c));
         }
@@ -720,6 +757,7 @@ impl Coord {
                                 text: String::new(),
                                 written: l.clone(),
                                 rel: vec![],
+                                sub: crate::extract::Sub::None,
                             },
                             &parent,
                             0,
@@ -962,6 +1000,10 @@ pub async fn run(
 
     let aliases = co.alias_groups();
     co.check_canonicals();
+    co.check_mixed_redirects();
+    let mut mixed = std::mem::take(&mut co.mixed);
+    mixed.sort();
+    mixed.dedup();
     let mut seo = std::mem::take(&mut co.seo);
     seo.sort();
     seo.dedup();
@@ -984,6 +1026,7 @@ pub async fn run(
         a11y,
         warnings,
         seo,
+        mixed,
     })
 }
 
@@ -1054,6 +1097,7 @@ pub async fn recheck(
         a11y: session.a11y,
         warnings: session.warnings,
         seo: session.seo,
+        mixed: session.mixed,
     })
 }
 
