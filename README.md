@@ -40,7 +40,7 @@ external links yes/no, "stay in the directory", exclude / don't-follow / only-th
 HTTP codes treated as OK (e.g. 999), User-Agent, proxy (HTTP/SOCKS), Basic authentication (internal hosts only),
 headers and cookies, invalid certificates, delay between requests.
 
-`--honor-nofollow` — links marked `rel="nofollow"` are still checked (HTTP status) but the target page is not crawled for further links; off by default. The `rel` tokens of every link (case-insensitive, unique) are reported in JSON (`rel`), CSV (`Rel` column) and next to broken links in the text report.
+`--honor-nofollow` — links marked `rel="nofollow"` are still checked (HTTP status) but the target page is not crawled for further links; off by default. With `--report-rel`, the `rel` tokens of every link (case-insensitive, unique) are also reported in JSON (`rel`), CSV/TSV (`Rel` column) and next to broken links in the text report; without it those outputs are exactly as in v1.1.0.
 
 `--check-schemes` — validates the syntax of `tel:`, `geo:` and `data:` addresses (RFC 3966, RFC 5870, RFC 2397 with the Fetch base64 tolerance); no network request is made. Invalid ones are reported as "Invalid URL" with the reason; `data:` addresses over 1 MiB are reported as not verified. Off by default (those schemes are silently ignored).
 
@@ -67,7 +67,7 @@ Pick a preset with `--proxy-preset tor|tor-browser|warp` (list them with `--list
 Self-contained HTML (opens anywhere), CSV, TSV, JSON, text, sitemap.xml, a site tree, a `.veriga` session.
 **Re-check of broken links** from a saved session (`--recheck`, a button in the GUI/web).
 
-**Alias addresses:** different spellings of the same address (host case, default port, needlessly percent-encoded characters, dot segments) are merged into one check and listed as an informational group in the text and JSON reports (`aliases`); path/query case, parameter order, trailing slash and `www.` are never merged.
+**Alias addresses** (`--report-aliases`): different spellings of the same address (host case, default port, needlessly percent-encoded characters, dot segments) are listed as informational groups in the text and JSON reports (`aliases`); path/query case, parameter order, trailing slash and `www.` are never grouped. Tracking is memory-capped (100,000 addresses, 10 spellings per address, 20 pages per spelling). `--canonical-urls` additionally merges such spellings into one check (and reports the normalised address); by default URLs are checked and reported exactly as written, as in v1.1.0. Other off-by-default switches: `--xml-encoding` (honour `<?xml encoding=…?>` when no header or meta charset is given).
 
 **SARIF 2.1.0** (`-o report.sarif`): broken links become `error`, redirects / 401-403 / slow responses `warning`, skipped or orphan items `note`; good links are not emitted. The location is the page (or file) containing the link, as a URI; `region.startLine` is only written when a line is known (crawl results currently carry no line, so it is omitted). Output is deterministic and written atomically.
 

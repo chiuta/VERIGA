@@ -5,7 +5,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 ## [Nepublicat / Unreleased]
 
 ### Adăugat
+- Funcții noi, **toate aditive și dezactivate implicit** (fără ele rapoartele CSV/TSV/JSON/text/HTML/XML/arbore, sesiunile `.veriga` și codurile de ieșire sunt identice cu cele din 1.1.0): `--honor-nofollow`, `--check-schemes` (tel:/geo:/data:), `--check-link-names` / `--check-ambiguous-names`, `--check-link-header`, `--check-seo-links` (canonical, hreflang), `--check-mixed-content`, `--check-feeds` (RSS/Atom), `--check-sri`, `--check-cert-expiry` / `--cert-warn-days`, plus ieșirile `-o x.sarif` (SARIF 2.1.0) și `-o x.junit` (JUnit XML), și citirea hărților de site `.xml.gz` cu `--sitemap`. / New features, all additive and off by default.
+- Comutatoare pentru comportamente care înainte nu existau: `--report-rel` (coloana `Rel`, cheia JSON `rel`, linia `rel:`), `--report-aliases` (grupuri de adrese echivalente; memorie plafonată), `--canonical-urls` (unifică `%7e` cu `~`), `--xml-encoding` (codificarea din declarația `<?xml?>`). / Opt-in switches for the rest of the new behaviour.
 - Lanțul de surse „fără frontiere” (plic FFF): `--fff-in FISIER` citește un plic `citation/csl` (de ex. din `tezaur bib --fff-out`), iar URL-urile și DOI-urile (`https://doi.org/…`) devin puncte de start cu adâncime 0; `--fff-out FISIER` scrie plicul cu fiecare referință adnotată în `custom.veriga` (`status`: `ok`, `redirected`, `broken`, `unreachable`, `unchecked`, `no-link`, `bad-doi`; `checked`; `http`; `doi_syntax`). Fără legături de verificat nu se face nicio cerere de rețea (referințele rămân `no-link`); lipsa rețelei dă `unreachable`, nu „rupt”. / FFF envelope support for the offline source chain LegatorOCR -> TEZAUR -> VERIGA -> AcademiSearch.
+
+### Schimbat
+- Textul „clean-room” a fost înlocuit cu „implementare independentă”; `User-Agent` implicit este acum `Veriga/<versiune> (+link-checker)` (fără „; clean-room”). `--sitemap` citește hărțile cu un cititor XML, are plafoane (50 MB decomprimat, 50.000 de adrese) și afișează pe stderr hărțile ilizibile. / Wording and default User-Agent changed; `--sitemap` parsing hardened.
+
+### Reparat
+- Extensiile de ieșire `.sarif` și `.junit` erau respinse de CLI. / `-o x.sarif` and `-o x.junit` were rejected.
+- Paginile site-ului nu mai încalcă CSP (hash-ul scriptului inline a fost re-stampilat cu `web/build-i18n.py`). / Website inline-script CSP hash re-stamped.
+- O hartă de site cu textul `<urlset` într-un comentariu nu mai este respinsă ca „mai multe documente”. / Sitemap with `<urlset` in a comment is accepted again.
+- Fișierele `.pyc` nu mai sunt în depozit; `THIRD-PARTY-NOTICES.md` și secțiunea „clean-room” din README-uri sunt corectate; linia „License: MIT” este restabilită.
 
 ## [1.1.0] — 2026-10-30
 

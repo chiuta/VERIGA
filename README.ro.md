@@ -40,7 +40,7 @@ linkuri externe da/nu, „rămâi în director”, exclude / nu-parcurge / doar-
 coduri HTTP tratate ca OK (ex. 999), User-Agent, proxy (HTTP/SOCKS), autentificare Basic (doar către gazdele interne),
 antete și cookie-uri, certificate invalide, pauză între cereri.
 
-`--honor-nofollow` — legăturile marcate `rel="nofollow"` se verifică în continuare (stare HTTP), dar pagina țintă nu se parcurge pentru alte legături; implicit dezactivat. Jetoanele `rel` ale fiecărei legături (fără distincție majuscule/minuscule, unice) apar în JSON (`rel`), în CSV (coloana `Rel`) și lângă legăturile rupte în raportul text.
+`--honor-nofollow` — legăturile marcate `rel="nofollow"` se verifică în continuare (stare HTTP), dar pagina țintă nu se parcurge pentru alte legături; implicit dezactivat. Cu `--report-rel`, jetoanele `rel` ale fiecărei legături (fără distincție majuscule/minuscule, unice) apar și în JSON (`rel`), CSV/TSV (coloana `Rel`) și lângă legăturile rupte în raportul text; fără ea rapoartele sunt exact ca în v1.1.0.
 
 `--check-schemes` — validează sintaxa adreselor `tel:`, `geo:` și `data:` (RFC 3966, RFC 5870, RFC 2397, cu toleranța base64 din Fetch); nu se face nicio cerere în rețea. Cele invalide apar ca „URL invalid”, cu motivul; adresele `data:` peste 1 MiB sunt raportate ca neverificate. Implicit dezactivat (aceste scheme sunt ignorate fără zgomot).
 
@@ -67,7 +67,7 @@ Alege un preset cu `--proxy-preset tor|tor-browser|warp` (listă: `--list-proxy-
 HTML autonom (se deschide oriunde), CSV, TSV, JSON, text, sitemap.xml, arbore al site-ului, sesiune `.veriga`.
 **Reverificare a linkurilor rupte** dintr-o sesiune salvată (`--recheck`, buton în GUI/web).
 
-**Adrese alias:** scrierile diferite ale aceleiași adrese (majuscule în gazdă, port implicit, caractere codate procentual inutil, segmente cu puncte) sunt unificate într-o singură verificare și listate informativ, ca grup, în rapoartele text și JSON (`aliases`); majusculele din cale/interogare, ordinea parametrilor, bara finală și `www.` nu se unifică niciodată.
+**Adrese alias** (`--report-aliases`): scrierile diferite ale aceleiași adrese (majuscule în gazdă, port implicit, caractere codate procentual inutil, segmente cu puncte) sunt listate informativ, ca grup, în rapoartele text și JSON (`aliases`); majusculele din cale/interogare, ordinea parametrilor, bara finală și `www.` nu se grupează niciodată. Urmărirea are memorie plafonată (100.000 de adrese, 10 scrieri pe adresă, 20 de pagini pe scriere). `--canonical-urls` unifică în plus aceste scrieri într-o singură verificare (și raportează adresa normalizată); implicit adresele se verifică și se raportează exact cum sunt scrise, ca în v1.1.0. Alt comutator implicit dezactivat: `--xml-encoding` (respectă `<?xml encoding=…?>` când lipsesc antetul și meta charset).
 
 **SARIF 2.1.0** (`-o raport.sarif`): legăturile rupte devin `error`, redirecționările / 401-403 / răspunsurile lente `warning`, elementele omise sau orfane `note`; legăturile bune nu se emit. Locația este pagina (sau fișierul) care conține legătura, ca URI; `region.startLine` se scrie doar când linia e cunoscută (rezultatele parcurgerii nu poartă încă linia, deci lipsește). Ieșirea este deterministă și scrisă atomic.
 
