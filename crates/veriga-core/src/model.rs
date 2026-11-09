@@ -21,6 +21,8 @@ pub enum LinkKind {
     Ftp,
     File,
     Sitemap,
+    /// Flux RSS/Atom indicat prin `link rel=alternate`.
+    Feed,
     Other,
 }
 
@@ -57,6 +59,8 @@ impl LinkKind {
             (LinkKind::File, false) => "Fișier",
             (LinkKind::File, true) => "File",
             (LinkKind::Sitemap, _) => "Sitemap",
+            (LinkKind::Feed, false) => "Flux",
+            (LinkKind::Feed, true) => "Feed",
             (LinkKind::Other, false) => "Altele",
             (LinkKind::Other, true) => "Other",
         }

@@ -206,6 +206,7 @@ impl Shared {
 enum BodyKind {
     Html,
     Css,
+    Feed,
 }
 
 /// Informații din antetele răspunsului final, necesare după verificare.
@@ -320,6 +321,7 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
     let mut bad = vec![];
     let mut anchors = None;
     let mut a11y = vec![];
+    let mut warnings: Vec<String> = vec![];
     let mut seo = vec![];
     let mut canon: Vec<Url> = vec![];
     let mut mixed = vec![];
@@ -362,11 +364,14 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
             BodyKind::Css => {
                 links = extract_css(&page_url, &b.text);
             }
+            BodyKind::Feed => match crate::feed::extract_links(&page_url, &b.text) {
+                Ok(l) => links = l,
+                Err(e) => warnings.push(format!("{}: {e}", page_url.as_str())),
+            },
         }
         r.parsed = true;
         r.links_found = links.len() as u32;
     }
-    let mut warnings: Vec<String> = vec![];
     if !hdr.link_values.is_empty() {
         let req = r
             .final_url
@@ -463,6 +468,16 @@ fn decode(buf: &[u8], ct: Option<&str>) -> String {
             });
             if let Some(c) = re.captures(&head) {
                 label = Some(c[1].to_string());
+            } else if head.trim_start().starts_with("<?xml") {
+                // declarația XML: <?xml version="1.0" encoding="ISO-8859-1"?>
+                static XML_ENC: OnceLock<Regex> = OnceLock::new();
+                let re = XML_ENC.get_or_init(|| {
+                    Regex::new(r#"(?i)^<\?xml[^>]*?encoding\s*=\s*["']([A-Za-z0-9_\-:.]+)["']"#)
+                        .unwrap()
+                });
+                if let Some(c) = re.captures(head.trim_start()) {
+                    label = Some(c[1].to_string());
+                }
             }
         }
     }
@@ -804,6 +819,8 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
                 Some(BodyKind::Html)
             } else if lower.contains("css") {
                 Some(BodyKind::Css)
+            } else if cfg.check_feeds && (t.kind == LinkKind::Feed || lower.contains("xml")) {
+                Some(BodyKind::Feed)
             } else if lower.is_empty()
                 && matches!(t.kind, LinkKind::Page | LinkKind::Start | LinkKind::Frame)
                 && looks_like_html(&cur)
@@ -978,13 +995,22 @@ async fn file_check(sh: &Shared, t: &Task, r: &mut LinkResult) -> Option<Body> {
                     .and_then(|e| e.to_str())
                     .map(|e| e.eq_ignore_ascii_case("css"))
                     == Some(true);
-                if (is_html_ext(&path) || is_css)
+                let is_feed = sh.cfg.check_feeds
+                    && !is_html_ext(&path)
+                    && !is_css
+                    && (t.kind == LinkKind::Feed
+                        || path.extension().and_then(|e| e.to_str()).is_some_and(|e| {
+                            e.eq_ignore_ascii_case("rss") || e.eq_ignore_ascii_case("atom")
+                        }));
+                if (is_html_ext(&path) || is_css || is_feed)
                     && let Some(bytes) = read_capped(&path, sh.cfg.max_body_bytes).await
                 {
                     let cut = &bytes[..];
                     return Some(Body {
                         kind: if is_css {
                             BodyKind::Css
+                        } else if is_feed {
+                            BodyKind::Feed
                         } else {
                             BodyKind::Html
                         },
@@ -1309,6 +1335,14 @@ fn parse_retry_after_ms(v: &str) -> Option<u64> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn decode_honours_xml_declaration_encoding() {
+        let b = b"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><t>caf\xe9</t>";
+        assert!(decode(b, None).contains("café"));
+        // antetul HTTP are prioritate
+        assert!(decode(b, Some("text/xml; charset=windows-1252")).contains("café"));
+    }
+
     use super::*;
 
     #[tokio::test]

@@ -373,7 +373,11 @@ pub fn extract_html_opts(
                         {
                             hreflangs.push(hl.to_string());
                         }
-                        let kind = if rel.contains("stylesheet") {
+                        let is_feed = rel_tokens.iter().any(|t| t == "alternate")
+                            && v.attr("type").is_some_and(crate::feed::is_feed_type);
+                        let kind = if is_feed {
+                            LinkKind::Feed
+                        } else if rel.contains("stylesheet") {
                             LinkKind::Stylesheet
                         } else if rel.contains("icon") {
                             LinkKind::Icon

@@ -8,6 +8,7 @@ pub mod check;
 pub mod config;
 pub mod engine;
 pub mod extract;
+pub mod feed;
 pub mod fixer;
 pub mod i18n;
 pub mod insights;

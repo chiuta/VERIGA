@@ -245,6 +245,7 @@ impl Coord {
             LinkKind::Start => true,
             LinkKind::Page | LinkKind::Frame => looks_like_html(url),
             LinkKind::Stylesheet => true,
+            LinkKind::Feed => cfg.check_feeds,
             _ => false,
         };
         if parse && kind != LinkKind::Start {

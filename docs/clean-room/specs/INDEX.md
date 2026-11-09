@@ -16,7 +16,7 @@ Toate au statusul **candidat** (neaprobate; „Aprobată de mine” nebifat). Di
 | 8 | 02 | antet-link | implementat (teste trec) | RFC 8288; RFC 9110 | M | — |
 | 9 | 07 | canonica-hreflang | implementat (teste trec) | RFC 6596; RFC 5646 | M | 05 (tipuri rel), 02 (opțional: canonică în antet) |
 | 10 | 06 | continut-mixt | implementat (teste trec) | W3C Mixed Content; Secure Contexts | M | — (CSS: legat de extragerea existentă) |
-| 11 | 09 | legaturi-din-fluxuri | candidat | RSS 2.0; RFC 4287; XML Base | M | — |
+| 11 | 09 | legaturi-din-fluxuri | implementat (teste trec) | RSS 2.0; RFC 4287; XML Base | M | — |
 | 12 | 08 | integritate-subresurse | candidat | W3C SRI | M | 06 (aceeași clasificare a subresurselor) |
 | 13 | 10 | expirare-certificat | candidat | RFC 5280; RFC 9110; RFC 6125 | M | acces la certificatul frunză din clientul HTTP |
 

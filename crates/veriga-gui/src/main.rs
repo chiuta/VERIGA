@@ -729,6 +729,14 @@ impl eframe::App for App {
                         },
                     );
                     ui.checkbox(
+                        &mut c.check_feeds,
+                        if lang == "en" {
+                            "Read RSS/Atom feeds"
+                        } else {
+                            "Citește fluxuri RSS/Atom"
+                        },
+                    );
+                    ui.checkbox(
                         &mut c.check_mixed_content,
                         if lang == "en" {
                             "Detect mixed content"

@@ -118,6 +118,9 @@ struct Cli {
     /// Pornește și din sitemap.xml
     #[arg(long)]
     sitemap: bool,
+    /// Citește fluxurile RSS/Atom găsite (link rel=alternate) și verifică legăturile din ele
+    #[arg(long)]
+    check_feeds: bool,
     /// Semnalează subresurse http: încărcate de pagini https: (conținut mixt)
     #[arg(long)]
     check_mixed_content: bool,
@@ -234,6 +237,7 @@ fn build_config(c: &Cli) -> Result<Config> {
     cfg.seed_sitemaps = c.sitemap;
     cfg.honor_nofollow = c.honor_nofollow;
     cfg.check_nonweb = c.check_schemes;
+    cfg.check_feeds = c.check_feeds;
     cfg.check_mixed_content = c.check_mixed_content;
     cfg.check_seo_links = c.check_seo_links;
     cfg.check_link_header = c.check_link_header;
@@ -440,6 +444,11 @@ const HELP_EN: &[(&str, &str, Option<&str>)] = &[
     ("user_agent", "The User-Agent header", None),
     ("no_robots", "Ignore robots.txt", None),
     ("sitemap", "Also start from sitemap.xml", None),
+    (
+        "check_feeds",
+        "Read the RSS/Atom feeds found (link rel=alternate) and check the links inside them",
+        None,
+    ),
     (
         "check_mixed_content",
         "Flag http: subresources loaded by https: pages (mixed content)",
