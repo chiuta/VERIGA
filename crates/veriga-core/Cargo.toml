@@ -31,3 +31,4 @@ flate2 = { version = "1", default-features = false, features = ["rust_backend"] 
 [dev-dependencies]
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 tokio = { workspace = true, features = ["net"] }
+quick-xml = "0.41"

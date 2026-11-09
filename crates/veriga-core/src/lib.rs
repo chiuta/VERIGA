@@ -10,6 +10,7 @@ pub mod extract;
 pub mod fixer;
 pub mod i18n;
 pub mod insights;
+pub mod junit;
 pub mod model;
 pub mod netguard;
 pub mod proxy;

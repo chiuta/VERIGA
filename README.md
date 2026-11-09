@@ -55,6 +55,8 @@ Self-contained HTML (opens anywhere), CSV, TSV, JSON, text, sitemap.xml, a site 
 
 **SARIF 2.1.0** (`-o report.sarif`): broken links become `error`, redirects / 401-403 / slow responses `warning`, skipped or orphan items `note`; good links are not emitted. The location is the page (or file) containing the link, as a URI; `region.startLine` is only written when a line is known (crawl results currently carry no line, so it is omitted). Output is deterministic and written atomically.
 
+**JUnit XML** (`-o report.junit`): one `testsuite` per source page, one `testcase` per checked link (`name` = target, `classname` = source page). Broken links are `failure`; timeouts / no connection are `error`; skipped or review-only items are `skipped`; illegal XML 1.0 characters become U+FFFD. Orphan files are not links and are left out.
+
 ## CLI
 
 ```bash

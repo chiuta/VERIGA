@@ -55,6 +55,8 @@ HTML autonom (se deschide oriunde), CSV, TSV, JSON, text, sitemap.xml, arbore al
 
 **SARIF 2.1.0** (`-o raport.sarif`): legăturile rupte devin `error`, redirecționările / 401-403 / răspunsurile lente `warning`, elementele omise sau orfane `note`; legăturile bune nu se emit. Locația este pagina (sau fișierul) care conține legătura, ca URI; `region.startLine` se scrie doar când linia e cunoscută (rezultatele parcurgerii nu poartă încă linia, deci lipsește). Ieșirea este deterministă și scrisă atomic.
 
+**JUnit XML** (`-o raport.junit`): un `testsuite` per pagină sursă, un `testcase` per legătură verificată (`name` = ținta, `classname` = pagina sursă). Legăturile rupte sunt `failure`; timeout-ul / lipsa conexiunii sunt `error`; elementele omise sau de verificat manual sunt `skipped`; caracterele ilegale în XML 1.0 devin U+FFFD. Fișierele orfane nu sunt legături și lipsesc.
+
 ## CLI
 
 ```bash

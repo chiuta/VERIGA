@@ -4132,6 +4132,7 @@ dependencies = [
  "futures",
  "mime_guess",
  "percent-encoding",
+ "quick-xml",
  "regex",
  "reqwest",
  "scraper",

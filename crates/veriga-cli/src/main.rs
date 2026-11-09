@@ -167,7 +167,7 @@ struct Cli {
     /// AcademiSearch. Fără rețea rezultatele rămân „unchecked”; nu se inventează verdicte. Cere --fff-in.
     #[arg(long, value_name = "FISIER")]
     fff_out: Option<PathBuf>,
-    /// Fișier de ieșire; formatul se alege după extensie: .html .csv .tsv .json .txt .xml (sitemap) .sarif .tree .veriga (sesiune). Repetabil.
+    /// Fișier de ieșire; formatul se alege după extensie: .html .csv .tsv .json .txt .xml (sitemap) .sarif .junit (JUnit XML) .tree .veriga (sesiune). Repetabil.
     #[arg(short = 'o', long = "out", value_name = "FISIER")]
     out: Vec<PathBuf>,
     /// În CSV/TSV exportă doar legăturile rupte
@@ -295,6 +295,7 @@ fn write_outputs(s: &Session, outs: &[PathBuf], only_broken: bool) -> Result<()>
             "json" => report::to_json(s).into_bytes(),
             "txt" | "log" => report::to_text(s).into_bytes(),
             "xml" => report::to_sitemap_xml(s).into_bytes(),
+            "junit" => veriga_core::junit::to_junit(s).into_bytes(),
             "tree" => report::to_tree_text(s, 12).into_bytes(),
             "sarif" => {
                 // scriere atomică: fără fișier parțial la o eroare de I/O
@@ -480,7 +481,7 @@ const HELP_EN: &[(&str, &str, Option<&str>)] = &[
     ),
     (
         "out",
-        "Output file; the format follows the extension: .html .csv .tsv .json .txt .xml (sitemap) .sarif .tree .veriga (session). Repeatable.",
+        "Output file; the format follows the extension: .html .csv .tsv .json .txt .xml (sitemap) .sarif .junit (JUnit XML) .tree .veriga (session). Repeatable.",
         Some("FILE"),
     ),
     (
