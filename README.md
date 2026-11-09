@@ -48,6 +48,8 @@ headers and cookies, invalid certificates, delay between requests.
 
 `--check-link-header` — reads the HTTP `Link` header fields (RFC 8288) of crawled pages and checks each declared target like any other link (source = the requested page, shown as "Link header: …"; the `rel` tokens are kept). Malformed values are skipped with a warning (text/JSON reports, `warnings`); at most 100 links per response are read. Off by default.
 
+`--check-seo-links` — checks `rel="canonical"` (broken target, redirected target reported separately, several different canonicals on one page; a canonical pointing to the page itself is fine, also read from the `Link` header with `--check-link-header`) and `hreflang` values on `link rel=alternate` / `a` (BCP 47 syntax only, no IANA registry; `x-default` is listed as an external convention, not as an error). Findings are in the text and JSON reports (`seo`). Off by default.
+
 ## Free, ethical proxies
 
 Pick a preset with `--proxy-preset tor|tor-browser|warp` (list them with `--list-proxy-presets`), or in the GUI under "Free ethical proxy…". All presets are local SOCKS5 endpoints (`socks5h://127.0.0.1:…`), so names are resolved by the proxy, not by your system. Tor (volunteer, non-profit, open source) is the recommended choice; the check is capped at 4 threads and 2 connections per server and some sites block Tor exits, so expect false "broken links". Cloudflare WARP is free but a commercial service with a closed-source client. Lists of open public proxies are deliberately not included: they are often compromised or intercept traffic. Your own proxy is still available with `--proxy`.

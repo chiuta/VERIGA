@@ -28,6 +28,10 @@ pub struct Extracted {
     pub bad: Vec<(String, LinkKind, String)>,
     pub anchors: HashSet<String>,
     pub meta_robots: Option<String>,
+    /// Adresele `link rel=canonical` (rezolvate față de baza documentului).
+    pub canonicals: Vec<Url>,
+    /// Valorile `hreflang` de pe `link rel=alternate` și de pe `a`.
+    pub hreflangs: Vec<String>,
 }
 
 fn css_url_re() -> &'static Regex {
@@ -241,6 +245,8 @@ pub fn extract_html_opts(
     let mut bad = vec![];
     let mut anchors = HashSet::new();
     let mut meta_robots = None;
+    let mut canonicals: Vec<Url> = vec![];
+    let mut hreflangs: Vec<String> = vec![];
     {
         let mut tmp = Extracted::default();
         let mut s = Sink {
@@ -294,6 +300,11 @@ pub fn extract_html_opts(
                                 }
                             }
                         }
+                        if name == "a"
+                            && let Some(hl) = v.attr("hreflang")
+                        {
+                            hreflangs.push(hl.to_string());
+                        }
                         s.rel = parse_rel(v.attr("rel").unwrap_or(""));
                         s.add(h, LinkKind::Page, &text);
                         s.rel.clear();
@@ -304,7 +315,18 @@ pub fn extract_html_opts(
                     if rel.contains("dns-prefetch") || rel.contains("preconnect") {
                         continue;
                     }
+                    let rel_tokens = parse_rel(&rel);
                     if let Some(h) = v.attr("href") {
+                        if rel_tokens.iter().any(|t| t == "canonical")
+                            && let Ok(u) = base.join(h.trim())
+                        {
+                            canonicals.push(u);
+                        }
+                        if rel_tokens.iter().any(|t| t == "alternate")
+                            && let Some(hl) = v.attr("hreflang")
+                        {
+                            hreflangs.push(hl.to_string());
+                        }
                         let kind = if rel.contains("stylesheet") {
                             LinkKind::Stylesheet
                         } else if rel.contains("icon") {
@@ -463,6 +485,8 @@ pub fn extract_html_opts(
     out.bad = bad;
     out.anchors = anchors;
     out.meta_robots = meta_robots;
+    out.canonicals = canonicals;
+    out.hreflangs = hreflangs;
     out
 }
 

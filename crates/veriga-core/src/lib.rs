@@ -21,6 +21,7 @@ pub mod report;
 pub mod robots;
 pub mod rules;
 pub mod sarif;
+pub mod seo;
 pub mod sitemap;
 pub mod srcscan;
 pub mod textio;

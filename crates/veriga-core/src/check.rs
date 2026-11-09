@@ -41,6 +41,10 @@ pub struct Outcome {
     pub a11y: Vec<crate::a11y::A11yFinding>,
     /// Avertismente de sintaxă (de pildă antetul `Link`).
     pub warnings: Vec<String>,
+    /// Constatări canonice/hreflang ale paginii.
+    pub seo: Vec<crate::seo::SeoFinding>,
+    /// Adresele canonice ale paginii (verificate la sfârșit față de rezultatele țintelor).
+    pub canon: Vec<Url>,
 }
 
 /// Pauză minimă între cererile către aceeași gazdă.
@@ -245,6 +249,8 @@ pub async fn check(sh: Arc<Shared>, t: Task) -> Outcome {
                 anchors: None,
                 a11y: vec![],
                 warnings: vec![],
+                seo: vec![],
+                canon: vec![],
             }
         }
     }
@@ -301,6 +307,8 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
     let mut bad = vec![];
     let mut anchors = None;
     let mut a11y = vec![];
+    let mut seo = vec![];
+    let mut canon: Vec<Url> = vec![];
     if let Some(b) = body {
         let page_url = r
             .final_url
@@ -315,6 +323,10 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
                     sh.cfg.check_forms,
                     sh.cfg.check_nonweb,
                 );
+                if sh.cfg.check_seo_links {
+                    seo = crate::seo::page_findings(t.url.as_str(), &e.canonicals, &e.hreflangs);
+                    canon = e.canonicals.clone();
+                }
                 r.title = e.title;
                 r.h1 = e.h1;
                 links = e.links;
@@ -348,6 +360,9 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
             .unwrap_or_else(|| t.url.clone());
         let parsed = crate::linkheader::parse(&link_values, &req, sh.cfg.max_link_header_links);
         for h in parsed.links {
+            if sh.cfg.check_seo_links && h.rel.iter().any(|r| r == "canonical") {
+                canon.push(h.target.clone());
+            }
             if h.target == req {
                 continue; // «<>» sau auto-referință: nu se verifică a doua oară
             }
@@ -371,6 +386,8 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
         anchors,
         a11y,
         warnings,
+        seo,
+        canon,
     }
 }
 

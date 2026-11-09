@@ -729,6 +729,14 @@ impl eframe::App for App {
                         },
                     );
                     ui.checkbox(
+                        &mut c.check_seo_links,
+                        if lang == "en" {
+                            "Check canonical and hreflang"
+                        } else {
+                            "Verifică canonic și hreflang"
+                        },
+                    );
+                    ui.checkbox(
                         &mut c.check_link_header,
                         if lang == "en" {
                             "Check HTTP Link header"

@@ -88,6 +88,8 @@ pub struct Config {
     pub check_link_names: bool,
     /// Verifică legăturile declarate în câmpurile HTTP `Link` ale paginilor parcurse.
     pub check_link_header: bool,
+    /// Verifică legăturile canonice (țintă ruptă/redirecționată, multiple) și etichetele hreflang.
+    pub check_seo_links: bool,
     /// Plafon de legături citite dintr-un antet `Link`.
     pub max_link_header_links: usize,
     /// Semnalează și numele identice spre adrese diferite (notă informativă).
@@ -149,6 +151,7 @@ impl Default for Config {
             check_nonweb: false,
             check_link_names: false,
             check_link_header: false,
+            check_seo_links: false,
             max_link_header_links: 100,
             check_ambiguous_names: false,
             ignore_tls_errors: false,

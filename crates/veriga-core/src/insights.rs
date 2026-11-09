@@ -946,6 +946,7 @@ mod tests {
                 aliases: vec![],
                 a11y: vec![],
                 warnings: vec![],
+                seo: vec![],
             }
         };
         let a = mk(

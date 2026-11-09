@@ -118,6 +118,9 @@ struct Cli {
     /// Pornește și din sitemap.xml
     #[arg(long)]
     sitemap: bool,
+    /// Verifică legăturile canonice (țintă ruptă/redirecționată, multiple) și etichetele hreflang
+    #[arg(long)]
+    check_seo_links: bool,
     /// Verifică legăturile din câmpurile HTTP Link (RFC 8288) ale paginilor parcurse
     #[arg(long)]
     check_link_header: bool,
@@ -228,6 +231,7 @@ fn build_config(c: &Cli) -> Result<Config> {
     cfg.seed_sitemaps = c.sitemap;
     cfg.honor_nofollow = c.honor_nofollow;
     cfg.check_nonweb = c.check_schemes;
+    cfg.check_seo_links = c.check_seo_links;
     cfg.check_link_header = c.check_link_header;
     cfg.check_link_names = c.check_link_names;
     cfg.check_ambiguous_names = c.check_ambiguous_names;
@@ -432,6 +436,11 @@ const HELP_EN: &[(&str, &str, Option<&str>)] = &[
     ("user_agent", "The User-Agent header", None),
     ("no_robots", "Ignore robots.txt", None),
     ("sitemap", "Also start from sitemap.xml", None),
+    (
+        "check_seo_links",
+        "Check canonical links (broken/redirected target, multiple) and hreflang language tags",
+        None,
+    ),
     (
         "check_link_header",
         "Check links declared in the HTTP Link header (RFC 8288) of crawled pages",

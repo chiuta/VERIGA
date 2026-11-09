@@ -92,6 +92,8 @@ struct Coord {
     nofollow_idx: HashSet<usize>,
     a11y: Vec<crate::a11y::A11yFinding>,
     warnings: Vec<String>,
+    seo: Vec<crate::seo::SeoFinding>,
+    canon: Vec<(String, Url)>,
     alias_forms: HashMap<String, BTreeMap<String, BTreeSet<String>>>,
 }
 
@@ -128,6 +130,8 @@ impl Coord {
             nofollow_idx: HashSet::new(),
             a11y: vec![],
             warnings: vec![],
+            seo: vec![],
+            canon: vec![],
             alias_forms: HashMap::new(),
         })
     }
@@ -340,6 +344,31 @@ impl Coord {
         }
     }
 
+    /// Constatări pentru țintele canonice, pe baza rezultatelor verificării lor.
+    fn check_canonicals(&mut self) {
+        let list = std::mem::take(&mut self.canon);
+        for (page, target) in list {
+            let mut t = target.clone();
+            t.set_fragment(None);
+            crate::urlutil::canonicalize(&mut t);
+            let key = normalize(&t);
+            if key == page {
+                continue; // canonica spre pagina însăși este permisă
+            }
+            let Some(&i) = self.index.get(&key) else {
+                continue;
+            };
+            if let Some(f) = crate::seo::canonical_target_finding(
+                &page,
+                &key,
+                self.results[i].status,
+                &self.cfg,
+            ) {
+                self.seo.push(f);
+            }
+        }
+    }
+
     /// Grupurile cu cel puțin două scrieri distincte ale aceleiași adrese.
     fn alias_groups(&self) -> Vec<AliasGroup> {
         let mut v: Vec<AliasGroup> = self
@@ -535,6 +564,10 @@ impl Coord {
         }
         self.a11y.extend(o.a11y);
         self.warnings.extend(o.warnings);
+        self.seo.extend(o.seo);
+        for c in o.canon {
+            self.canon.push((res.url.clone(), c));
+        }
         self.done += 1;
         if res.status.is_broken(&self.cfg) {
             self.broken += 1;
@@ -928,6 +961,10 @@ pub async fn run(
     co.emit(Event::Finished);
 
     let aliases = co.alias_groups();
+    co.check_canonicals();
+    let mut seo = std::mem::take(&mut co.seo);
+    seo.sort();
+    seo.dedup();
     let warnings = std::mem::take(&mut co.warnings);
     let mut a11y = std::mem::take(&mut co.a11y);
     a11y.sort();
@@ -946,6 +983,7 @@ pub async fn run(
         aliases,
         a11y,
         warnings,
+        seo,
     })
 }
 
@@ -1015,6 +1053,7 @@ pub async fn recheck(
         aliases: session.aliases,
         a11y: session.a11y,
         warnings: session.warnings,
+        seo: session.seo,
     })
 }
 

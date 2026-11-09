@@ -245,6 +245,22 @@ pub fn to_text(s: &Session) -> String {
         }
         let _ = writeln!(o);
     }
+    if !s.seo.is_empty() {
+        let _ = writeln!(
+            o,
+            "== {} ==",
+            tr(
+                lang,
+                "Legături canonice și hreflang",
+                "Canonical links and hreflang"
+            )
+        );
+        for f in &s.seo {
+            let _ = writeln!(o, "{} — {}", f.page, f.kind.label(lang));
+            let _ = writeln!(o, "    {}", f.value);
+        }
+        let _ = writeln!(o);
+    }
     if !s.warnings.is_empty() {
         let _ = writeln!(o, "== {} ==", tr(lang, "Avertismente", "Warnings"));
         for w in s.warnings.iter().take(200) {
@@ -963,6 +979,7 @@ mod tests {
             aliases: vec![],
             a11y: vec![],
             warnings: vec![],
+            seo: vec![],
         }
     }
 
