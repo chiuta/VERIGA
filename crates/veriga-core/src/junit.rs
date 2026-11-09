@@ -186,7 +186,7 @@ mod tests {
                         for a in b.attributes() {
                             let a = a.unwrap();
                             if a.key.as_ref() == b"name" {
-                                names.push(a.unescape_value().unwrap().to_string());
+                                names.push(a.normalized_value().unwrap().to_string());
                             }
                         }
                     }
