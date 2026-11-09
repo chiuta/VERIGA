@@ -4,7 +4,7 @@
 
 **Download:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.1.0
 
-Version: 1.1.0 · Last updated: 30.10.2026 · Presentation site: https://veriga.chiuta.ro
+Version: 1.2.0 · Last updated: 09.11.2026 · Presentation site: https://veriga.chiuta.ro
 
 A 64-bit Rust application for Windows, macOS and Linux (x86-64 and ARM64) that crawls a website
 or a local folder and checks its links. It comes in three forms that share one result model:
