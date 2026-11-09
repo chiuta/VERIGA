@@ -40,6 +40,24 @@ linkuri externe da/nu, „rămâi în director”, exclude / nu-parcurge / doar-
 coduri HTTP tratate ca OK (ex. 999), User-Agent, proxy (HTTP/SOCKS), autentificare Basic (doar către gazdele interne),
 antete și cookie-uri, certificate invalide, pauză între cereri.
 
+`--honor-nofollow` — legăturile marcate `rel="nofollow"` se verifică în continuare (stare HTTP), dar pagina țintă nu se parcurge pentru alte legături; implicit dezactivat. Jetoanele `rel` ale fiecărei legături (fără distincție majuscule/minuscule, unice) apar în JSON (`rel`), în CSV (coloana `Rel`) și lângă legăturile rupte în raportul text.
+
+`--check-schemes` — validează sintaxa adreselor `tel:`, `geo:` și `data:` (RFC 3966, RFC 5870, RFC 2397, cu toleranța base64 din Fetch); nu se face nicio cerere în rețea. Cele invalide apar ca „URL invalid”, cu motivul; adresele `data:` peste 1 MiB sunt raportate ca neverificate. Implicit dezactivat (aceste scheme sunt ignorate fără zgomot).
+
+`--check-link-names` — calculează numele accesibil al fiecărui `<a href>` (aria-labelledby, aria-label, conținut incl. `alt` de imagine, apoi `title`; conținutul ascuns se ignoră) și raportează legăturile fără nume sau doar cu semne de punctuație (WCAG 2.4.4 / 4.1.2) în rapoartele text și JSON (`a11y`). `--check-ambiguous-names` adaugă o notă informativă când nume identice (fără distincție majuscule) duc la adrese diferite în aceeași pagină. Ambele sunt dezactivate implicit.
+
+`--check-link-header` — citește câmpurile HTTP `Link` (RFC 8288) ale paginilor parcurse și verifică fiecare țintă declarată ca orice altă legătură (sursa = pagina cerută, afișată „Link header: …”; jetoanele `rel` se păstrează). Valorile malformate sunt omise cu un avertisment (rapoartele text/JSON, `warnings`); se citesc cel mult 100 de legături per răspuns. Implicit dezactivat.
+
+`--check-seo-links` — verifică `rel="canonical"` (țintă ruptă, țintă redirecționată raportată separat, mai multe canonice diferite în aceeași pagină; canonica spre pagina însăși e în regulă, citită și din antetul `Link` cu `--check-link-header`) și valorile `hreflang` de pe `link rel=alternate` / `a` (doar sintaxa BCP 47, fără registrul IANA; `x-default` apare ca convenție externă, nu ca eroare). Constatările sunt în rapoartele text și JSON (`seo`). Implicit dezactivat.
+
+`--check-mixed-content` — pe paginile `https:`, raportează subresursele încărcate prin `http:` (conținut mixt): imaginile, audio și video sunt „opțional blocabile”; scripturile, foile de stil, preîncărcările, iframe-urile, obiectele, fonturile, `@import` din CSS și acțiunile de formular sunt „blocabile”. Legăturile de navigare nu sunt subresurse; `localhost`, `127.0.0.0/8` și `[::1]` nu se raportează niciodată; antetul `Content-Security-Policy: upgrade-insecure-requests` adaugă o notă, nu anulează constatarea; o subresursă `https:` care redirecționează la `http:` se raportează la fel. Rezultatele sunt în rapoartele text și JSON (`mixed`). Implicit dezactivat.
+
+`--check-feeds` — citește fluxurile RSS 2.0 și Atom 1.0 găsite prin `<link rel="alternate" type="application/rss+xml|application/atom+xml">` (sau orice răspuns XML parcurs) și verifică legăturile din ele: `link`, `comments`, `enclosure@url`, `source@url`, `url`/`link` de imagine, un `guid` permanent din channel/item, Atom `link@href` (fără `rel` = alternate), `content@src` și legăturile din descrieri HTML scăpate/CDATA și din conținutul Atom `html`/`xhtml`. Adresele relative urmează `xml:base`, apoi adresa fluxului. XML prost format sau un document care nu e flux dă un avertisment și nicio legătură. Implicit dezactivat.
+
+`--check-sri` — verifică atributul `integrity` de pe `<script src>` și `<link rel=stylesheet|preload|modulepreload>`: sintaxa (base64 standard, lungimea rezumatului), algoritmii recunoscuți (sha256/384/512 — decide cel mai puternic prezent, oricare dintre valorile lui poate corespunde), rezumatul SHA-2 al octeților descărcați și CORS pentru resursele din altă origine (atributul `crossorigin` plus un `Access-Control-Allow-Origin` potrivit). Verdicte: corespunde / nu corespunde / sintaxă invalidă / niciun algoritm recunoscut / fără CORS / neverificat; `integrity` pe alte elemente este notat ca neaplicabil. Resursele se descarcă integral (GET) doar când o legătură cere verificarea. Rezultatele sunt în rapoartele text și JSON (`sri`). Implicit dezactivat.
+
+`--check-cert-expiry` / `--cert-warn-days N` (implicit 14) — citește certificatul TLS frunză prezentat de fiecare host:port `https` în timpul verificării și raportează, o singură dată per host:port, cu numărul de legături verificate acolo: expirat, încă nevalid, expiră în N zile (prag; `0` = doar expirate), ilizibil sau nume care nu se potrivește cu niciun SAN. Funcționează și cu `--insecure`. Un proxy care interceptează TLS arată propriul certificat; un ceas de sistem greșit nu poate fi detectat. Rezultatele sunt în rapoartele text și JSON (`certs`). Implicit dezactivat.
+
 ## Proxy-uri gratuite și etice
 
 Alege un preset cu `--proxy-preset tor|tor-browser|warp` (listă: `--list-proxy-presets`) sau, în GUI, din „Proxy gratuit etic…”. Toate sunt puncte SOCKS5 locale (`socks5h://127.0.0.1:…`), deci numele sunt rezolvate de proxy, nu de sistemul tău. Tor (voluntari, fără profit, cod deschis) este alegerea recomandată; verificarea e limitată la 4 fire și 2 conexiuni per server, iar unele site-uri blochează ieșirile Tor, deci pot apărea false „linkuri rupte”. Cloudflare WARP e gratuit, dar este un serviciu comercial cu client închis. Listele de proxy-uri publice deschise lipsesc intenționat: sunt adesea compromise sau interceptează traficul. Proxy-ul propriu rămâne disponibil cu `--proxy`.
@@ -48,6 +66,12 @@ Alege un preset cu `--proxy-preset tor|tor-browser|warp` (listă: `--list-proxy-
 
 HTML autonom (se deschide oriunde), CSV, TSV, JSON, text, sitemap.xml, arbore al site-ului, sesiune `.veriga`.
 **Reverificare a linkurilor rupte** dintr-o sesiune salvată (`--recheck`, buton în GUI/web).
+
+**Adrese alias:** scrierile diferite ale aceleiași adrese (majuscule în gazdă, port implicit, caractere codate procentual inutil, segmente cu puncte) sunt unificate într-o singură verificare și listate informativ, ca grup, în rapoartele text și JSON (`aliases`); majusculele din cale/interogare, ordinea parametrilor, bara finală și `www.` nu se unifică niciodată.
+
+**SARIF 2.1.0** (`-o raport.sarif`): legăturile rupte devin `error`, redirecționările / 401-403 / răspunsurile lente `warning`, elementele omise sau orfane `note`; legăturile bune nu se emit. Locația este pagina (sau fișierul) care conține legătura, ca URI; `region.startLine` se scrie doar când linia e cunoscută (rezultatele parcurgerii nu poartă încă linia, deci lipsește). Ieșirea este deterministă și scrisă atomic.
+
+**JUnit XML** (`-o raport.junit`): un `testsuite` per pagină sursă, un `testcase` per legătură verificată (`name` = ținta, `classname` = pagina sursă). Legăturile rupte sunt `failure`; timeout-ul / lipsa conexiunii sunt `error`; elementele omise sau de verificat manual sunt `skipped`; caracterele ilegale în XML 1.0 devin U+FFFD. Fișierele orfane nu sunt legături și lipsesc.
 
 ## CLI
 
@@ -135,7 +159,7 @@ Susține proiectul: https://www.buymeacoffee.com/echo.of.the.strings
 - **Protecția de rețea:** verificarea adreselor private rezolvă gazda, apoi clientul HTTP o rezolvă din nou (există o fereastră de DNS rebinding); rulează VERIGA pe site-uri nesigure dintr-o rețea care nu ajunge la intervalele private.
 - **`veriga watch`** citește implicit `./veriga-guardian.json` din directorul curent, iar acel fișier poate indica o comandă `sendmail` și sursele de rescris: nu-l rula într-un director în care nu ai încredere.
 - Nu trimite rapoarte prin e-mail (SMTP) și nu detectează orfani prin FTP — doar prin director local.
-- Sitemap-urile comprimate `.xml.gz` nu sunt citite.
+- Sitemap-urile comprimate `.xml.gz` sunt citite (gzip se recunoaște după primii octeți, nu după extensie); dimensiunea decomprimată e plafonată la 50 MB, iar dintr-un sitemap se citesc primele 50.000 de adrese.
 - Paginile care își construiesc linkurile din JavaScript nu sunt randate (nu există motor de browser); se analizează HTML-ul servit.
 - Interfața grafică a fost exersată doar sub un ecran virtual (Linux/X11): parcurgere, filtre, panou de detalii și Guardian. Variantele pentru Windows și macOS sunt produse de CI, dar nu au fost testate interactiv.
 

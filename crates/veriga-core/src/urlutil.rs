@@ -13,6 +13,76 @@ pub fn normalize(u: &Url) -> String {
     c.to_string()
 }
 
+fn is_unreserved(b: u8) -> bool {
+    b.is_ascii_alphanumeric() || matches!(b, b'-' | b'.' | b'_' | b'~')
+}
+
+/// Normalizare sintactică a procent-codărilor (RFC 3986 §6.2.2.1–2): hexazecimalele devin
+/// majuscule, iar caracterele neprotejate codate inutil sunt decodate. Restul rămâne neatins
+/// (de pildă `%2F`, delimitator rezervat).
+pub fn normalize_escapes(s: &str) -> String {
+    let b = s.as_bytes();
+    let mut out = String::with_capacity(s.len());
+    let mut i = 0;
+    while i < b.len() {
+        if b[i] == b'%'
+            && i + 2 < b.len()
+            && b[i + 1].is_ascii_hexdigit()
+            && b[i + 2].is_ascii_hexdigit()
+        {
+            let v = u8::from_str_radix(&s[i + 1..i + 3], 16).unwrap_or(0);
+            if is_unreserved(v) {
+                out.push(v as char);
+            } else {
+                out.push('%');
+                out.push_str(&s[i + 1..i + 3].to_ascii_uppercase());
+            }
+            i += 3;
+        } else {
+            // copiem un caracter întreg (UTF-8)
+            let ch = s[i..].chars().next().unwrap();
+            out.push(ch);
+            i += ch.len_utf8();
+        }
+    }
+    out
+}
+
+/// Aduce adresa la forma canonică folosită pentru a unifica scrierile echivalente.
+/// Schema, gazda, portul implicit, segmentele cu puncte și calea goală sunt deja tratate de
+/// parser; aici se adaugă normalizarea procent-codărilor în cale și interogare.
+pub fn canonicalize(u: &mut Url) {
+    if !matches!(u.scheme(), "http" | "https") {
+        return;
+    }
+    let path = normalize_escapes(u.path());
+    if path != u.path() {
+        u.set_path(&path);
+    }
+    if let Some(q) = u.query() {
+        let nq = normalize_escapes(q);
+        if nq != q {
+            u.set_query(Some(&nq));
+        }
+    }
+}
+
+/// Forma canonică (fără fragment) a unei adrese http/https scrise de autor, sau `None`.
+pub fn alias_key(written: &str) -> Option<String> {
+    let mut u = Url::parse(written.trim()).ok()?;
+    if !matches!(u.scheme(), "http" | "https") {
+        return None;
+    }
+    u.set_fragment(None);
+    canonicalize(&mut u);
+    Some(u.to_string())
+}
+
+/// Scrierea fără fragment, așa cum a apărut în sursă.
+pub fn written_without_fragment(written: &str) -> String {
+    written.trim().split('#').next().unwrap_or("").to_string()
+}
+
 /// Cheia de gazdă pentru limitarea conexiunilor.
 pub fn host_key(u: &Url) -> String {
     match u.scheme() {
@@ -365,5 +435,41 @@ mod tests {
     fn dir_prefix_works() {
         let u = Url::parse("https://a.ro/docs/index.html").unwrap();
         assert_eq!(dir_prefix(&u), "/docs/");
+    }
+}
+
+#[cfg(test)]
+mod alias_tests {
+    use super::*;
+
+    fn same(a: &str, b: &str) -> bool {
+        alias_key(a).unwrap() == alias_key(b).unwrap()
+    }
+
+    #[test]
+    fn spec13_equivalences() {
+        assert!(same("HTTP://Ex.ORG/a", "http://ex.org/a"));
+        assert!(same("http://ex.org:80/a", "http://ex.org/a"));
+        assert!(same("https://ex.org:443/", "https://ex.org"));
+        assert!(same("http://ex.org/%7Euser", "http://ex.org/~user"));
+        assert!(same("http://ex.org/%7euser", "http://ex.org/~user"));
+        assert!(same("http://ex.org/a/b/../c", "http://ex.org/a/c"));
+        assert!(same("http://ex.org/a#x", "http://ex.org/a#y"));
+        assert!(same("http://ex.org/../a", "http://ex.org/a"));
+    }
+
+    #[test]
+    fn spec13_distinct() {
+        assert!(!same("http://ex.org/A", "http://ex.org/a"));
+        assert!(!same("http://ex.org/a%2Fb", "http://ex.org/a/b"));
+        assert!(!same("http://ex.org/a?x=1&y=2", "http://ex.org/a?y=2&x=1"));
+        assert!(!same("http://ex.org/a", "http://ex.org/a/"));
+        assert!(!same("http://www.ex.org/a", "http://ex.org/a"));
+        assert!(alias_key("not a url").is_none());
+    }
+
+    #[test]
+    fn lowercase_escape_hex_is_uppercased() {
+        assert_eq!(normalize_escapes("/a%2fb%7e"), "/a%2Fb~");
     }
 }

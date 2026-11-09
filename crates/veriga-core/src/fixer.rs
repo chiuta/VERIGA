@@ -1758,6 +1758,13 @@ mod tests {
             ignored: 0,
             truncated: false,
             cancelled: false,
+            aliases: vec![],
+            a11y: vec![],
+            warnings: vec![],
+            seo: vec![],
+            mixed: vec![],
+            sri: vec![],
+            certs: vec![],
         };
         let m: HashMap<String, &crate::model::LinkResult> =
             s.results.iter().map(|r| (norm_cmp(&r.url), r)).collect();

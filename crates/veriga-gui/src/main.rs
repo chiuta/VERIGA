@@ -380,6 +380,16 @@ impl App {
             "json" => ("JSON", "json", report::to_json(s).into_bytes()),
             "txt" => ("Text", "txt", report::to_text(s).into_bytes()),
             "xml" => ("Sitemap XML", "xml", report::to_sitemap_xml(s).into_bytes()),
+            "junit" => (
+                "JUnit XML",
+                "xml",
+                veriga_core::junit::to_junit(s).into_bytes(),
+            ),
+            "sarif" => (
+                "SARIF",
+                "sarif",
+                veriga_core::sarif::to_sarif(s).into_bytes(),
+            ),
             "tree" => (
                 tr("Arbore", "Tree"),
                 "txt",
@@ -519,6 +529,8 @@ impl eframe::App for App {
                         ("json", "JSON"),
                         ("txt", "Text"),
                         ("xml", "Sitemap XML"),
+                        ("sarif", "SARIF"),
+                        ("junit", "JUnit XML"),
                         ("tree", self.t("Arbore site", "Site tree")),
                     ] {
                         if ui.button(l).clicked() {
@@ -714,6 +726,86 @@ impl eframe::App for App {
                             "Seed from sitemap.xml"
                         } else {
                             "Pornește și din sitemap.xml"
+                        },
+                    );
+                    ui.checkbox(
+                        &mut c.check_cert_expiry,
+                        if lang == "en" {
+                            "Warn about expiring TLS certificates"
+                        } else {
+                            "Avertizează la certificate TLS care expiră"
+                        },
+                    );
+                    ui.checkbox(
+                        &mut c.check_sri,
+                        if lang == "en" {
+                            "Verify subresource integrity"
+                        } else {
+                            "Verifică integritatea subresurselor"
+                        },
+                    );
+                    ui.checkbox(
+                        &mut c.check_feeds,
+                        if lang == "en" {
+                            "Read RSS/Atom feeds"
+                        } else {
+                            "Citește fluxuri RSS/Atom"
+                        },
+                    );
+                    ui.checkbox(
+                        &mut c.check_mixed_content,
+                        if lang == "en" {
+                            "Detect mixed content"
+                        } else {
+                            "Detectează conținut mixt"
+                        },
+                    );
+                    ui.checkbox(
+                        &mut c.check_seo_links,
+                        if lang == "en" {
+                            "Check canonical and hreflang"
+                        } else {
+                            "Verifică canonic și hreflang"
+                        },
+                    );
+                    ui.checkbox(
+                        &mut c.check_link_header,
+                        if lang == "en" {
+                            "Check HTTP Link header"
+                        } else {
+                            "Verifică antetul HTTP Link"
+                        },
+                    );
+                    ui.checkbox(
+                        &mut c.check_link_names,
+                        if lang == "en" {
+                            "Check link names (accessibility)"
+                        } else {
+                            "Verifică numele legăturilor (accesibilitate)"
+                        },
+                    );
+                    ui.checkbox(
+                        &mut c.check_ambiguous_names,
+                        if lang == "en" {
+                            "Flag ambiguous link names"
+                        } else {
+                            "Semnalează nume de legături ambigue"
+                        },
+                    );
+                    ui.checkbox(
+                        &mut c.check_nonweb,
+                        if lang == "en" {
+                            "Validate tel:/geo:/data: syntax"
+                        } else {
+                            "Validează sintaxa tel:/geo:/data:"
+                        },
+                    );
+                    ui.checkbox(
+                        &mut c.honor_nofollow,
+                        if lang == "en" {
+                            "Do not crawl rel=nofollow targets"
+                        } else {
+                            "Nu parcurge ținte rel=nofollow"
                         },
                     );
                     ui.checkbox(

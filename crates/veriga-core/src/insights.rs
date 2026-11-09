@@ -943,6 +943,13 @@ mod tests {
                 ignored: 0,
                 truncated: false,
                 cancelled: false,
+                aliases: vec![],
+                a11y: vec![],
+                warnings: vec![],
+                seo: vec![],
+                mixed: vec![],
+                sri: vec![],
+                certs: vec![],
             }
         };
         let a = mk(

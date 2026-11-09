@@ -118,6 +118,39 @@ struct Cli {
     /// Pornește și din sitemap.xml
     #[arg(long)]
     sitemap: bool,
+    /// Avertizează la certificate TLS expirate, aproape de expirare sau cu nume nepotrivit
+    #[arg(long)]
+    check_cert_expiry: bool,
+    /// Pragul în zile pentru «expiră în curând» (0 = doar expirate)
+    #[arg(long, value_name = "ZILE", default_value_t = 14)]
+    cert_warn_days: u32,
+    /// Verifică atributul integrity al subresurselor (SRI): sintaxă, CORS și rezumat SHA-2
+    #[arg(long)]
+    check_sri: bool,
+    /// Citește fluxurile RSS/Atom găsite (link rel=alternate) și verifică legăturile din ele
+    #[arg(long)]
+    check_feeds: bool,
+    /// Semnalează subresurse http: încărcate de pagini https: (conținut mixt)
+    #[arg(long)]
+    check_mixed_content: bool,
+    /// Verifică legăturile canonice (țintă ruptă/redirecționată, multiple) și etichetele hreflang
+    #[arg(long)]
+    check_seo_links: bool,
+    /// Verifică legăturile din câmpurile HTTP Link (RFC 8288) ale paginilor parcurse
+    #[arg(long)]
+    check_link_header: bool,
+    /// Semnalează legăturile fără nume accesibil sau cu nume nesemnificativ (WCAG 2.4.4)
+    #[arg(long)]
+    check_link_names: bool,
+    /// Semnalează numele identice spre adrese diferite (notă informativă; implică analiza numelor)
+    #[arg(long)]
+    check_ambiguous_names: bool,
+    /// Validează sintaxa adreselor tel:, geo: și data: (fără cereri în rețea)
+    #[arg(long)]
+    check_schemes: bool,
+    /// Legăturile cu rel="nofollow" se verifică, dar ținta lor nu se parcurge
+    #[arg(long)]
+    honor_nofollow: bool,
     /// Permite contactarea adreselor private/locale găsite pe un site public (implicit blocate: anti-SSRF)
     #[arg(long)]
     allow_private: bool,
@@ -164,7 +197,7 @@ struct Cli {
     /// AcademiSearch. Fără rețea rezultatele rămân „unchecked”; nu se inventează verdicte. Cere --fff-in.
     #[arg(long, value_name = "FISIER")]
     fff_out: Option<PathBuf>,
-    /// Fișier de ieșire; formatul se alege după extensie: .html .csv .tsv .json .txt .xml (sitemap) .tree .veriga (sesiune). Repetabil.
+    /// Fișier de ieșire; formatul se alege după extensie: .html .csv .tsv .json .txt .xml (sitemap) .sarif .junit (JUnit XML) .tree .veriga (sesiune). Repetabil.
     #[arg(short = 'o', long = "out", value_name = "FISIER")]
     out: Vec<PathBuf>,
     /// În CSV/TSV exportă doar legăturile rupte
@@ -211,6 +244,17 @@ fn build_config(c: &Cli) -> Result<Config> {
     }
     cfg.respect_robots = !c.no_robots;
     cfg.seed_sitemaps = c.sitemap;
+    cfg.honor_nofollow = c.honor_nofollow;
+    cfg.check_nonweb = c.check_schemes;
+    cfg.check_cert_expiry = c.check_cert_expiry;
+    cfg.cert_warn_days = c.cert_warn_days;
+    cfg.check_sri = c.check_sri;
+    cfg.check_feeds = c.check_feeds;
+    cfg.check_mixed_content = c.check_mixed_content;
+    cfg.check_seo_links = c.check_seo_links;
+    cfg.check_link_header = c.check_link_header;
+    cfg.check_link_names = c.check_link_names;
+    cfg.check_ambiguous_names = c.check_ambiguous_names;
     cfg.ignore_tls_errors = c.insecure;
     cfg.block_private = !c.allow_private;
     cfg.cookies = !c.no_cookies;
@@ -291,7 +335,23 @@ fn write_outputs(s: &Session, outs: &[PathBuf], only_broken: bool) -> Result<()>
             "json" => report::to_json(s).into_bytes(),
             "txt" | "log" => report::to_text(s).into_bytes(),
             "xml" => report::to_sitemap_xml(s).into_bytes(),
+            "junit" => veriga_core::junit::to_junit(s).into_bytes(),
             "tree" => report::to_tree_text(s, 12).into_bytes(),
+            "sarif" => {
+                // scriere atomică: fără fișier parțial la o eroare de I/O
+                let tmp = p.with_extension("sarif.tmp");
+                let res = std::fs::write(&tmp, veriga_core::sarif::to_sarif(s))
+                    .and_then(|_| std::fs::rename(&tmp, p));
+                if let Err(e) = res {
+                    let _ = std::fs::remove_file(&tmp);
+                    return Err(e)
+                        .with_context(|| trf!("nu pot scrie {}", "cannot write {}", p.display()));
+                }
+                if !s.config.start.is_empty() {
+                    eprintln!("→ {}", p.display());
+                }
+                continue;
+            }
             "veriga" => {
                 s.save(p)?;
                 continue;
@@ -397,6 +457,61 @@ const HELP_EN: &[(&str, &str, Option<&str>)] = &[
     ("no_robots", "Ignore robots.txt", None),
     ("sitemap", "Also start from sitemap.xml", None),
     (
+        "check_cert_expiry",
+        "Warn about expired, soon-to-expire or name-mismatched TLS certificates",
+        None,
+    ),
+    (
+        "cert_warn_days",
+        "Days before expiry that count as \"expires soon\" (0 = only expired)",
+        Some("DAYS"),
+    ),
+    (
+        "check_sri",
+        "Verify the integrity attribute of subresources (SRI): syntax, CORS and SHA-2 digest",
+        None,
+    ),
+    (
+        "check_feeds",
+        "Read the RSS/Atom feeds found (link rel=alternate) and check the links inside them",
+        None,
+    ),
+    (
+        "check_mixed_content",
+        "Flag http: subresources loaded by https: pages (mixed content)",
+        None,
+    ),
+    (
+        "check_seo_links",
+        "Check canonical links (broken/redirected target, multiple) and hreflang language tags",
+        None,
+    ),
+    (
+        "check_link_header",
+        "Check links declared in the HTTP Link header (RFC 8288) of crawled pages",
+        None,
+    ),
+    (
+        "check_link_names",
+        "Flag links without an accessible name or with a meaningless name (WCAG 2.4.4)",
+        None,
+    ),
+    (
+        "check_ambiguous_names",
+        "Flag identical link names pointing to different addresses (informational)",
+        None,
+    ),
+    (
+        "check_schemes",
+        "Validate the syntax of tel:, geo: and data: addresses (no network requests)",
+        None,
+    ),
+    (
+        "honor_nofollow",
+        "Check links marked rel=\"nofollow\" but do not crawl their targets",
+        None,
+    ),
+    (
         "allow_private",
         "Allow contacting private/local addresses found on a public site (blocked by default: anti-SSRF)",
         None,
@@ -456,7 +571,7 @@ const HELP_EN: &[(&str, &str, Option<&str>)] = &[
     ),
     (
         "out",
-        "Output file; the format follows the extension: .html .csv .tsv .json .txt .xml (sitemap) .tree .veriga (session). Repeatable.",
+        "Output file; the format follows the extension: .html .csv .tsv .json .txt .xml (sitemap) .sarif .junit (JUnit XML) .tree .veriga (session). Repeatable.",
         Some("FILE"),
     ),
     (

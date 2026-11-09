@@ -3,19 +3,30 @@
 //! Scris de la zero, pe baza comportamentului documentat al verificatoarelor de
 //! legături în general; nu conține cod sau resurse din alte produse.
 
+pub mod a11y;
+pub mod cert;
 pub mod check;
 pub mod config;
 pub mod engine;
 pub mod extract;
+pub mod feed;
 pub mod fixer;
 pub mod i18n;
 pub mod insights;
+pub mod junit;
+pub mod linkheader;
+pub mod mixed;
 pub mod model;
 pub mod netguard;
+pub mod nonweb;
 pub mod proxy;
 pub mod report;
 pub mod robots;
 pub mod rules;
+pub mod sarif;
+pub mod seo;
+pub mod sitemap;
+pub mod sri;
 pub mod srcscan;
 pub mod textio;
 pub mod urlutil;

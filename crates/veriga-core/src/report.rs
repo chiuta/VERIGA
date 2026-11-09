@@ -224,6 +224,125 @@ pub fn to_text(s: &Session) -> String {
         );
     }
     let _ = writeln!(o);
+    if !s.aliases.is_empty() {
+        let _ = writeln!(
+            o,
+            "== {} ==",
+            tr(
+                lang,
+                "Adrese echivalente scrise diferit (informare)",
+                "Equivalent addresses written differently (info)"
+            )
+        );
+        for g in &s.aliases {
+            let _ = writeln!(o, "{}", g.canonical);
+            for f in &g.forms {
+                let _ = writeln!(o, "    = {}", f.written);
+                for p in f.parents.iter().take(5) {
+                    let _ = writeln!(o, "        ↳ {p}");
+                }
+            }
+        }
+        let _ = writeln!(o);
+    }
+    if !s.certs.is_empty() {
+        let _ = writeln!(
+            o,
+            "== {} ==",
+            tr(lang, "Certificate TLS", "TLS certificates")
+        );
+        for f in &s.certs {
+            let extra = match (f.kind, f.days) {
+                (crate::cert::CertKind::ExpiresSoon, Some(d)) => format!(" ({d})"),
+                _ => String::new(),
+            };
+            let when = f.not_after.as_deref().unwrap_or("");
+            let _ = writeln!(
+                o,
+                "{} — {}{extra} — {when} — {} {}",
+                f.host_port,
+                f.kind.label(lang),
+                f.links,
+                tr(lang, "legături", "links")
+            );
+        }
+        let _ = writeln!(o);
+    }
+    if !s.sri.is_empty() {
+        use crate::sri::SriVerdict;
+        let ok = s.sri.iter().filter(|f| f.verdict == SriVerdict::Match).count();
+        let _ = writeln!(
+            o,
+            "== {} == ({} {})",
+            tr(lang, "Integritatea subresurselor (SRI)", "Subresource integrity (SRI)"),
+            ok,
+            tr(lang, "corespund", "match")
+        );
+        for f in s.sri.iter().filter(|f| f.verdict != SriVerdict::Match) {
+            let _ = writeln!(o, "{} — {}", f.page, f.verdict.label(lang));
+            let _ = writeln!(o, "    {}", f.target);
+        }
+        let _ = writeln!(o);
+    }
+    if !s.mixed.is_empty() {
+        let _ = writeln!(
+            o,
+            "== {} ==",
+            tr(lang, "Conținut mixt (http în https)", "Mixed content (http in https)")
+        );
+        for f in &s.mixed {
+            let _ = writeln!(o, "{} — {}", f.page, f.category.label(lang));
+            let _ = writeln!(o, "    {}", f.target);
+            if let Some(n) = &f.note {
+                let _ = writeln!(o, "    ({n})");
+            }
+        }
+        let _ = writeln!(o);
+    }
+    if !s.seo.is_empty() {
+        let _ = writeln!(
+            o,
+            "== {} ==",
+            tr(
+                lang,
+                "Legături canonice și hreflang",
+                "Canonical links and hreflang"
+            )
+        );
+        for f in &s.seo {
+            let _ = writeln!(o, "{} — {}", f.page, f.kind.label(lang));
+            let _ = writeln!(o, "    {}", f.value);
+        }
+        let _ = writeln!(o);
+    }
+    if !s.warnings.is_empty() {
+        let _ = writeln!(o, "== {} ==", tr(lang, "Avertismente", "Warnings"));
+        for w in s.warnings.iter().take(200) {
+            let _ = writeln!(o, "{w}");
+        }
+        let _ = writeln!(o);
+    }
+    if !s.a11y.is_empty() {
+        let _ = writeln!(
+            o,
+            "== {} ==",
+            tr(
+                lang,
+                "Accesibilitatea numelor de legături",
+                "Link name accessibility"
+            )
+        );
+        for f in &s.a11y {
+            let _ = writeln!(o, "{} — {}", f.page, f.kind.label(lang));
+            if !f.name.is_empty() {
+                let _ = writeln!(o, "    „{}”", f.name);
+            }
+            for t in f.targets.iter().take(5) {
+                let _ = writeln!(o, "    ↳ {t}");
+            }
+        }
+        let _ = writeln!(o);
+    }
     let groups = broken_grouped(s);
     if groups.is_empty() {
         let _ = writeln!(
@@ -239,6 +358,9 @@ pub fn to_text(s: &Session) -> String {
                 let _ = writeln!(o, "{}", r.url);
                 if !r.message.is_empty() {
                     let _ = writeln!(o, "    {}", r.message);
+                }
+                if !r.rel.is_empty() {
+                    let _ = writeln!(o, "    rel: {}", r.rel.join(" "));
                 }
                 for p in r.parents.iter().take(5) {
                     let txt = if p.text.is_empty() {
@@ -326,6 +448,7 @@ pub fn to_csv(s: &Session, delim: u8, only_broken: bool) -> String {
         "Time-ms",
         "Message",
         "Found-On",
+        "Rel",
     ]);
     for r in &s.results {
         if only_broken && !r.status.is_broken(&s.config) {
@@ -355,6 +478,7 @@ pub fn to_csv(s: &Session, delim: u8, only_broken: bool) -> String {
             &r.elapsed_ms.to_string(),
             r.message.as_str(),
             &found.join(" | "),
+            &r.rel.join(" "),
         ];
         // injecție de formule: titlurile/URL-urile vin din pagini necontrolate de utilizator
         let _ = w.write_record(row.iter().map(|c| crate::fixer::csv_safe(c)));
@@ -906,6 +1030,13 @@ mod tests {
             ignored: 0,
             truncated: false,
             cancelled: false,
+            aliases: vec![],
+            a11y: vec![],
+            warnings: vec![],
+            seo: vec![],
+            mixed: vec![],
+            sri: vec![],
+            certs: vec![],
         }
     }
 

@@ -10,7 +10,7 @@ use crate::trf;
 use crate::urlutil::*;
 use anyhow::{Context, Result, anyhow, bail};
 use regex::Regex;
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
@@ -59,6 +59,15 @@ fn compile_list(label: &str, pats: &[String]) -> Result<Vec<Regex>> {
         .collect()
 }
 
+/// O verificare `integrity` cerută de o pagină pentru o subresursă.
+struct SriPending {
+    page: String,
+    idx: usize,
+    integrity: String,
+    crossorigin: Option<String>,
+    page_origin: String,
+}
+
 struct Coord {
     cfg: Arc<Config>,
     sh: Arc<Shared>,
@@ -87,6 +96,21 @@ struct Coord {
     broken: usize,
     last_progress: Instant,
     start_urls: Vec<Url>,
+    /// canonic -> scriere -> pagini în care apare
+    /// ținte al căror `parse` a fost oprit doar din cauza lui nofollow
+    nofollow_idx: HashSet<usize>,
+    a11y: Vec<crate::a11y::A11yFinding>,
+    warnings: Vec<String>,
+    seo: Vec<crate::seo::SeoFinding>,
+    mixed: Vec<crate::mixed::MixedFinding>,
+    sri: Vec<crate::sri::SriFinding>,
+    /// host:port -> (certificat observat, număr de legături verificate)
+    cert_obs: std::collections::BTreeMap<String, (crate::check::CertObs, usize)>,
+    sri_pending: Vec<SriPending>,
+    sri_data: HashMap<usize, (Option<crate::sri::Digests>, Option<String>)>,
+    https_subs: Vec<(String, Url, crate::extract::Sub)>,
+    canon: Vec<(String, Url)>,
+    alias_forms: HashMap<String, BTreeMap<String, BTreeSet<String>>>,
 }
 
 impl Coord {
@@ -119,6 +143,18 @@ impl Coord {
             broken: 0,
             last_progress: Instant::now() - Duration::from_secs(1),
             start_urls: vec![],
+            nofollow_idx: HashSet::new(),
+            a11y: vec![],
+            warnings: vec![],
+            seo: vec![],
+            mixed: vec![],
+            sri: vec![],
+            cert_obs: Default::default(),
+            sri_pending: vec![],
+            sri_data: HashMap::new(),
+            https_subs: vec![],
+            canon: vec![],
+            alias_forms: HashMap::new(),
         })
     }
 
@@ -201,6 +237,9 @@ impl Coord {
                 }
             }
             other => {
+                if cfg.check_nonweb && crate::nonweb::handles(other) {
+                    return Some((true, false));
+                }
                 // Scheme non-web legitime (tel:, javascript:, data:…) se ignoră;
                 // orice altceva (htp:, hxxp:, scheme necunoscute) ajunge în raport.
                 if crate::urlutil::NON_WEB_SCHEMES.contains(&other) {
@@ -224,6 +263,7 @@ impl Coord {
             LinkKind::Start => true,
             LinkKind::Page | LinkKind::Frame => looks_like_html(url),
             LinkKind::Stylesheet => true,
+            LinkKind::Feed => cfg.check_feeds,
             _ => false,
         };
         if parse && kind != LinkKind::Start {
@@ -276,7 +316,8 @@ impl Coord {
         self.queued += 1;
     }
 
-    fn add_start(&mut self, url: Url) {
+    fn add_start(&mut self, mut url: Url) {
+        crate::urlutil::canonicalize(&mut url);
         let key = normalize(&url);
         if self.index.contains_key(&key) {
             return;
@@ -295,7 +336,29 @@ impl Coord {
             internal,
             idx,
             host,
+            sri_origin: None,
         });
+    }
+
+    /// Unește tipurile de relație ale unei legături noi în rezultatul țintei.
+    fn merge_rel(&mut self, idx: usize, rel: &[String]) {
+        let r = &mut self.results[idx];
+        for t in rel {
+            if !r.rel.contains(t) {
+                r.rel.push(t.clone());
+            }
+        }
+        // ținta devine parcursă dacă o legătură fără nofollow o cere și încă nu a pornit
+        if self.cfg.honor_nofollow
+            && !rel.iter().any(|t| t == "nofollow")
+            && self.nofollow_idx.remove(&idx)
+        {
+            for q in self.queues.values_mut() {
+                if let Some(t) = q.iter_mut().find(|t| t.idx == idx) {
+                    t.parse = true;
+                }
+            }
+        }
     }
 
     fn add_parent(&mut self, idx: usize, p: Parent) {
@@ -305,8 +368,94 @@ impl Coord {
         }
     }
 
+    /// Subresurse https care redirecționează la http (cererea ajunge nesigură).
+    fn check_mixed_redirects(&mut self) {
+        let list = std::mem::take(&mut self.https_subs);
+        for (page, target, sb) in list {
+            let key = normalize(&target);
+            let Some(&i) = self.index.get(&key) else {
+                continue;
+            };
+            let Some(fin) = self.results[i]
+                .final_url
+                .as_deref()
+                .and_then(|u| Url::parse(u).ok())
+            else {
+                continue;
+            };
+            if fin.scheme() != "http" || crate::mixed::potentially_trustworthy(&fin) {
+                continue;
+            }
+            if let Some(category) = crate::mixed::category(sb) {
+                self.mixed.push(crate::mixed::MixedFinding {
+                    page,
+                    target: key,
+                    category,
+                    note: Some(format!("redirecționează la {fin}")),
+                });
+            }
+        }
+    }
+
+    /// Constatări pentru țintele canonice, pe baza rezultatelor verificării lor.
+    fn check_canonicals(&mut self) {
+        let list = std::mem::take(&mut self.canon);
+        for (page, target) in list {
+            let mut t = target.clone();
+            t.set_fragment(None);
+            crate::urlutil::canonicalize(&mut t);
+            let key = normalize(&t);
+            if key == page {
+                continue; // canonica spre pagina însăși este permisă
+            }
+            let Some(&i) = self.index.get(&key) else {
+                continue;
+            };
+            if let Some(f) = crate::seo::canonical_target_finding(
+                &page,
+                &key,
+                self.results[i].status,
+                &self.cfg,
+            ) {
+                self.seo.push(f);
+            }
+        }
+    }
+
+    /// Grupurile cu cel puțin două scrieri distincte ale aceleiași adrese.
+    fn alias_groups(&self) -> Vec<AliasGroup> {
+        let mut v: Vec<AliasGroup> = self
+            .alias_forms
+            .iter()
+            .filter(|(_, forms)| forms.len() >= 2)
+            .map(|(k, forms)| AliasGroup {
+                canonical: k.clone(),
+                forms: forms
+                    .iter()
+                    .map(|(w, ps)| AliasForm {
+                        written: w.clone(),
+                        parents: ps.iter().cloned().collect(),
+                    })
+                    .collect(),
+            })
+            .collect();
+        v.sort_by(|a, b| a.canonical.cmp(&b.canonical));
+        v
+    }
+
     fn add_link(&mut self, l: RawLink, parent: &Parent, parent_depth: u32) {
         let mut url = l.url;
+        crate::urlutil::canonicalize(&mut url);
+        if matches!(url.scheme(), "http" | "https") && !l.written.is_empty() {
+            let mut k = url.clone();
+            k.set_fragment(None);
+            self.alias_forms
+                .entry(k.to_string())
+                .or_default()
+                .entry(crate::urlutil::written_without_fragment(&l.written))
+                .or_default()
+                .insert(parent.url.clone());
+        }
         let frag = url.fragment().map(|f| f.to_string());
         url.set_fragment(None);
         let key = url.to_string();
@@ -338,6 +487,8 @@ impl Coord {
         }
         if let Some(&i) = self.index.get(&key) {
             self.add_parent(i, p);
+            self.merge_rel(i, &l.rel);
+            self.note_sri(i, &url, l.integrity.as_ref(), l.crossorigin.as_ref(), parent, true);
             return;
         }
         let depth = parent_depth + 1;
@@ -377,9 +528,22 @@ impl Coord {
         let idx = self.results.len();
         let mut r = LinkResult::new(&key, l.kind, depth, internal);
         r.parents.push(p);
+        r.rel = l.rel.clone();
+        if self.cfg.honor_nofollow && parse && l.rel.iter().any(|t| t == "nofollow") {
+            parse = false;
+            self.nofollow_idx.insert(idx);
+        }
         self.results.push(r);
         self.index.insert(key, idx);
         let host = host_key(&url);
+        let sri_origin = self.note_sri(
+            idx,
+            &url,
+            l.integrity.as_ref(),
+            l.crossorigin.as_ref(),
+            parent,
+            false,
+        );
         self.push_task(Task {
             url,
             kind: l.kind,
@@ -388,7 +552,100 @@ impl Coord {
             internal,
             idx,
             host,
+            sri_origin,
         });
+    }
+
+    /// Înregistrează o verificare `integrity` cerută de `l`; întoarce originea paginii dacă
+    /// resursa trebuie descărcată și rezumată. Pentru o țintă deja în coadă, cererea se adaugă
+    /// sarcinii existente (`queued`).
+    fn note_sri(
+        &mut self,
+        idx: usize,
+        url: &Url,
+        integrity: Option<&String>,
+        crossorigin: Option<&String>,
+        parent: &Parent,
+        queued: bool,
+    ) -> Option<String> {
+        let integrity = integrity?;
+        if !self.cfg.check_sri || !matches!(url.scheme(), "http" | "https") {
+            return None;
+        }
+        let origin = Url::parse(&parent.url)
+            .map(|u| u.origin().ascii_serialization())
+            .unwrap_or_else(|_| "null".into());
+        self.sri_pending.push(SriPending {
+            page: parent.url.clone(),
+            idx,
+            integrity: integrity.clone(),
+            crossorigin: crossorigin.cloned(),
+            page_origin: origin.clone(),
+        });
+        if queued {
+            for q in self.queues.values_mut() {
+                if let Some(t) = q.iter_mut().find(|t| t.idx == idx)
+                    && t.sri_origin.is_none()
+                {
+                    t.sri_origin = Some(origin.clone());
+                }
+            }
+        }
+        Some(origin)
+    }
+
+    /// Verdictele `integrity`, pe baza rezumatelor și a antetelor CORS ale țintelor.
+    fn check_sri(&mut self) {
+        use crate::sri::{Metadata, SriFinding, SriVerdict, matches, parse_metadata};
+        let list = std::mem::take(&mut self.sri_pending);
+        for p in list {
+            let target = self.results[p.idx].url.clone();
+            let mk = |verdict| SriFinding {
+                page: p.page.clone(),
+                target: target.clone(),
+                verdict,
+            };
+            let entries = match parse_metadata(&p.integrity) {
+                Err(_) => {
+                    self.sri.push(mk(SriVerdict::InvalidSyntax));
+                    continue;
+                }
+                Ok(Metadata::Empty) => continue,
+                Ok(Metadata::NoAlgorithm) => {
+                    self.sri.push(mk(SriVerdict::NoAlgorithm));
+                    continue;
+                }
+                Ok(Metadata::Entries(e)) => e,
+            };
+            // mai întâi eroarea de descărcare (raportată deja ca legătură ruptă)
+            if self.results[p.idx].status.is_broken(&self.cfg) {
+                continue;
+            }
+            let cross = Url::parse(&target)
+                .map(|u| u.origin().ascii_serialization() != p.page_origin)
+                .unwrap_or(true);
+            let fetched = self.sri_data.get(&p.idx);
+            if cross {
+                let acao = fetched.and_then(|f| f.1.as_deref());
+                let creds = p.crossorigin.as_deref() == Some("use-credentials");
+                let allowed = p.crossorigin.is_some()
+                    && match acao {
+                        Some("*") => !creds,
+                        Some(o) => o == p.page_origin,
+                        None => false,
+                    };
+                if !allowed {
+                    self.sri.push(mk(SriVerdict::NoCors));
+                    continue;
+                }
+            }
+            let v = match fetched.and_then(|f| f.0.as_ref()) {
+                None => SriVerdict::NotVerified,
+                Some(d) if matches(&entries, d) => SriVerdict::Match,
+                Some(_) => SriVerdict::Mismatch,
+            };
+            self.sri.push(mk(v));
+        }
     }
 
     fn add_bad(&mut self, raw: String, kind: LinkKind, msg: String, parent: &Parent, depth: u32) {
@@ -451,6 +708,7 @@ impl Coord {
         let idx = o.idx;
         let mut res = o.result;
         res.parents = std::mem::take(&mut self.results[idx].parents);
+        res.rel = std::mem::take(&mut self.results[idx].rel);
         if let Some(a) = o.anchors {
             if let Some(f) = res.final_url.as_ref().and_then(|u| Url::parse(u).ok()) {
                 self.anchors.insert(normalize(&f), a.clone());
@@ -458,6 +716,27 @@ impl Coord {
             if let Ok(u) = Url::parse(&res.url) {
                 self.anchors.insert(normalize(&u), a);
             }
+        }
+        self.a11y.extend(o.a11y);
+        self.warnings.extend(o.warnings);
+        self.seo.extend(o.seo);
+        self.mixed.extend(o.mixed);
+        self.sri.extend(o.sri);
+        for c in o.certs {
+            let e = self.cert_obs.entry(c.host_port.clone()).or_insert((c.clone(), 0));
+            e.1 += 1;
+            if e.0.der.is_none() {
+                e.0.der = c.der;
+            }
+        }
+        if o.digests.is_some() || o.acao.is_some() {
+            self.sri_data.insert(idx, (o.digests, o.acao));
+        }
+        for (u, sb) in o.https_subs {
+            self.https_subs.push((res.url.clone(), u, sb));
+        }
+        for c in o.canon {
+            self.canon.push((res.url.clone(), c));
         }
         self.done += 1;
         if res.status.is_broken(&self.cfg) {
@@ -520,14 +799,6 @@ impl Coord {
     }
 
     async fn seed_sitemaps(&mut self) {
-        fn unescape(s: &str) -> String {
-            s.replace("&amp;", "&")
-                .replace("&lt;", "<")
-                .replace("&gt;", ">")
-                .replace("&quot;", "\"")
-                .replace("&apos;", "'")
-        }
-        let loc_re = Regex::new(r"(?is)<loc>\s*([^<]+?)\s*</loc>").unwrap();
         let token = self.cfg.robots_token();
         let mut origins: HashSet<String> = HashSet::new();
         let roots = self.start_urls.clone();
@@ -551,10 +822,14 @@ impl Coord {
                 sms.push(format!("{origin}/sitemap.xml"));
             }
             let mut stack: Vec<(String, u32)> = sms.into_iter().map(|s| (s, 0)).collect();
+            let mut visited = crate::sitemap::Visited::default();
             let mut fetched = 0;
             while let Some((sm, d)) = stack.pop() {
                 if fetched >= 20 {
                     break;
+                }
+                if !visited.first_time(&sm) {
+                    continue;
                 }
                 fetched += 1;
                 let Ok(sm_url) = Url::parse(&sm) else {
@@ -571,7 +846,11 @@ impl Coord {
                 if !resp.status().is_success() {
                     continue;
                 }
-                let cap = self.cfg.max_body_bytes;
+                // octeții (eventual gzip) se citesc până la plafonul hărților de site
+                let cap = self
+                    .cfg
+                    .max_body_bytes
+                    .max(crate::sitemap::MAX_DECOMPRESSED);
                 let mut buf: Vec<u8> = Vec::new();
                 while let Ok(Some(c)) = resp.chunk().await {
                     buf.extend_from_slice(&c);
@@ -580,17 +859,27 @@ impl Coord {
                         break;
                     }
                 }
-                let text = String::from_utf8_lossy(&buf).into_owned();
-                let is_index = text.contains("<sitemapindex");
+                let parsed = match crate::sitemap::parse(&buf) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        self.emit(Event::Phase(format!("sitemap {sm}: {e}")));
+                        continue;
+                    }
+                };
+                if parsed.truncated {
+                    self.emit(Event::Phase(format!(
+                        "sitemap {sm}: peste {} adrese, citite doar primele",
+                        crate::sitemap::MAX_LOCS
+                    )));
+                }
                 let parent = Parent {
                     url: sm.clone(),
                     text: "sitemap".into(),
                     kind: LinkKind::Sitemap,
                 };
-                for c in loc_re.captures_iter(&text) {
-                    let l = unescape(&c[1]);
-                    if is_index {
-                        if d < 2 {
+                for l in parsed.locs {
+                    if parsed.is_index {
+                        if d < crate::sitemap::MAX_INDEX_DEPTH {
                             stack.push((l, d + 1));
                         }
                     } else if let Ok(url) = Url::parse(&l) {
@@ -599,6 +888,11 @@ impl Coord {
                                 url,
                                 kind: LinkKind::Page,
                                 text: String::new(),
+                                written: l.clone(),
+                                rel: vec![],
+                                sub: crate::extract::Sub::None,
+                                integrity: None,
+                                crossorigin: None,
                             },
                             &parent,
                             0,
@@ -839,6 +1133,37 @@ pub async fn run(
     co.mark_unchecked();
     co.emit(Event::Finished);
 
+    let aliases = co.alias_groups();
+    let mut certs: Vec<crate::cert::CertFinding> = vec![];
+    if cfg.check_cert_expiry {
+        let now = chrono::Utc::now().timestamp();
+        for (hp, (obs, n)) in &co.cert_obs {
+            certs.extend(crate::cert::findings_for(
+                hp,
+                &obs.host,
+                obs.der.as_deref(),
+                now,
+                cfg.cert_warn_days,
+                *n,
+            ));
+        }
+        certs.sort();
+    }
+    co.check_sri();
+    let mut sri = std::mem::take(&mut co.sri);
+    sri.sort();
+    sri.dedup();
+    co.check_canonicals();
+    co.check_mixed_redirects();
+    let mut mixed = std::mem::take(&mut co.mixed);
+    mixed.sort();
+    mixed.dedup();
+    let mut seo = std::mem::take(&mut co.seo);
+    seo.sort();
+    seo.dedup();
+    let warnings = std::mem::take(&mut co.warnings);
+    let mut a11y = std::mem::take(&mut co.a11y);
+    a11y.sort();
     let mut config = (*cfg).clone();
     config.basic_auth = None;
     Ok(Session {
@@ -851,6 +1176,13 @@ pub async fn run(
         ignored: co.ignored,
         truncated: co.truncated,
         cancelled,
+        aliases,
+        a11y,
+        warnings,
+        seo,
+        mixed,
+        sri,
+        certs,
     })
 }
 
@@ -900,6 +1232,7 @@ pub async fn recheck(
             internal,
             idx: i,
             host,
+            sri_origin: None,
         });
     }
     let started = session.started;
@@ -917,6 +1250,13 @@ pub async fn recheck(
         ignored: session.ignored,
         truncated: session.truncated,
         cancelled,
+        aliases: session.aliases,
+        a11y: session.a11y,
+        warnings: session.warnings,
+        seo: session.seo,
+        mixed: session.mixed,
+        sri: session.sri,
+        certs: session.certs,
     })
 }
 

@@ -80,6 +80,30 @@ pub struct Config {
     pub respect_robots: bool,
     /// Pornește și din sitemap.xml (din robots.txt sau /sitemap.xml).
     pub seed_sitemaps: bool,
+    /// Legăturile cu `rel="nofollow"` se verifică, dar ținta lor nu se parcurge.
+    pub honor_nofollow: bool,
+    /// Validează sintaxa adreselor `tel:`, `geo:` și `data:` (fără cereri în rețea).
+    pub check_nonweb: bool,
+    /// Semnalează legăturile fără nume accesibil sau cu nume nesemnificativ.
+    pub check_link_names: bool,
+    /// Verifică legăturile declarate în câmpurile HTTP `Link` ale paginilor parcurse.
+    pub check_link_header: bool,
+    /// Verifică legăturile canonice (țintă ruptă/redirecționată, multiple) și etichetele hreflang.
+    pub check_seo_links: bool,
+    /// Semnalează subresurse `http:` pe pagini `https:` (conținut mixt).
+    pub check_mixed_content: bool,
+    /// Citește fluxurile RSS/Atom găsite (link rel=alternate) și verifică legăturile lor.
+    pub check_feeds: bool,
+    /// Verifică atributul `integrity` al subresurselor (SRI): sintaxă, CORS, rezumat.
+    pub check_sri: bool,
+    /// Avertizează la certificate TLS expirate / aproape de expirare / cu nume nepotrivit.
+    pub check_cert_expiry: bool,
+    /// Pragul în zile pentru «expiră în curând» (0 = doar expirate).
+    pub cert_warn_days: u32,
+    /// Plafon de legături citite dintr-un antet `Link`.
+    pub max_link_header_links: usize,
+    /// Semnalează și numele identice spre adrese diferite (notă informativă).
+    pub check_ambiguous_names: bool,
     pub ignore_tls_errors: bool,
     pub cookies: bool,
     /// Nu contacta adrese private/loopback/link-local (anti-SSRF) când punctul de start e public.
@@ -133,6 +157,18 @@ impl Default for Config {
             ),
             respect_robots: true,
             seed_sitemaps: false,
+            honor_nofollow: false,
+            check_nonweb: false,
+            check_link_names: false,
+            check_link_header: false,
+            check_seo_links: false,
+            check_mixed_content: false,
+            check_feeds: false,
+            check_sri: false,
+            check_cert_expiry: false,
+            cert_warn_days: 14,
+            max_link_header_links: 100,
+            check_ambiguous_names: false,
             ignore_tls_errors: false,
             cookies: true,
             block_private: true,

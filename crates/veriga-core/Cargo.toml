@@ -26,6 +26,11 @@ futures.workspace = true
 mime_guess.workspace = true
 encoding_rs.workspace = true
 sha2 = "0.11.1"
+quick-xml = "0.41"
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 
 [dev-dependencies]
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 tokio = { workspace = true, features = ["net"] }
+tokio-rustls = "0.26"
+rustls-pki-types = "1"

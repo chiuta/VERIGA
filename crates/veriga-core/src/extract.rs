@@ -8,11 +8,54 @@ use std::collections::HashSet;
 use std::sync::OnceLock;
 use url::Url;
 
+/// Rolul unei legături ca subresursă încărcată de pagină (pentru conținutul mixt).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Sub {
+    /// Nu este subresursă (navigare, referință informativă).
+    #[default]
+    None,
+    /// Imagini, audio, video: «opțional blocabilă».
+    Optional,
+    /// Orice altă subresursă: «blocabilă».
+    Blockable,
+}
+
+fn is_font_path(p: &str) -> bool {
+    let p = p.to_ascii_lowercase();
+    [".woff2", ".woff", ".ttf", ".otf", ".eot"]
+        .iter()
+        .any(|e| p.ends_with(e))
+}
+
+/// Rolul implicit după tipul legăturii.
+pub fn default_sub(kind: LinkKind, u: &Url) -> Sub {
+    match kind {
+        LinkKind::Image if is_font_path(u.path()) => Sub::Blockable,
+        LinkKind::Image | LinkKind::Media => Sub::Optional,
+        LinkKind::Stylesheet
+        | LinkKind::Script
+        | LinkKind::Frame
+        | LinkKind::Object
+        | LinkKind::Icon
+        | LinkKind::Form => Sub::Blockable,
+        _ => Sub::None,
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct RawLink {
     pub url: Url,
     pub kind: LinkKind,
     pub text: String,
+    /// Adresa absolută așa cum a fost scrisă de autor (pentru detectarea alias-urilor).
+    pub written: String,
+    /// Tipurile de relație din atributul `rel` (minuscule, unice, în ordinea apariției).
+    pub rel: Vec<String>,
+    pub sub: Sub,
+    /// Valoarea atributului `integrity` (script, link stylesheet/preload/modulepreload).
+    pub integrity: Option<String>,
+    /// Atributul `crossorigin`, dacă există (valoarea în minuscule).
+    pub crossorigin: Option<String>,
 }
 
 #[derive(Debug, Default)]
@@ -24,6 +67,12 @@ pub struct Extracted {
     pub bad: Vec<(String, LinkKind, String)>,
     pub anchors: HashSet<String>,
     pub meta_robots: Option<String>,
+    /// Adresele `link rel=canonical` (rezolvate față de baza documentului).
+    pub canonicals: Vec<Url>,
+    /// Valorile `hreflang` de pe `link rel=alternate` și de pe `a`.
+    pub hreflangs: Vec<String>,
+    /// Numele elementelor cu `integrity` la care atributul nu se aplică.
+    pub sri_notes: Vec<String>,
 }
 
 fn css_url_re() -> &'static Regex {
@@ -41,9 +90,54 @@ fn refresh_re() -> &'static Regex {
     R.get_or_init(|| Regex::new(r#"(?i)url\s*=\s*['"]?([^'";]+)"#).unwrap())
 }
 
+/// `integrity` și `crossorigin` ale unui element (dacă `integrity` nu e gol).
+fn sri_of(v: &scraper::node::Element) -> Option<(String, Option<String>)> {
+    let i = v.attr("integrity")?.trim();
+    if i.is_empty() {
+        return None;
+    }
+    Some((
+        i.to_string(),
+        v.attr("crossorigin").map(|c| c.trim().to_ascii_lowercase()),
+    ))
+}
+
+fn has_scheme(s: &str) -> bool {
+    let Some((sch, _)) = s.split_once(':') else {
+        return false;
+    };
+    let mut c = sch.chars();
+    c.next().is_some_and(|f| f.is_ascii_alphabetic())
+        && c.all(|x| x.is_ascii_alphanumeric() || matches!(x, '+' | '-' | '.'))
+}
+
+/// Mulțimea jetoanelor din atributul `rel`: separate prin spații ASCII, fără distincție
+/// majuscule/minuscule, fără duplicate.
+pub fn parse_rel(v: &str) -> Vec<String> {
+    let mut out: Vec<String> = vec![];
+    for t in v.split(['\u{20}', '\t', '\n', '\u{0C}', '\r']) {
+        if t.is_empty() {
+            continue;
+        }
+        let t = t.to_ascii_lowercase();
+        if !out.contains(&t) {
+            out.push(t);
+        }
+    }
+    out
+}
+
 struct Sink<'a> {
     base: &'a Url,
     out: &'a mut Extracted,
+    /// `rel` al elementului în curs de prelucrare; consumat de prima legătură adăugată.
+    rel: Vec<String>,
+    /// Păstrează `tel:` și `data:` (validate ulterior) în loc să le ignore.
+    keep_nonweb: bool,
+    /// Rol impus pentru următoarea legătură adăugată (consumat de `add`).
+    sub_force: Option<Sub>,
+    /// `integrity` și `crossorigin` ale elementului în curs (consumate de `add`).
+    sri: Option<(String, Option<String>)>,
 }
 
 impl<'a> Sink<'a> {
@@ -54,8 +148,8 @@ impl<'a> Sink<'a> {
         }
         let lower = raw.to_ascii_lowercase();
         if lower.starts_with("javascript:")
-            || lower.starts_with("data:")
-            || lower.starts_with("tel:")
+            || (!self.keep_nonweb && lower.starts_with("data:"))
+            || (!self.keep_nonweb && lower.starts_with("tel:"))
             || lower.starts_with("sms:")
             || lower.starts_with("blob:")
             || lower.starts_with("about:")
@@ -67,16 +161,32 @@ impl<'a> Sink<'a> {
             return;
         }
         match self.base.join(raw) {
-            Ok(u) => self.out.links.push(RawLink {
-                // tipul urmează schema: un `mailto:` nu este „Pagină”
-                kind: match (u.scheme(), kind) {
-                    ("mailto", _) => LinkKind::Mailto,
-                    ("ftp" | "ftps", LinkKind::Page | LinkKind::Link) => LinkKind::Ftp,
-                    _ => kind,
-                },
-                url: u,
-                text: truncate_chars(text, 120),
-            }),
+            Ok(u) => {
+                let sri = self.sri.take();
+                let sub = self
+                    .sub_force
+                    .take()
+                    .unwrap_or_else(|| default_sub(kind, &u));
+                self.out.links.push(RawLink {
+                    // tipul urmează schema: un `mailto:` nu este „Pagină”
+                    kind: match (u.scheme(), kind) {
+                        ("mailto", _) => LinkKind::Mailto,
+                        ("ftp" | "ftps", LinkKind::Page | LinkKind::Link) => LinkKind::Ftp,
+                        _ => kind,
+                    },
+                    written: if has_scheme(raw) {
+                        raw.to_string()
+                    } else {
+                        u.to_string()
+                    },
+                    url: u,
+                    text: truncate_chars(text, 120),
+                    rel: std::mem::take(&mut self.rel),
+                    sub,
+                    integrity: sri.as_ref().map(|x| x.0.clone()),
+                    crossorigin: sri.and_then(|x| x.1),
+                });
+            }
             Err(e) => self
                 .out
                 .bad
@@ -127,6 +237,10 @@ pub fn extract_css(page: &Url, css: &str) -> Vec<RawLink> {
     let mut s = Sink {
         base: page,
         out: &mut ex,
+        rel: vec![],
+        keep_nonweb: false,
+        sub_force: None,
+        sri: None,
     };
     s.add_css(css, LinkKind::Image);
     ex.links
@@ -140,6 +254,16 @@ fn parent_name(el: &ElementRef) -> String {
 }
 
 pub fn extract_html(page: &Url, html: &str, check_forms: bool) -> Extracted {
+    extract_html_opts(page, html, check_forms, false)
+}
+
+/// Ca `extract_html`; cu `keep_nonweb`, adresele `tel:` și `data:` se păstrează (pentru validare).
+pub fn extract_html_opts(
+    page: &Url,
+    html: &str,
+    check_forms: bool,
+    keep_nonweb: bool,
+) -> Extracted {
     // `<noscript>` este text brut pentru parserul cu scripting activ, dar conține linkuri reale
     // pentru vizitatorii fără JavaScript: îi eliminăm doar etichetele, ca să fie parcurs conținutul.
     static NOSCRIPT: OnceLock<Regex> = OnceLock::new();
@@ -190,16 +314,36 @@ pub fn extract_html(page: &Url, html: &str, check_forms: bool) -> Extracted {
     let mut bad = vec![];
     let mut anchors = HashSet::new();
     let mut meta_robots = None;
+    let mut canonicals: Vec<Url> = vec![];
+    let mut hreflangs: Vec<String> = vec![];
+    let mut sri_notes: Vec<String> = vec![];
     {
         let mut tmp = Extracted::default();
         let mut s = Sink {
             base: &base,
             out: &mut tmp,
+            rel: vec![],
+            keep_nonweb,
+            sub_force: None,
+            sri: None,
         };
 
         for el in doc.select(&all) {
             let v = el.value();
             let name = v.name();
+
+            if v.attr("integrity").is_some() {
+                let applicable = match name {
+                    "script" => true,
+                    "link" => parse_rel(v.attr("rel").unwrap_or("")).iter().any(|t| {
+                        matches!(t.as_str(), "stylesheet" | "preload" | "modulepreload")
+                    }),
+                    _ => false,
+                };
+                if !applicable {
+                    sri_notes.push(name.to_string());
+                }
+            }
 
             if let Some(id) = v.attr("id")
                 && !id.is_empty()
@@ -241,7 +385,14 @@ pub fn extract_html(page: &Url, html: &str, check_forms: bool) -> Extracted {
                                 }
                             }
                         }
+                        if name == "a"
+                            && let Some(hl) = v.attr("hreflang")
+                        {
+                            hreflangs.push(hl.to_string());
+                        }
+                        s.rel = parse_rel(v.attr("rel").unwrap_or(""));
                         s.add(h, LinkKind::Page, &text);
+                        s.rel.clear();
                     }
                 }
                 "link" => {
@@ -249,8 +400,23 @@ pub fn extract_html(page: &Url, html: &str, check_forms: bool) -> Extracted {
                     if rel.contains("dns-prefetch") || rel.contains("preconnect") {
                         continue;
                     }
+                    let rel_tokens = parse_rel(&rel);
                     if let Some(h) = v.attr("href") {
-                        let kind = if rel.contains("stylesheet") {
+                        if rel_tokens.iter().any(|t| t == "canonical")
+                            && let Ok(u) = base.join(h.trim())
+                        {
+                            canonicals.push(u);
+                        }
+                        if rel_tokens.iter().any(|t| t == "alternate")
+                            && let Some(hl) = v.attr("hreflang")
+                        {
+                            hreflangs.push(hl.to_string());
+                        }
+                        let is_feed = rel_tokens.iter().any(|t| t == "alternate")
+                            && v.attr("type").is_some_and(crate::feed::is_feed_type);
+                        let kind = if is_feed {
+                            LinkKind::Feed
+                        } else if rel.contains("stylesheet") {
                             LinkKind::Stylesheet
                         } else if rel.contains("icon") {
                             LinkKind::Icon
@@ -264,7 +430,22 @@ pub fn extract_html(page: &Url, html: &str, check_forms: bool) -> Extracted {
                         } else {
                             LinkKind::Link
                         };
+                        s.rel = parse_rel(v.attr("rel").unwrap_or(""));
+                        if rel_tokens
+                            .iter()
+                            .any(|t| matches!(t.as_str(), "preload" | "prefetch" | "modulepreload"))
+                        {
+                            s.sub_force = Some(Sub::Blockable);
+                        }
+                        if rel_tokens.iter().any(|t| {
+                            matches!(t.as_str(), "stylesheet" | "preload" | "modulepreload")
+                        }) {
+                            s.sri = sri_of(v);
+                        }
                         s.add(h, kind, "");
+                        s.rel.clear();
+                        s.sub_force = None;
+                        s.sri = None;
                     }
                     if let Some(x) = v.attr("imagesrcset") {
                         s.add_srcset(x, LinkKind::Image);
@@ -336,12 +517,16 @@ pub fn extract_html(page: &Url, html: &str, check_forms: bool) -> Extracted {
                 }
                 "script" => {
                     if let Some(x) = v.attr("src") {
+                        s.sri = sri_of(v);
                         s.add(x, LinkKind::Script, "");
+                        s.sri = None;
                     }
                 }
                 "form" => {
                     if check_forms && let Some(x) = v.attr("action") {
+                        s.rel = parse_rel(v.attr("rel").unwrap_or(""));
                         s.add(x, LinkKind::Form, "");
+                        s.rel.clear();
                     }
                 }
                 "input" => {
@@ -384,7 +569,9 @@ pub fn extract_html(page: &Url, html: &str, check_forms: bool) -> Extracted {
                         nm.as_str(),
                         "og:image" | "twitter:image" | "msapplication-tileimage"
                     ) {
+                        s.sub_force = Some(Sub::None);
                         s.add(content, LinkKind::Image, "");
+                        s.sub_force = None;
                     } else if nm == "robots" {
                         meta_robots = Some(content.to_ascii_lowercase());
                     }
@@ -404,6 +591,9 @@ pub fn extract_html(page: &Url, html: &str, check_forms: bool) -> Extracted {
     out.bad = bad;
     out.anchors = anchors;
     out.meta_robots = meta_robots;
+    out.canonicals = canonicals;
+    out.hreflangs = hreflangs;
+    out.sri_notes = sri_notes;
     out
 }
 
@@ -501,5 +691,37 @@ mod tests {
         assert_eq!(l.len(), 1);
         let e = extract_html(&u, "<div style=\"background:ăurl(a.png)\">", false);
         assert_eq!(e.links.len(), 1);
+    }
+
+    #[test]
+    fn rel_tokens_are_a_case_insensitive_unique_set() {
+        assert_eq!(parse_rel("NoFollow noopener"), vec!["nofollow", "noopener"]);
+        assert!(parse_rel("  ").is_empty());
+        assert!(parse_rel("").is_empty());
+        assert_eq!(parse_rel("nofollow nofollow"), vec!["nofollow"]);
+        assert_eq!(parse_rel("a\tb\nc\r\u{0C}d"), vec!["a", "b", "c", "d"]);
+    }
+
+    #[test]
+    fn rel_on_anchor_requires_href_and_link_keeps_stylesheet() {
+        let page = Url::parse("https://ex.ro/").unwrap();
+        let e = extract_html(
+            &page,
+            r#"<a rel="nofollow">x</a><a href="/p" rel="NoFollow noopener">y</a>
+               <link rel="stylesheet nofollow" href="/s.css">"#,
+            false,
+        );
+        assert_eq!(e.links.len(), 2);
+        assert_eq!(e.links[0].rel, vec!["nofollow", "noopener"]);
+        assert_eq!(e.links[1].kind, LinkKind::Stylesheet);
+        assert_eq!(e.links[1].rel, vec!["stylesheet", "nofollow"]);
+    }
+
+    #[test]
+    fn rel_on_form_only_when_forms_are_checked() {
+        let page = Url::parse("https://ex.ro/").unwrap();
+        let h = r#"<form action="/f" rel="nofollow"></form>"#;
+        assert!(extract_html(&page, h, false).links.is_empty());
+        assert_eq!(extract_html(&page, h, true).links[0].rel, vec!["nofollow"]);
     }
 }

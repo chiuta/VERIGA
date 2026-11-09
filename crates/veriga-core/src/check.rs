@@ -1,7 +1,7 @@
 //! Verificarea unui singur URL: HTTP(S), fișier local, FTP, mailto.
 
 use crate::config::Config;
-use crate::extract::{RawLink, extract_css, extract_html};
+use crate::extract::{RawLink, extract_css, extract_html_opts};
 use crate::i18n::tr;
 use crate::model::*;
 use crate::robots::RobotsCache;
@@ -28,6 +28,8 @@ pub struct Task {
     pub internal: bool,
     pub idx: usize,
     pub host: String,
+    /// Originea paginii care a cerut verificarea `integrity`: resursa se descarcă integral și se rezumă.
+    pub sri_origin: Option<String>,
 }
 
 pub struct Outcome {
@@ -37,6 +39,25 @@ pub struct Outcome {
     pub links: Vec<RawLink>,
     pub bad: Vec<(String, LinkKind, String)>,
     pub anchors: Option<HashSet<String>>,
+    /// Constatări de accesibilitate ale numelor de legături din pagină.
+    pub a11y: Vec<crate::a11y::A11yFinding>,
+    /// Avertismente de sintaxă (de pildă antetul `Link`).
+    pub warnings: Vec<String>,
+    /// Constatări canonice/hreflang ale paginii.
+    pub seo: Vec<crate::seo::SeoFinding>,
+    /// Adresele canonice ale paginii (verificate la sfârșit față de rezultatele țintelor).
+    pub canon: Vec<Url>,
+    /// Conținut mixt găsit pe pagină.
+    pub mixed: Vec<crate::mixed::MixedFinding>,
+    /// Rezumatele SHA-2 ale corpului (dacă s-au cerut) și antetul `Access-Control-Allow-Origin`.
+    pub digests: Option<crate::sri::Digests>,
+    pub acao: Option<String>,
+    /// Note `integrity` pe elemente la care atributul nu se aplică.
+    pub sri: Vec<crate::sri::SriFinding>,
+    /// Subresurse https de pe o pagină https (verificate la sfârșit pentru redirecționări la http).
+    pub https_subs: Vec<(Url, crate::extract::Sub)>,
+    /// Certificatele frunză văzute la verificarea acestei legături.
+    pub certs: Vec<CertObs>,
 }
 
 /// Pauză minimă între cererile către aceeași gazdă.
@@ -110,6 +131,7 @@ impl Shared {
             .timeout(Duration::from_secs(cfg.timeout_secs.max(1)))
             .connect_timeout(Duration::from_secs(cfg.timeout_secs.clamp(1, 20)))
             .danger_accept_invalid_certs(cfg.ignore_tls_errors)
+            .tls_info(cfg.check_cert_expiry)
             .cookie_store(cfg.cookies)
             .pool_max_idle_per_host(cfg.per_host.max(1))
             .pool_idle_timeout(Duration::from_secs(20));
@@ -194,6 +216,25 @@ impl Shared {
 enum BodyKind {
     Html,
     Css,
+    Feed,
+}
+
+/// Informații din antetele răspunsului final, necesare după verificare.
+#[derive(Default)]
+struct HeaderInfo {
+    link_values: Vec<String>,
+    upgrade_insecure: bool,
+    digests: Option<crate::sri::Digests>,
+    acao: Option<String>,
+    certs: Vec<CertObs>,
+}
+
+/// Certificatul frunză văzut la un handshake (DER) pentru un host:port.
+#[derive(Clone, Debug)]
+pub struct CertObs {
+    pub host_port: String,
+    pub host: String,
+    pub der: Option<Vec<u8>>,
 }
 
 struct Body {
@@ -212,6 +253,8 @@ struct Attempt {
     size: Option<u64>,
     last_modified: Option<String>,
     body: Option<Body>,
+    /// Valorile câmpurilor `Link` ale răspunsului final (dacă sunt cerute).
+    hdr: HeaderInfo,
     retryable: bool,
     retry_after_ms: Option<u64>,
 }
@@ -237,6 +280,16 @@ pub async fn check(sh: Arc<Shared>, t: Task) -> Outcome {
                 links: vec![],
                 bad: vec![],
                 anchors: None,
+                a11y: vec![],
+                warnings: vec![],
+                seo: vec![],
+                canon: vec![],
+                mixed: vec![],
+                https_subs: vec![],
+                digests: None,
+                acao: None,
+                sri: vec![],
+                certs: vec![],
             }
         }
     }
@@ -246,11 +299,27 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
     let started = Instant::now();
     let mut r = LinkResult::new(t.url.as_str(), t.kind, t.depth, t.internal);
     let mut body: Option<Body> = None;
+    let mut hdr = HeaderInfo::default();
     match t.url.scheme() {
-        "http" | "https" => body = http_check(&sh, &t, &mut r).await,
+        "http" | "https" => body = http_check(&sh, &t, &mut r, &mut hdr).await,
         "file" => body = file_check(&sh, &t, &mut r).await,
         "ftp" => ftp_check(&sh, &t, &mut r).await,
         "mailto" => mailto_check(&t, &mut r),
+        "tel" | "geo" | "data" if sh.cfg.check_nonweb => match crate::nonweb::validate(&t.url) {
+            Some(crate::nonweb::Verdict::Valid(n)) => {
+                r.status = Status::Ok;
+                r.message = n;
+            }
+            Some(crate::nonweb::Verdict::Invalid(why)) => {
+                r.status = Status::InvalidUrl;
+                r.message = why;
+            }
+            Some(crate::nonweb::Verdict::Unchecked(why)) => {
+                r.status = Status::Skipped;
+                r.message = why;
+            }
+            None => {}
+        },
         other => {
             if let Some(want) = crate::urlutil::scheme_typo_target(other) {
                 r.status = Status::InvalidUrl;
@@ -276,6 +345,13 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
     let mut links = vec![];
     let mut bad = vec![];
     let mut anchors = None;
+    let mut a11y = vec![];
+    let mut warnings: Vec<String> = vec![];
+    let mut seo = vec![];
+    let mut canon: Vec<Url> = vec![];
+    let mut mixed = vec![];
+    let mut https_subs: Vec<(Url, crate::extract::Sub)> = vec![];
+    let mut sri: Vec<crate::sri::SriFinding> = vec![];
     if let Some(b) = body {
         let page_url = r
             .final_url
@@ -284,19 +360,91 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
             .unwrap_or_else(|| t.url.clone());
         match b.kind {
             BodyKind::Html => {
-                let e = extract_html(&page_url, &b.text, sh.cfg.check_forms);
+                let e = extract_html_opts(
+                    &page_url,
+                    &b.text,
+                    sh.cfg.check_forms,
+                    sh.cfg.check_nonweb,
+                );
+                if sh.cfg.check_seo_links {
+                    seo = crate::seo::page_findings(t.url.as_str(), &e.canonicals, &e.hreflangs);
+                    canon = e.canonicals.clone();
+                }
+                if sh.cfg.check_sri {
+                    for el in &e.sri_notes {
+                        sri.push(crate::sri::SriFinding {
+                            page: t.url.to_string(),
+                            target: el.clone(),
+                            verdict: crate::sri::SriVerdict::Inapplicable,
+                        });
+                    }
+                }
                 r.title = e.title;
                 r.h1 = e.h1;
                 links = e.links;
                 bad = e.bad;
                 anchors = Some(e.anchors);
+                if sh.cfg.check_link_names || sh.cfg.check_ambiguous_names {
+                    let names = crate::a11y::link_names(&b.text, &page_url);
+                    a11y = crate::a11y::findings(
+                        t.url.as_str(),
+                        &names,
+                        sh.cfg.check_ambiguous_names,
+                    );
+                    if !sh.cfg.check_link_names {
+                        a11y.retain(|f| f.kind == crate::a11y::A11yKind::Ambiguous);
+                    }
+                }
             }
             BodyKind::Css => {
                 links = extract_css(&page_url, &b.text);
             }
+            BodyKind::Feed => match crate::feed::extract_links(&page_url, &b.text) {
+                Ok(l) => links = l,
+                Err(e) => warnings.push(format!("{}: {e}", page_url.as_str())),
+            },
         }
         r.parsed = true;
         r.links_found = links.len() as u32;
+    }
+    if !hdr.link_values.is_empty() {
+        let req = r
+            .final_url
+            .as_deref()
+            .and_then(|u| Url::parse(u).ok())
+            .unwrap_or_else(|| t.url.clone());
+        let parsed = crate::linkheader::parse(&hdr.link_values, &req, sh.cfg.max_link_header_links);
+        for h in parsed.links {
+            if sh.cfg.check_seo_links && h.rel.iter().any(|r| r == "canonical") {
+                canon.push(h.target.clone());
+            }
+            if h.target == req {
+                continue; // «<>» sau auto-referință: nu se verifică a doua oară
+            }
+            links.push(crate::linkheader::to_raw_link(h));
+        }
+        warnings.extend(
+            parsed
+                .warnings
+                .into_iter()
+                .map(|w| format!("{}: {w}", req.as_str())),
+        );
+        r.links_found = links.len() as u32;
+    }
+    if sh.cfg.check_mixed_content && !links.is_empty() {
+        let page = r
+            .final_url
+            .as_deref()
+            .and_then(|u| Url::parse(u).ok())
+            .unwrap_or_else(|| t.url.clone());
+        mixed = crate::mixed::findings(&page, &links, hdr.upgrade_insecure);
+        if page.scheme() == "https" {
+            for l in &links {
+                if l.url.scheme() == "https" && l.sub != crate::extract::Sub::None {
+                    https_subs.push((l.url.clone(), l.sub));
+                }
+            }
+        }
     }
     r.elapsed_ms = started.elapsed().as_millis() as u64;
     Outcome {
@@ -306,6 +454,16 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
         links,
         bad,
         anchors,
+        a11y,
+        warnings,
+        seo,
+        canon,
+        mixed,
+        https_subs,
+        digests: hdr.digests,
+        acao: hdr.acao,
+        sri,
+        certs: hdr.certs,
     }
 }
 
@@ -349,6 +507,16 @@ fn decode(buf: &[u8], ct: Option<&str>) -> String {
             });
             if let Some(c) = re.captures(&head) {
                 label = Some(c[1].to_string());
+            } else if head.trim_start().starts_with("<?xml") {
+                // declarația XML: <?xml version="1.0" encoding="ISO-8859-1"?>
+                static XML_ENC: OnceLock<Regex> = OnceLock::new();
+                let re = XML_ENC.get_or_init(|| {
+                    Regex::new(r#"(?i)^<\?xml[^>]*?encoding\s*=\s*["']([A-Za-z0-9_\-:.]+)["']"#)
+                        .unwrap()
+                });
+                if let Some(c) = re.captures(head.trim_start()) {
+                    label = Some(c[1].to_string());
+                }
             }
         }
     }
@@ -481,7 +649,7 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
     let cfg = &sh.cfg;
     let mut a = Attempt::default();
     let mut cur = t.url.clone();
-    let mut method = if t.parse || !cfg.head_first {
+    let mut method = if t.parse || !cfg.head_first || t.sri_origin.is_some() {
         Method::GET
     } else {
         Method::HEAD
@@ -503,6 +671,12 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
         let hk = crate::urlutil::host_key(&cur);
         sh.gate.wait(&hk, delay).await;
         let mut rb = sh.client.request(method.clone(), cur.clone());
+        if let Some(o) = &t.sri_origin
+            && cur.origin().ascii_serialization() != *o
+        {
+            // cerere de tip CORS: serverul poate răspunde diferit după Origin
+            rb = rb.header(reqwest::header::ORIGIN, o.as_str());
+        }
         if t.parse && method == Method::GET {
             rb = rb.header(
                 reqwest::header::ACCEPT,
@@ -539,6 +713,19 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
             }
         };
         let code = resp.status().as_u16();
+        if cfg.check_cert_expiry && cur.scheme() == "https" {
+            let der = resp
+                .extensions()
+                .get::<reqwest::tls::TlsInfo>()
+                .and_then(|i| i.peer_certificate())
+                .map(<[u8]>::to_vec);
+            let host = cur.host_str().unwrap_or("").to_string();
+            a.hdr.certs.push(CertObs {
+                host_port: format!("{host}:{}", cur.port_or_known_default().unwrap_or(443)),
+                host,
+                der,
+            });
+        }
 
         if (300..400).contains(&code) && code != 304 {
             let Some(loc) = resp
@@ -639,6 +826,23 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
         });
         a.last_modified = lm;
         a.size = cl;
+        if cfg.check_mixed_content && t.parse && code < 300 {
+            a.hdr.upgrade_insecure = headers
+                .get_all(reqwest::header::CONTENT_SECURITY_POLICY)
+                .iter()
+                .filter_map(|v| v.to_str().ok())
+                .any(|v| {
+                    v.split(';')
+                        .any(|d| d.trim().eq_ignore_ascii_case("upgrade-insecure-requests"))
+                });
+        }
+        if cfg.check_link_header && t.parse && code < 300 {
+            a.hdr.link_values = headers
+                .get_all(reqwest::header::LINK)
+                .iter()
+                .filter_map(|v| v.to_str().ok().map(str::to_string))
+                .collect();
+        }
         if !a.chain.is_empty() || cur != t.url {
             a.final_url = Some(cur.to_string());
         }
@@ -666,13 +870,24 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
         }
         a.status = Some(st);
 
-        // Corpul: doar pentru pagini/CSS care trebuie parcurse.
-        if t.parse && code < 300 {
+        let want_sri = t.sri_origin.is_some() && code < 300 && method == Method::GET;
+        if want_sri {
+            a.hdr.acao = headers
+                .get(reqwest::header::ACCESS_CONTROL_ALLOW_ORIGIN)
+                .and_then(|v| v.to_str().ok())
+                .map(|s| s.trim().to_string());
+        }
+        // Corpul: doar pentru pagini/CSS care trebuie parcurse (sau rezumate pentru `integrity`).
+        if (t.parse || want_sri) && code < 300 {
             let lower = ct.as_deref().unwrap_or("").to_ascii_lowercase();
-            let kind = if lower.contains("html") || lower.contains("xhtml") {
+            let kind = if !t.parse {
+                None
+            } else if lower.contains("html") || lower.contains("xhtml") {
                 Some(BodyKind::Html)
             } else if lower.contains("css") {
                 Some(BodyKind::Css)
+            } else if cfg.check_feeds && (t.kind == LinkKind::Feed || lower.contains("xml")) {
+                Some(BodyKind::Feed)
             } else if lower.is_empty()
                 && matches!(t.kind, LinkKind::Page | LinkKind::Start | LinkKind::Frame)
                 && looks_like_html(&cur)
@@ -681,7 +896,7 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
             } else {
                 None
             };
-            if let Some(kind) = kind {
+            if kind.is_some() || want_sri {
                 let mut resp = resp;
                 let mut buf: Vec<u8> = Vec::new();
                 let mut truncated = false;
@@ -730,10 +945,15 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
                 } else {
                     a.size = Some(a.size.unwrap_or(0).max(buf.len() as u64));
                 }
-                a.body = Some(Body {
-                    kind,
-                    text: decode(&buf, ct.as_deref()),
-                });
+                if want_sri && !truncated && buf.len() < cfg.max_body_bytes {
+                    a.hdr.digests = Some(crate::sri::Digests::of(&buf));
+                }
+                if let Some(kind) = kind {
+                    a.body = Some(Body {
+                        kind,
+                        text: decode(&buf, ct.as_deref()),
+                    });
+                }
             }
         }
         return a;
@@ -743,7 +963,12 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
 /// Limita superioară a reîncercărilor (protecție la valori absurde din configurație).
 pub const MAX_RETRIES: u32 = 10;
 
-async fn http_check(sh: &Shared, t: &Task, r: &mut LinkResult) -> Option<Body> {
+async fn http_check(
+    sh: &Shared,
+    t: &Task,
+    r: &mut LinkResult,
+    hdr: &mut HeaderInfo,
+) -> Option<Body> {
     let cfg = &sh.cfg;
     let mut delay = Duration::from_millis(cfg.delay_ms);
     // Pagina de start a fost cerută explicit de utilizator: robots.txt nu o poate
@@ -786,6 +1011,7 @@ async fn http_check(sh: &Shared, t: &Task, r: &mut LinkResult) -> Option<Body> {
     r.content_type = last.ctype;
     r.size = last.size;
     r.last_modified = last.last_modified;
+    *hdr = last.hdr;
     last.body
 }
 
@@ -841,13 +1067,22 @@ async fn file_check(sh: &Shared, t: &Task, r: &mut LinkResult) -> Option<Body> {
                     .and_then(|e| e.to_str())
                     .map(|e| e.eq_ignore_ascii_case("css"))
                     == Some(true);
-                if (is_html_ext(&path) || is_css)
+                let is_feed = sh.cfg.check_feeds
+                    && !is_html_ext(&path)
+                    && !is_css
+                    && (t.kind == LinkKind::Feed
+                        || path.extension().and_then(|e| e.to_str()).is_some_and(|e| {
+                            e.eq_ignore_ascii_case("rss") || e.eq_ignore_ascii_case("atom")
+                        }));
+                if (is_html_ext(&path) || is_css || is_feed)
                     && let Some(bytes) = read_capped(&path, sh.cfg.max_body_bytes).await
                 {
                     let cut = &bytes[..];
                     return Some(Body {
                         kind: if is_css {
                             BodyKind::Css
+                        } else if is_feed {
+                            BodyKind::Feed
                         } else {
                             BodyKind::Html
                         },
@@ -1172,6 +1407,14 @@ fn parse_retry_after_ms(v: &str) -> Option<u64> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn decode_honours_xml_declaration_encoding() {
+        let b = b"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><t>caf\xe9</t>";
+        assert!(decode(b, None).contains("café"));
+        // antetul HTTP are prioritate
+        assert!(decode(b, Some("text/xml; charset=windows-1252")).contains("café"));
+    }
+
     use super::*;
 
     #[tokio::test]
@@ -1349,6 +1592,7 @@ mod tests {
             internal: false,
             idx: 0,
             host: "127.0.0.1".into(),
+            sri_origin: None,
         };
         let mut r = LinkResult::new(t.url.as_str(), t.kind, 1, false);
         ftp_check(&sh, &t, &mut r).await;

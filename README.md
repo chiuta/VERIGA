@@ -40,6 +40,24 @@ external links yes/no, "stay in the directory", exclude / don't-follow / only-th
 HTTP codes treated as OK (e.g. 999), User-Agent, proxy (HTTP/SOCKS), Basic authentication (internal hosts only),
 headers and cookies, invalid certificates, delay between requests.
 
+`--honor-nofollow` — links marked `rel="nofollow"` are still checked (HTTP status) but the target page is not crawled for further links; off by default. The `rel` tokens of every link (case-insensitive, unique) are reported in JSON (`rel`), CSV (`Rel` column) and next to broken links in the text report.
+
+`--check-schemes` — validates the syntax of `tel:`, `geo:` and `data:` addresses (RFC 3966, RFC 5870, RFC 2397 with the Fetch base64 tolerance); no network request is made. Invalid ones are reported as "Invalid URL" with the reason; `data:` addresses over 1 MiB are reported as not verified. Off by default (those schemes are silently ignored).
+
+`--check-link-names` — computes the accessible name of every `<a href>` (aria-labelledby, aria-label, content incl. image `alt`, then `title`; hidden content ignored) and reports links with no name or only punctuation (WCAG 2.4.4 / 4.1.2) in the text and JSON reports (`a11y`). `--check-ambiguous-names` adds an informational note when identical names (case-insensitive) point to different addresses on one page. Both off by default.
+
+`--check-link-header` — reads the HTTP `Link` header fields (RFC 8288) of crawled pages and checks each declared target like any other link (source = the requested page, shown as "Link header: …"; the `rel` tokens are kept). Malformed values are skipped with a warning (text/JSON reports, `warnings`); at most 100 links per response are read. Off by default.
+
+`--check-seo-links` — checks `rel="canonical"` (broken target, redirected target reported separately, several different canonicals on one page; a canonical pointing to the page itself is fine, also read from the `Link` header with `--check-link-header`) and `hreflang` values on `link rel=alternate` / `a` (BCP 47 syntax only, no IANA registry; `x-default` is listed as an external convention, not as an error). Findings are in the text and JSON reports (`seo`). Off by default.
+
+`--check-mixed-content` — on `https:` pages, reports sub-resources loaded over `http:` (mixed content): images, audio and video are "optionally blockable"; scripts, stylesheets, preloads, iframes, objects, fonts, CSS `@import` and form actions are "blockable". Plain navigation links are not sub-resources; `localhost`, `127.0.0.0/8` and `[::1]` are never reported; a `Content-Security-Policy: upgrade-insecure-requests` header adds a note instead of cancelling the finding; an `https:` sub-resource that redirects to `http:` is reported too. Results are in the text and JSON reports (`mixed`). Off by default.
+
+`--check-feeds` — reads RSS 2.0 and Atom 1.0 feeds found through `<link rel="alternate" type="application/rss+xml|application/atom+xml">` (or any XML response when crawled) and checks the links inside: channel/item `link`, `comments`, `enclosure@url`, `source@url`, image `url`/`link`, a permanent `guid`, Atom `link@href` (missing `rel` = alternate), `content@src`, and links in escaped/CDATA HTML descriptions and Atom `html`/`xhtml` content. Relative addresses follow `xml:base`, then the feed address. Malformed XML or a non-feed document yields a warning and no links. Off by default.
+
+`--check-sri` — verifies the `integrity` attribute of `<script src>` and `<link rel=stylesheet|preload|modulepreload>`: syntax (standard base64, correct digest length), recognised algorithms (sha256/384/512 — the strongest one present decides, any of its values may match), the SHA-2 digest of the downloaded bytes, and CORS for cross-origin resources (`crossorigin` attribute plus a matching `Access-Control-Allow-Origin`). Verdicts: matches / does not match / invalid syntax / no recognised algorithm / no CORS / not verified; `integrity` on other elements is noted as not applicable. Resources are downloaded in full (GET) only when a link asks for the check. Results are in the text and JSON reports (`sri`). Off by default.
+
+`--check-cert-expiry` / `--cert-warn-days N` (default 14) — reads the leaf TLS certificate each `https` host:port presents during the check and reports, once per host:port with the number of links checked there: expired, not yet valid, expires in N days (threshold; `0` = expired only), unreadable, or a name that matches none of the SAN entries. Works with `--insecure` too. A TLS-intercepting proxy shows its own certificate; a wrong system clock cannot be detected. Results are in the text and JSON reports (`certs`). Off by default.
+
 ## Free, ethical proxies
 
 Pick a preset with `--proxy-preset tor|tor-browser|warp` (list them with `--list-proxy-presets`), or in the GUI under "Free ethical proxy…". All presets are local SOCKS5 endpoints (`socks5h://127.0.0.1:…`), so names are resolved by the proxy, not by your system. Tor (volunteer, non-profit, open source) is the recommended choice; the check is capped at 4 threads and 2 connections per server and some sites block Tor exits, so expect false "broken links". Cloudflare WARP is free but a commercial service with a closed-source client. Lists of open public proxies are deliberately not included: they are often compromised or intercept traffic. Your own proxy is still available with `--proxy`.
@@ -48,6 +66,12 @@ Pick a preset with `--proxy-preset tor|tor-browser|warp` (list them with `--list
 
 Self-contained HTML (opens anywhere), CSV, TSV, JSON, text, sitemap.xml, a site tree, a `.veriga` session.
 **Re-check of broken links** from a saved session (`--recheck`, a button in the GUI/web).
+
+**Alias addresses:** different spellings of the same address (host case, default port, needlessly percent-encoded characters, dot segments) are merged into one check and listed as an informational group in the text and JSON reports (`aliases`); path/query case, parameter order, trailing slash and `www.` are never merged.
+
+**SARIF 2.1.0** (`-o report.sarif`): broken links become `error`, redirects / 401-403 / slow responses `warning`, skipped or orphan items `note`; good links are not emitted. The location is the page (or file) containing the link, as a URI; `region.startLine` is only written when a line is known (crawl results currently carry no line, so it is omitted). Output is deterministic and written atomically.
+
+**JUnit XML** (`-o report.junit`): one `testsuite` per source page, one `testcase` per checked link (`name` = target, `classname` = source page). Broken links are `failure`; timeouts / no connection are `error`; skipped or review-only items are `skipped`; illegal XML 1.0 characters become U+FFFD. Orphan files are not links and are left out.
 
 ## CLI
 
@@ -135,7 +159,7 @@ Support the project: https://www.buymeacoffee.com/echo.of.the.strings
 - **Network guard:** the private-address check resolves the host, then the HTTP client resolves it again (a DNS-rebinding window exists); run VERIGA on untrusted sites from a network that cannot reach private ranges.
 - **`veriga watch`** reads `./veriga-guardian.json` from the current directory by default, and that file can name a `sendmail` command and the sources to rewrite: do not run it inside a directory you do not trust.
 - It does not send reports by e-mail (SMTP) and does not detect orphans over FTP — only in a local directory.
-- Compressed `.xml.gz` sitemaps are not read.
+- Compressed `.xml.gz` sitemaps are read (gzip is detected from the first bytes, not the extension); decompressed size is capped at 50 MB and a sitemap is read up to its first 50,000 URLs.
 - Pages that build their links with JavaScript are not rendered (there is no browser engine); the served HTML is analysed.
 - The graphical interface was exercised under a virtual display (Linux/X11) only: crawl, filters, detail panel and Guardian. The Windows and macOS builds are produced by CI but not tested interactively.
 

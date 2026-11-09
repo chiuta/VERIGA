@@ -21,6 +21,8 @@ pub enum LinkKind {
     Ftp,
     File,
     Sitemap,
+    /// Flux RSS/Atom indicat prin `link rel=alternate`.
+    Feed,
     Other,
 }
 
@@ -57,6 +59,8 @@ impl LinkKind {
             (LinkKind::File, false) => "Fișier",
             (LinkKind::File, true) => "File",
             (LinkKind::Sitemap, _) => "Sitemap",
+            (LinkKind::Feed, false) => "Flux",
+            (LinkKind::Feed, true) => "Feed",
             (LinkKind::Other, false) => "Altele",
             (LinkKind::Other, true) => "Other",
         }
@@ -212,6 +216,9 @@ pub struct LinkResult {
     /// Primul `<h1>` al paginii (pentru detectarea derivei de conținut).
     #[serde(default)]
     pub h1: Option<String>,
+    /// Tipurile de relație (`rel`) ale legăturilor către această țintă, fără duplicate.
+    #[serde(default)]
+    pub rel: Vec<String>,
 }
 
 impl LinkResult {
@@ -235,6 +242,7 @@ impl LinkResult {
             parsed: false,
             links_found: 0,
             h1: None,
+            rel: vec![],
         }
     }
 
@@ -264,6 +272,20 @@ pub enum Event {
     Finished,
 }
 
+/// O formă scrisă a unei adrese și paginile în care apare.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct AliasForm {
+    pub written: String,
+    pub parents: Vec<String>,
+}
+
+/// Mai multe scrieri distincte ale aceleiași adrese (informare, nu eroare).
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct AliasGroup {
+    pub canonical: String,
+    pub forms: Vec<AliasForm>,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Session {
     pub version: u32,
@@ -275,6 +297,27 @@ pub struct Session {
     pub ignored: usize,
     pub truncated: bool,
     pub cancelled: bool,
+    /// Grupuri de adrese echivalente scrise diferit.
+    #[serde(default)]
+    pub aliases: Vec<AliasGroup>,
+    /// Constatări de accesibilitate ale numelor de legături.
+    #[serde(default)]
+    pub a11y: Vec<crate::a11y::A11yFinding>,
+    /// Avertismente de sintaxă întâlnite la parcurgere (de pildă în antetul `Link`).
+    #[serde(default)]
+    pub warnings: Vec<String>,
+    /// Constatări despre legături canonice și etichete hreflang.
+    #[serde(default)]
+    pub seo: Vec<crate::seo::SeoFinding>,
+    /// Subresurse `http:` pe pagini `https:`.
+    #[serde(default)]
+    pub mixed: Vec<crate::mixed::MixedFinding>,
+    /// Rezultatele verificării `integrity` (SRI).
+    #[serde(default)]
+    pub sri: Vec<crate::sri::SriFinding>,
+    /// Avertizări despre certificatele TLS ale gazdelor https.
+    #[serde(default)]
+    pub certs: Vec<crate::cert::CertFinding>,
 }
 
 /// Proxy fără `user:parolă@` (credențialele nu se salvează pe disc).
@@ -379,6 +422,13 @@ mod tests {
             ignored: 0,
             truncated: false,
             cancelled: false,
+            aliases: vec![],
+            a11y: vec![],
+            warnings: vec![],
+            seo: vec![],
+            mixed: vec![],
+            sri: vec![],
+            certs: vec![],
         }
     }
 
@@ -414,6 +464,13 @@ mod tests {
             ignored: 0,
             truncated: false,
             cancelled: false,
+            aliases: vec![],
+            a11y: vec![],
+            warnings: vec![],
+            seo: vec![],
+            mixed: vec![],
+            sri: vec![],
+            certs: vec![],
         };
         s.config.start = vec!["http://bob:s3cret@h/a".into()];
         let mut r = LinkResult::new("http://bob:s3cret@h/a", LinkKind::Page, 0, true);
@@ -443,6 +500,13 @@ mod tests {
             ignored: 0,
             truncated: false,
             cancelled: false,
+            aliases: vec![],
+            a11y: vec![],
+            warnings: vec![],
+            seo: vec![],
+            mixed: vec![],
+            sri: vec![],
+            certs: vec![],
         };
         s.config.lang = "x\"><script>alert(1)</script><i a=\"".into();
         let html = crate::report::to_html(&s);
