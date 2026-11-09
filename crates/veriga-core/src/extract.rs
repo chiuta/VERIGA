@@ -15,6 +15,8 @@ pub struct RawLink {
     pub text: String,
     /// Adresa absolută așa cum a fost scrisă de autor (pentru detectarea alias-urilor).
     pub written: String,
+    /// Tipurile de relație din atributul `rel` (minuscule, unice, în ordinea apariției).
+    pub rel: Vec<String>,
 }
 
 #[derive(Debug, Default)]
@@ -52,9 +54,27 @@ fn has_scheme(s: &str) -> bool {
         && c.all(|x| x.is_ascii_alphanumeric() || matches!(x, '+' | '-' | '.'))
 }
 
+/// Mulțimea jetoanelor din atributul `rel`: separate prin spații ASCII, fără distincție
+/// majuscule/minuscule, fără duplicate.
+pub fn parse_rel(v: &str) -> Vec<String> {
+    let mut out: Vec<String> = vec![];
+    for t in v.split(['\u{20}', '\t', '\n', '\u{0C}', '\r']) {
+        if t.is_empty() {
+            continue;
+        }
+        let t = t.to_ascii_lowercase();
+        if !out.contains(&t) {
+            out.push(t);
+        }
+    }
+    out
+}
+
 struct Sink<'a> {
     base: &'a Url,
     out: &'a mut Extracted,
+    /// `rel` al elementului în curs de prelucrare; consumat de prima legătură adăugată.
+    rel: Vec<String>,
 }
 
 impl<'a> Sink<'a> {
@@ -92,6 +112,7 @@ impl<'a> Sink<'a> {
                 },
                 url: u,
                 text: truncate_chars(text, 120),
+                rel: std::mem::take(&mut self.rel),
             }),
             Err(e) => self
                 .out
@@ -143,6 +164,7 @@ pub fn extract_css(page: &Url, css: &str) -> Vec<RawLink> {
     let mut s = Sink {
         base: page,
         out: &mut ex,
+        rel: vec![],
     };
     s.add_css(css, LinkKind::Image);
     ex.links
@@ -211,6 +233,7 @@ pub fn extract_html(page: &Url, html: &str, check_forms: bool) -> Extracted {
         let mut s = Sink {
             base: &base,
             out: &mut tmp,
+            rel: vec![],
         };
 
         for el in doc.select(&all) {
@@ -257,7 +280,9 @@ pub fn extract_html(page: &Url, html: &str, check_forms: bool) -> Extracted {
                                 }
                             }
                         }
+                        s.rel = parse_rel(v.attr("rel").unwrap_or(""));
                         s.add(h, LinkKind::Page, &text);
+                        s.rel.clear();
                     }
                 }
                 "link" => {
@@ -280,7 +305,9 @@ pub fn extract_html(page: &Url, html: &str, check_forms: bool) -> Extracted {
                         } else {
                             LinkKind::Link
                         };
+                        s.rel = parse_rel(v.attr("rel").unwrap_or(""));
                         s.add(h, kind, "");
+                        s.rel.clear();
                     }
                     if let Some(x) = v.attr("imagesrcset") {
                         s.add_srcset(x, LinkKind::Image);
@@ -357,7 +384,9 @@ pub fn extract_html(page: &Url, html: &str, check_forms: bool) -> Extracted {
                 }
                 "form" => {
                     if check_forms && let Some(x) = v.attr("action") {
+                        s.rel = parse_rel(v.attr("rel").unwrap_or(""));
                         s.add(x, LinkKind::Form, "");
+                        s.rel.clear();
                     }
                 }
                 "input" => {
@@ -517,5 +546,37 @@ mod tests {
         assert_eq!(l.len(), 1);
         let e = extract_html(&u, "<div style=\"background:ăurl(a.png)\">", false);
         assert_eq!(e.links.len(), 1);
+    }
+
+    #[test]
+    fn rel_tokens_are_a_case_insensitive_unique_set() {
+        assert_eq!(parse_rel("NoFollow noopener"), vec!["nofollow", "noopener"]);
+        assert!(parse_rel("  ").is_empty());
+        assert!(parse_rel("").is_empty());
+        assert_eq!(parse_rel("nofollow nofollow"), vec!["nofollow"]);
+        assert_eq!(parse_rel("a\tb\nc\r\u{0C}d"), vec!["a", "b", "c", "d"]);
+    }
+
+    #[test]
+    fn rel_on_anchor_requires_href_and_link_keeps_stylesheet() {
+        let page = Url::parse("https://ex.ro/").unwrap();
+        let e = extract_html(
+            &page,
+            r#"<a rel="nofollow">x</a><a href="/p" rel="NoFollow noopener">y</a>
+               <link rel="stylesheet nofollow" href="/s.css">"#,
+            false,
+        );
+        assert_eq!(e.links.len(), 2);
+        assert_eq!(e.links[0].rel, vec!["nofollow", "noopener"]);
+        assert_eq!(e.links[1].kind, LinkKind::Stylesheet);
+        assert_eq!(e.links[1].rel, vec!["stylesheet", "nofollow"]);
+    }
+
+    #[test]
+    fn rel_on_form_only_when_forms_are_checked() {
+        let page = Url::parse("https://ex.ro/").unwrap();
+        let h = r#"<form action="/f" rel="nofollow"></form>"#;
+        assert!(extract_html(&page, h, false).links.is_empty());
+        assert_eq!(extract_html(&page, h, true).links[0].rel, vec!["nofollow"]);
     }
 }

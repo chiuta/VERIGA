@@ -717,6 +717,14 @@ impl eframe::App for App {
                         },
                     );
                     ui.checkbox(
+                        &mut c.honor_nofollow,
+                        if lang == "en" {
+                            "Do not crawl rel=nofollow targets"
+                        } else {
+                            "Nu parcurge ținte rel=nofollow"
+                        },
+                    );
+                    ui.checkbox(
                         &mut c.ignore_tls_errors,
                         if lang == "en" {
                             "Ignore TLS errors"

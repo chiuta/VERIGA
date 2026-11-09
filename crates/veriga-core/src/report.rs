@@ -261,6 +261,9 @@ pub fn to_text(s: &Session) -> String {
                 if !r.message.is_empty() {
                     let _ = writeln!(o, "    {}", r.message);
                 }
+                if !r.rel.is_empty() {
+                    let _ = writeln!(o, "    rel: {}", r.rel.join(" "));
+                }
                 for p in r.parents.iter().take(5) {
                     let txt = if p.text.is_empty() {
                         String::new()
@@ -347,6 +350,7 @@ pub fn to_csv(s: &Session, delim: u8, only_broken: bool) -> String {
         "Time-ms",
         "Message",
         "Found-On",
+        "Rel",
     ]);
     for r in &s.results {
         if only_broken && !r.status.is_broken(&s.config) {
@@ -376,6 +380,7 @@ pub fn to_csv(s: &Session, delim: u8, only_broken: bool) -> String {
             &r.elapsed_ms.to_string(),
             r.message.as_str(),
             &found.join(" | "),
+            &r.rel.join(" "),
         ];
         // injecție de formule: titlurile/URL-urile vin din pagini necontrolate de utilizator
         let _ = w.write_record(row.iter().map(|c| crate::fixer::csv_safe(c)));

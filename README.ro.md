@@ -40,6 +40,8 @@ linkuri externe da/nu, „rămâi în director”, exclude / nu-parcurge / doar-
 coduri HTTP tratate ca OK (ex. 999), User-Agent, proxy (HTTP/SOCKS), autentificare Basic (doar către gazdele interne),
 antete și cookie-uri, certificate invalide, pauză între cereri.
 
+`--honor-nofollow` — legăturile marcate `rel="nofollow"` se verifică în continuare (stare HTTP), dar pagina țintă nu se parcurge pentru alte legături; implicit dezactivat. Jetoanele `rel` ale fiecărei legături (fără distincție majuscule/minuscule, unice) apar în JSON (`rel`), în CSV (coloana `Rel`) și lângă legăturile rupte în raportul text.
+
 ## Proxy-uri gratuite și etice
 
 Alege un preset cu `--proxy-preset tor|tor-browser|warp` (listă: `--list-proxy-presets`) sau, în GUI, din „Proxy gratuit etic…”. Toate sunt puncte SOCKS5 locale (`socks5h://127.0.0.1:…`), deci numele sunt rezolvate de proxy, nu de sistemul tău. Tor (voluntari, fără profit, cod deschis) este alegerea recomandată; verificarea e limitată la 4 fire și 2 conexiuni per server, iar unele site-uri blochează ieșirile Tor, deci pot apărea false „linkuri rupte”. Cloudflare WARP e gratuit, dar este un serviciu comercial cu client închis. Listele de proxy-uri publice deschise lipsesc intenționat: sunt adesea compromise sau interceptează traficul. Proxy-ul propriu rămâne disponibil cu `--proxy`.

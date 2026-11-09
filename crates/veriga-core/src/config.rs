@@ -80,6 +80,8 @@ pub struct Config {
     pub respect_robots: bool,
     /// Pornește și din sitemap.xml (din robots.txt sau /sitemap.xml).
     pub seed_sitemaps: bool,
+    /// Legăturile cu `rel="nofollow"` se verifică, dar ținta lor nu se parcurge.
+    pub honor_nofollow: bool,
     pub ignore_tls_errors: bool,
     pub cookies: bool,
     /// Nu contacta adrese private/loopback/link-local (anti-SSRF) când punctul de start e public.
@@ -133,6 +135,7 @@ impl Default for Config {
             ),
             respect_robots: true,
             seed_sitemaps: false,
+            honor_nofollow: false,
             ignore_tls_errors: false,
             cookies: true,
             block_private: true,

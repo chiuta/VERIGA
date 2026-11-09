@@ -118,6 +118,9 @@ struct Cli {
     /// Pornește și din sitemap.xml
     #[arg(long)]
     sitemap: bool,
+    /// Legăturile cu rel="nofollow" se verifică, dar ținta lor nu se parcurge
+    #[arg(long)]
+    honor_nofollow: bool,
     /// Permite contactarea adreselor private/locale găsite pe un site public (implicit blocate: anti-SSRF)
     #[arg(long)]
     allow_private: bool,
@@ -211,6 +214,7 @@ fn build_config(c: &Cli) -> Result<Config> {
     }
     cfg.respect_robots = !c.no_robots;
     cfg.seed_sitemaps = c.sitemap;
+    cfg.honor_nofollow = c.honor_nofollow;
     cfg.ignore_tls_errors = c.insecure;
     cfg.block_private = !c.allow_private;
     cfg.cookies = !c.no_cookies;
@@ -396,6 +400,11 @@ const HELP_EN: &[(&str, &str, Option<&str>)] = &[
     ("user_agent", "The User-Agent header", None),
     ("no_robots", "Ignore robots.txt", None),
     ("sitemap", "Also start from sitemap.xml", None),
+    (
+        "honor_nofollow",
+        "Check links marked rel=\"nofollow\" but do not crawl their targets",
+        None,
+    ),
     (
         "allow_private",
         "Allow contacting private/local addresses found on a public site (blocked by default: anti-SSRF)",

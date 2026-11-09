@@ -212,6 +212,9 @@ pub struct LinkResult {
     /// Primul `<h1>` al paginii (pentru detectarea derivei de conținut).
     #[serde(default)]
     pub h1: Option<String>,
+    /// Tipurile de relație (`rel`) ale legăturilor către această țintă, fără duplicate.
+    #[serde(default)]
+    pub rel: Vec<String>,
 }
 
 impl LinkResult {
@@ -235,6 +238,7 @@ impl LinkResult {
             parsed: false,
             links_found: 0,
             h1: None,
+            rel: vec![],
         }
     }
 

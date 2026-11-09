@@ -88,6 +88,8 @@ struct Coord {
     last_progress: Instant,
     start_urls: Vec<Url>,
     /// canonic -> scriere -> pagini în care apare
+    /// ținte al căror `parse` a fost oprit doar din cauza lui nofollow
+    nofollow_idx: HashSet<usize>,
     alias_forms: HashMap<String, BTreeMap<String, BTreeSet<String>>>,
 }
 
@@ -121,6 +123,7 @@ impl Coord {
             broken: 0,
             last_progress: Instant::now() - Duration::from_secs(1),
             start_urls: vec![],
+            nofollow_idx: HashSet::new(),
             alias_forms: HashMap::new(),
         })
     }
@@ -302,6 +305,27 @@ impl Coord {
         });
     }
 
+    /// Unește tipurile de relație ale unei legături noi în rezultatul țintei.
+    fn merge_rel(&mut self, idx: usize, rel: &[String]) {
+        let r = &mut self.results[idx];
+        for t in rel {
+            if !r.rel.contains(t) {
+                r.rel.push(t.clone());
+            }
+        }
+        // ținta devine parcursă dacă o legătură fără nofollow o cere și încă nu a pornit
+        if self.cfg.honor_nofollow
+            && !rel.iter().any(|t| t == "nofollow")
+            && self.nofollow_idx.remove(&idx)
+        {
+            for q in self.queues.values_mut() {
+                if let Some(t) = q.iter_mut().find(|t| t.idx == idx) {
+                    t.parse = true;
+                }
+            }
+        }
+    }
+
     fn add_parent(&mut self, idx: usize, p: Parent) {
         let r = &mut self.results[idx];
         if r.parents.len() < 100 && !r.parents.iter().any(|x| x.url == p.url && x.text == p.text) {
@@ -374,6 +398,7 @@ impl Coord {
         }
         if let Some(&i) = self.index.get(&key) {
             self.add_parent(i, p);
+            self.merge_rel(i, &l.rel);
             return;
         }
         let depth = parent_depth + 1;
@@ -413,6 +438,11 @@ impl Coord {
         let idx = self.results.len();
         let mut r = LinkResult::new(&key, l.kind, depth, internal);
         r.parents.push(p);
+        r.rel = l.rel.clone();
+        if self.cfg.honor_nofollow && parse && l.rel.iter().any(|t| t == "nofollow") {
+            parse = false;
+            self.nofollow_idx.insert(idx);
+        }
         self.results.push(r);
         self.index.insert(key, idx);
         let host = host_key(&url);
@@ -487,6 +517,7 @@ impl Coord {
         let idx = o.idx;
         let mut res = o.result;
         res.parents = std::mem::take(&mut self.results[idx].parents);
+        res.rel = std::mem::take(&mut self.results[idx].rel);
         if let Some(a) = o.anchors {
             if let Some(f) = res.final_url.as_ref().and_then(|u| Url::parse(u).ok()) {
                 self.anchors.insert(normalize(&f), a.clone());
@@ -646,6 +677,7 @@ impl Coord {
                                 kind: LinkKind::Page,
                                 text: String::new(),
                                 written: l.clone(),
+                                rel: vec![],
                             },
                             &parent,
                             0,
