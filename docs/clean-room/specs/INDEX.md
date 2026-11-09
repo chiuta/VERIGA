@@ -1,10 +1,12 @@
 # Index specificații — lotul 1 (spec/batch-1)
 
+> Aprobare filtru: prin instrucțiunea titularului din conversație (2026-11-09), nu bifată individual
+
 Toate au statusul **candidat** (neaprobate; „Aprobată de mine” nebifat). Dimensiuni: S = mică, M = medie, L = mare.
 
 | Ordine | Nr. | Slug | Status | Sursă publică principală | Mărime | Dependențe |
 |---|---|---|---|---|---|---|
-| 1 | 01 | sitemap-comprimat | candidat | sitemaps.org Protocol; RFC 1952 | S | — (extinde citirea sitemap existentă) |
+| 1 | 01 | sitemap-comprimat | implementat (teste trec) | sitemaps.org Protocol; RFC 1952 | S | — (extinde citirea sitemap existentă) |
 | 2 | 13 | alias-adrese | candidat | RFC 3986 §6; RFC 9110 §4.2.3 | S | — |
 | 3 | 05 | relatii-legatura | candidat | HTML Living Standard (link types) | S | — |
 | 4 | 03 | raport-sarif | candidat | OASIS SARIF 2.1.0 | M | — |

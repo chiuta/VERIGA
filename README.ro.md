@@ -135,7 +135,7 @@ Susține proiectul: https://www.buymeacoffee.com/echo.of.the.strings
 - **Protecția de rețea:** verificarea adreselor private rezolvă gazda, apoi clientul HTTP o rezolvă din nou (există o fereastră de DNS rebinding); rulează VERIGA pe site-uri nesigure dintr-o rețea care nu ajunge la intervalele private.
 - **`veriga watch`** citește implicit `./veriga-guardian.json` din directorul curent, iar acel fișier poate indica o comandă `sendmail` și sursele de rescris: nu-l rula într-un director în care nu ai încredere.
 - Nu trimite rapoarte prin e-mail (SMTP) și nu detectează orfani prin FTP — doar prin director local.
-- Sitemap-urile comprimate `.xml.gz` nu sunt citite.
+- Sitemap-urile comprimate `.xml.gz` sunt citite (gzip se recunoaște după primii octeți, nu după extensie); dimensiunea decomprimată e plafonată la 50 MB, iar dintr-un sitemap se citesc primele 50.000 de adrese.
 - Paginile care își construiesc linkurile din JavaScript nu sunt randate (nu există motor de browser); se analizează HTML-ul servit.
 - Interfața grafică a fost exersată doar sub un ecran virtual (Linux/X11): parcurgere, filtre, panou de detalii și Guardian. Variantele pentru Windows și macOS sunt produse de CI, dar nu au fost testate interactiv.
 

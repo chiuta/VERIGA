@@ -135,7 +135,7 @@ Support the project: https://www.buymeacoffee.com/echo.of.the.strings
 - **Network guard:** the private-address check resolves the host, then the HTTP client resolves it again (a DNS-rebinding window exists); run VERIGA on untrusted sites from a network that cannot reach private ranges.
 - **`veriga watch`** reads `./veriga-guardian.json` from the current directory by default, and that file can name a `sendmail` command and the sources to rewrite: do not run it inside a directory you do not trust.
 - It does not send reports by e-mail (SMTP) and does not detect orphans over FTP — only in a local directory.
-- Compressed `.xml.gz` sitemaps are not read.
+- Compressed `.xml.gz` sitemaps are read (gzip is detected from the first bytes, not the extension); decompressed size is capped at 50 MB and a sitemap is read up to its first 50,000 URLs.
 - Pages that build their links with JavaScript are not rendered (there is no browser engine); the served HTML is analysed.
 - The graphical interface was exercised under a virtual display (Linux/X11) only: crawl, filters, detail panel and Guardian. The Windows and macOS builds are produced by CI but not tested interactively.
 

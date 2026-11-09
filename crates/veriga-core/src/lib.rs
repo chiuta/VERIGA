@@ -16,6 +16,7 @@ pub mod proxy;
 pub mod report;
 pub mod robots;
 pub mod rules;
+pub mod sitemap;
 pub mod srcscan;
 pub mod textio;
 pub mod urlutil;

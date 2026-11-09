@@ -4128,6 +4128,7 @@ dependencies = [
  "chrono",
  "csv",
  "encoding_rs",
+ "flate2",
  "futures",
  "mime_guess",
  "percent-encoding",

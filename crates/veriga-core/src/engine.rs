@@ -520,14 +520,6 @@ impl Coord {
     }
 
     async fn seed_sitemaps(&mut self) {
-        fn unescape(s: &str) -> String {
-            s.replace("&amp;", "&")
-                .replace("&lt;", "<")
-                .replace("&gt;", ">")
-                .replace("&quot;", "\"")
-                .replace("&apos;", "'")
-        }
-        let loc_re = Regex::new(r"(?is)<loc>\s*([^<]+?)\s*</loc>").unwrap();
         let token = self.cfg.robots_token();
         let mut origins: HashSet<String> = HashSet::new();
         let roots = self.start_urls.clone();
@@ -551,10 +543,14 @@ impl Coord {
                 sms.push(format!("{origin}/sitemap.xml"));
             }
             let mut stack: Vec<(String, u32)> = sms.into_iter().map(|s| (s, 0)).collect();
+            let mut visited = crate::sitemap::Visited::default();
             let mut fetched = 0;
             while let Some((sm, d)) = stack.pop() {
                 if fetched >= 20 {
                     break;
+                }
+                if !visited.first_time(&sm) {
+                    continue;
                 }
                 fetched += 1;
                 let Ok(sm_url) = Url::parse(&sm) else {
@@ -571,7 +567,11 @@ impl Coord {
                 if !resp.status().is_success() {
                     continue;
                 }
-                let cap = self.cfg.max_body_bytes;
+                // octeții (eventual gzip) se citesc până la plafonul hărților de site
+                let cap = self
+                    .cfg
+                    .max_body_bytes
+                    .max(crate::sitemap::MAX_DECOMPRESSED);
                 let mut buf: Vec<u8> = Vec::new();
                 while let Ok(Some(c)) = resp.chunk().await {
                     buf.extend_from_slice(&c);
@@ -580,17 +580,27 @@ impl Coord {
                         break;
                     }
                 }
-                let text = String::from_utf8_lossy(&buf).into_owned();
-                let is_index = text.contains("<sitemapindex");
+                let parsed = match crate::sitemap::parse(&buf) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        self.emit(Event::Phase(format!("sitemap {sm}: {e}")));
+                        continue;
+                    }
+                };
+                if parsed.truncated {
+                    self.emit(Event::Phase(format!(
+                        "sitemap {sm}: peste {} adrese, citite doar primele",
+                        crate::sitemap::MAX_LOCS
+                    )));
+                }
                 let parent = Parent {
                     url: sm.clone(),
                     text: "sitemap".into(),
                     kind: LinkKind::Sitemap,
                 };
-                for c in loc_re.captures_iter(&text) {
-                    let l = unescape(&c[1]);
-                    if is_index {
-                        if d < 2 {
+                for l in parsed.locs {
+                    if parsed.is_index {
+                        if d < crate::sitemap::MAX_INDEX_DEPTH {
                             stack.push((l, d + 1));
                         }
                     } else if let Ok(url) = Url::parse(&l) {
