@@ -729,6 +729,14 @@ impl eframe::App for App {
                         },
                     );
                     ui.checkbox(
+                        &mut c.check_cert_expiry,
+                        if lang == "en" {
+                            "Warn about expiring TLS certificates"
+                        } else {
+                            "Avertizează la certificate TLS care expiră"
+                        },
+                    );
+                    ui.checkbox(
                         &mut c.check_sri,
                         if lang == "en" {
                             "Verify subresource integrity"

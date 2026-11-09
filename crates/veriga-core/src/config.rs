@@ -96,6 +96,10 @@ pub struct Config {
     pub check_feeds: bool,
     /// Verifică atributul `integrity` al subresurselor (SRI): sintaxă, CORS, rezumat.
     pub check_sri: bool,
+    /// Avertizează la certificate TLS expirate / aproape de expirare / cu nume nepotrivit.
+    pub check_cert_expiry: bool,
+    /// Pragul în zile pentru «expiră în curând» (0 = doar expirate).
+    pub cert_warn_days: u32,
     /// Plafon de legături citite dintr-un antet `Link`.
     pub max_link_header_links: usize,
     /// Semnalează și numele identice spre adrese diferite (notă informativă).
@@ -161,6 +165,8 @@ impl Default for Config {
             check_mixed_content: false,
             check_feeds: false,
             check_sri: false,
+            check_cert_expiry: false,
+            cert_warn_days: 14,
             max_link_header_links: 100,
             check_ambiguous_names: false,
             ignore_tls_errors: false,

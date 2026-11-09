@@ -56,6 +56,8 @@ pub struct Outcome {
     pub sri: Vec<crate::sri::SriFinding>,
     /// Subresurse https de pe o pagină https (verificate la sfârșit pentru redirecționări la http).
     pub https_subs: Vec<(Url, crate::extract::Sub)>,
+    /// Certificatele frunză văzute la verificarea acestei legături.
+    pub certs: Vec<CertObs>,
 }
 
 /// Pauză minimă între cererile către aceeași gazdă.
@@ -129,6 +131,7 @@ impl Shared {
             .timeout(Duration::from_secs(cfg.timeout_secs.max(1)))
             .connect_timeout(Duration::from_secs(cfg.timeout_secs.clamp(1, 20)))
             .danger_accept_invalid_certs(cfg.ignore_tls_errors)
+            .tls_info(cfg.check_cert_expiry)
             .cookie_store(cfg.cookies)
             .pool_max_idle_per_host(cfg.per_host.max(1))
             .pool_idle_timeout(Duration::from_secs(20));
@@ -223,6 +226,15 @@ struct HeaderInfo {
     upgrade_insecure: bool,
     digests: Option<crate::sri::Digests>,
     acao: Option<String>,
+    certs: Vec<CertObs>,
+}
+
+/// Certificatul frunză văzut la un handshake (DER) pentru un host:port.
+#[derive(Clone, Debug)]
+pub struct CertObs {
+    pub host_port: String,
+    pub host: String,
+    pub der: Option<Vec<u8>>,
 }
 
 struct Body {
@@ -277,6 +289,7 @@ pub async fn check(sh: Arc<Shared>, t: Task) -> Outcome {
                 digests: None,
                 acao: None,
                 sri: vec![],
+                certs: vec![],
             }
         }
     }
@@ -450,6 +463,7 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
         digests: hdr.digests,
         acao: hdr.acao,
         sri,
+        certs: hdr.certs,
     }
 }
 
@@ -699,6 +713,19 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
             }
         };
         let code = resp.status().as_u16();
+        if cfg.check_cert_expiry && cur.scheme() == "https" {
+            let der = resp
+                .extensions()
+                .get::<reqwest::tls::TlsInfo>()
+                .and_then(|i| i.peer_certificate())
+                .map(<[u8]>::to_vec);
+            let host = cur.host_str().unwrap_or("").to_string();
+            a.hdr.certs.push(CertObs {
+                host_port: format!("{host}:{}", cur.port_or_known_default().unwrap_or(443)),
+                host,
+                der,
+            });
+        }
 
         if (300..400).contains(&code) && code != 304 {
             let Some(loc) = resp

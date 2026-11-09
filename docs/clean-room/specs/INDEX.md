@@ -18,6 +18,6 @@ Toate au statusul **candidat** (neaprobate; „Aprobată de mine” nebifat). Di
 | 10 | 06 | continut-mixt | implementat (teste trec) | W3C Mixed Content; Secure Contexts | M | — (CSS: legat de extragerea existentă) |
 | 11 | 09 | legaturi-din-fluxuri | implementat (teste trec) | RSS 2.0; RFC 4287; XML Base | M | — |
 | 12 | 08 | integritate-subresurse | implementat (teste trec) | W3C SRI | M | 06 (aceeași clasificare a subresurselor) |
-| 13 | 10 | expirare-certificat | candidat | RFC 5280; RFC 9110; RFC 6125 | M | acces la certificatul frunză din clientul HTTP |
+| 13 | 10 | expirare-certificat | implementat (teste trec) | RFC 5280; RFC 9110; RFC 6125 | M | acces la certificatul frunză din clientul HTTP |
 
 Verificat în README.md (v1.1.0) și prin căutare doar în citire în crates/ că funcțiile de mai sus nu există deja: nu există mențiuni pentru SARIF, JUnit, hreflang, integrity, gzip, antet Link, noopener, X-Robots-Tag, HSTS, expirare certificat. Atenție la suprapuneri parțiale: citirea sitemap-ului și a directivei Sitemap din robots (existente), verificarea sintaxei mailto (existentă), regula de amestec http/https din modulul de reparații (alt scop decât spec 06).

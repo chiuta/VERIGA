@@ -245,6 +245,29 @@ pub fn to_text(s: &Session) -> String {
         }
         let _ = writeln!(o);
     }
+    if !s.certs.is_empty() {
+        let _ = writeln!(
+            o,
+            "== {} ==",
+            tr(lang, "Certificate TLS", "TLS certificates")
+        );
+        for f in &s.certs {
+            let extra = match (f.kind, f.days) {
+                (crate::cert::CertKind::ExpiresSoon, Some(d)) => format!(" ({d})"),
+                _ => String::new(),
+            };
+            let when = f.not_after.as_deref().unwrap_or("");
+            let _ = writeln!(
+                o,
+                "{} — {}{extra} — {when} — {} {}",
+                f.host_port,
+                f.kind.label(lang),
+                f.links,
+                tr(lang, "legături", "links")
+            );
+        }
+        let _ = writeln!(o);
+    }
     if !s.sri.is_empty() {
         use crate::sri::SriVerdict;
         let ok = s.sri.iter().filter(|f| f.verdict == SriVerdict::Match).count();
@@ -1013,6 +1036,7 @@ mod tests {
             seo: vec![],
             mixed: vec![],
             sri: vec![],
+            certs: vec![],
         }
     }
 

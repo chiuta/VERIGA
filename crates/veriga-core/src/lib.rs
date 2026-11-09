@@ -4,6 +4,7 @@
 //! legături în general; nu conține cod sau resurse din alte produse.
 
 pub mod a11y;
+pub mod cert;
 pub mod check;
 pub mod config;
 pub mod engine;

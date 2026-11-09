@@ -315,6 +315,9 @@ pub struct Session {
     /// Rezultatele verificării `integrity` (SRI).
     #[serde(default)]
     pub sri: Vec<crate::sri::SriFinding>,
+    /// Avertizări despre certificatele TLS ale gazdelor https.
+    #[serde(default)]
+    pub certs: Vec<crate::cert::CertFinding>,
 }
 
 /// Proxy fără `user:parolă@` (credențialele nu se salvează pe disc).
@@ -425,6 +428,7 @@ mod tests {
             seo: vec![],
             mixed: vec![],
             sri: vec![],
+            certs: vec![],
         }
     }
 
@@ -466,6 +470,7 @@ mod tests {
             seo: vec![],
             mixed: vec![],
             sri: vec![],
+            certs: vec![],
         };
         s.config.start = vec!["http://bob:s3cret@h/a".into()];
         let mut r = LinkResult::new("http://bob:s3cret@h/a", LinkKind::Page, 0, true);
@@ -501,6 +506,7 @@ mod tests {
             seo: vec![],
             mixed: vec![],
             sri: vec![],
+            certs: vec![],
         };
         s.config.lang = "x\"><script>alert(1)</script><i a=\"".into();
         let html = crate::report::to_html(&s);

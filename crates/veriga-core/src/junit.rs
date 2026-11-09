@@ -162,6 +162,7 @@ mod tests {
             seo: vec![],
             mixed: vec![],
             sri: vec![],
+            certs: vec![],
         };
         for (u, st, parent, msg) in items {
             let mut r = LinkResult::new(u, LinkKind::Page, 1, true);

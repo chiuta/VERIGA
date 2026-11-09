@@ -104,6 +104,8 @@ struct Coord {
     seo: Vec<crate::seo::SeoFinding>,
     mixed: Vec<crate::mixed::MixedFinding>,
     sri: Vec<crate::sri::SriFinding>,
+    /// host:port -> (certificat observat, număr de legături verificate)
+    cert_obs: std::collections::BTreeMap<String, (crate::check::CertObs, usize)>,
     sri_pending: Vec<SriPending>,
     sri_data: HashMap<usize, (Option<crate::sri::Digests>, Option<String>)>,
     https_subs: Vec<(String, Url, crate::extract::Sub)>,
@@ -147,6 +149,7 @@ impl Coord {
             seo: vec![],
             mixed: vec![],
             sri: vec![],
+            cert_obs: Default::default(),
             sri_pending: vec![],
             sri_data: HashMap::new(),
             https_subs: vec![],
@@ -719,6 +722,13 @@ impl Coord {
         self.seo.extend(o.seo);
         self.mixed.extend(o.mixed);
         self.sri.extend(o.sri);
+        for c in o.certs {
+            let e = self.cert_obs.entry(c.host_port.clone()).or_insert((c.clone(), 0));
+            e.1 += 1;
+            if e.0.der.is_none() {
+                e.0.der = c.der;
+            }
+        }
         if o.digests.is_some() || o.acao.is_some() {
             self.sri_data.insert(idx, (o.digests, o.acao));
         }
@@ -1124,6 +1134,21 @@ pub async fn run(
     co.emit(Event::Finished);
 
     let aliases = co.alias_groups();
+    let mut certs: Vec<crate::cert::CertFinding> = vec![];
+    if cfg.check_cert_expiry {
+        let now = chrono::Utc::now().timestamp();
+        for (hp, (obs, n)) in &co.cert_obs {
+            certs.extend(crate::cert::findings_for(
+                hp,
+                &obs.host,
+                obs.der.as_deref(),
+                now,
+                cfg.cert_warn_days,
+                *n,
+            ));
+        }
+        certs.sort();
+    }
     co.check_sri();
     let mut sri = std::mem::take(&mut co.sri);
     sri.sort();
@@ -1157,6 +1182,7 @@ pub async fn run(
         seo,
         mixed,
         sri,
+        certs,
     })
 }
 
@@ -1230,6 +1256,7 @@ pub async fn recheck(
         seo: session.seo,
         mixed: session.mixed,
         sri: session.sri,
+        certs: session.certs,
     })
 }
 

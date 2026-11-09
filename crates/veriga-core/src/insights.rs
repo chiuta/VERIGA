@@ -949,6 +949,7 @@ mod tests {
                 seo: vec![],
                 mixed: vec![],
                 sri: vec![],
+                certs: vec![],
             }
         };
         let a = mk(

@@ -290,6 +290,7 @@ mod tests {
             seo: vec![],
             mixed: vec![],
             sri: vec![],
+            certs: vec![],
         };
         let mk = |u: &str, st: Status, parent: &str| {
             let mut r = LinkResult::new(u, LinkKind::Page, 1, true);

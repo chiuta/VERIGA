@@ -118,6 +118,12 @@ struct Cli {
     /// Pornește și din sitemap.xml
     #[arg(long)]
     sitemap: bool,
+    /// Avertizează la certificate TLS expirate, aproape de expirare sau cu nume nepotrivit
+    #[arg(long)]
+    check_cert_expiry: bool,
+    /// Pragul în zile pentru «expiră în curând» (0 = doar expirate)
+    #[arg(long, value_name = "ZILE", default_value_t = 14)]
+    cert_warn_days: u32,
     /// Verifică atributul integrity al subresurselor (SRI): sintaxă, CORS și rezumat SHA-2
     #[arg(long)]
     check_sri: bool,
@@ -240,6 +246,8 @@ fn build_config(c: &Cli) -> Result<Config> {
     cfg.seed_sitemaps = c.sitemap;
     cfg.honor_nofollow = c.honor_nofollow;
     cfg.check_nonweb = c.check_schemes;
+    cfg.check_cert_expiry = c.check_cert_expiry;
+    cfg.cert_warn_days = c.cert_warn_days;
     cfg.check_sri = c.check_sri;
     cfg.check_feeds = c.check_feeds;
     cfg.check_mixed_content = c.check_mixed_content;
@@ -448,6 +456,16 @@ const HELP_EN: &[(&str, &str, Option<&str>)] = &[
     ("user_agent", "The User-Agent header", None),
     ("no_robots", "Ignore robots.txt", None),
     ("sitemap", "Also start from sitemap.xml", None),
+    (
+        "check_cert_expiry",
+        "Warn about expired, soon-to-expire or name-mismatched TLS certificates",
+        None,
+    ),
+    (
+        "cert_warn_days",
+        "Days before expiry that count as \"expires soon\" (0 = only expired)",
+        Some("DAYS"),
+    ),
     (
         "check_sri",
         "Verify the integrity attribute of subresources (SRI): syntax, CORS and SHA-2 digest",
