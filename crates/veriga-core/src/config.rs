@@ -4,6 +4,16 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+fn is_false(b: &bool) -> bool {
+    !*b
+}
+fn is_default_cert_days(v: &u32) -> bool {
+    *v == 14
+}
+fn is_default_link_cap(v: &usize) -> bool {
+    *v == 100
+}
+
 /// Căutarea fișierelor orfane: fișiere din `dir` la care nu duce niciun link.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
@@ -81,28 +91,53 @@ pub struct Config {
     /// Pornește și din sitemap.xml (din robots.txt sau /sitemap.xml).
     pub seed_sitemaps: bool,
     /// Legăturile cu `rel="nofollow"` se verifică, dar ținta lor nu se parcurge.
+    #[serde(skip_serializing_if = "is_false")]
     pub honor_nofollow: bool,
     /// Validează sintaxa adreselor `tel:`, `geo:` și `data:` (fără cereri în rețea).
+    #[serde(skip_serializing_if = "is_false")]
     pub check_nonweb: bool,
     /// Semnalează legăturile fără nume accesibil sau cu nume nesemnificativ.
+    #[serde(skip_serializing_if = "is_false")]
     pub check_link_names: bool,
     /// Verifică legăturile declarate în câmpurile HTTP `Link` ale paginilor parcurse.
+    #[serde(skip_serializing_if = "is_false")]
     pub check_link_header: bool,
     /// Verifică legăturile canonice (țintă ruptă/redirecționată, multiple) și etichetele hreflang.
+    #[serde(skip_serializing_if = "is_false")]
     pub check_seo_links: bool,
     /// Semnalează subresurse `http:` pe pagini `https:` (conținut mixt).
+    #[serde(skip_serializing_if = "is_false")]
     pub check_mixed_content: bool,
     /// Citește fluxurile RSS/Atom găsite (link rel=alternate) și verifică legăturile lor.
+    #[serde(skip_serializing_if = "is_false")]
     pub check_feeds: bool,
     /// Verifică atributul `integrity` al subresurselor (SRI): sintaxă, CORS, rezumat.
+    #[serde(skip_serializing_if = "is_false")]
     pub check_sri: bool,
     /// Avertizează la certificate TLS expirate / aproape de expirare / cu nume nepotrivit.
+    #[serde(skip_serializing_if = "is_false")]
     pub check_cert_expiry: bool,
     /// Pragul în zile pentru «expiră în curând» (0 = doar expirate).
+    #[serde(skip_serializing_if = "is_default_cert_days")]
     pub cert_warn_days: u32,
     /// Plafon de legături citite dintr-un antet `Link`.
+    #[serde(skip_serializing_if = "is_default_link_cap")]
     pub max_link_header_links: usize,
+    /// Unifică scrierile echivalente ale aceleiași adrese (`%7e` = `~`, hexazecimale mari/mici)
+    /// într-o singură legătură verificată (RFC 3986 §6.2.2). Implicit dezactivat.
+    #[serde(skip_serializing_if = "is_false")]
+    pub canonical_urls: bool,
+    /// Colectează și raportează grupurile de adrese echivalente scrise diferit (memorie plafonată).
+    #[serde(skip_serializing_if = "is_false")]
+    pub report_aliases: bool,
+    /// Păstrează `rel` al legăturilor și îl arată în rapoarte (coloana `Rel` din CSV, linia `rel:`).
+    #[serde(skip_serializing_if = "is_false")]
+    pub report_rel: bool,
+    /// Respectă codificarea din declarația `<?xml encoding=…?>` când lipsesc antetul și meta charset.
+    #[serde(skip_serializing_if = "is_false")]
+    pub xml_declaration_encoding: bool,
     /// Semnalează și numele identice spre adrese diferite (notă informativă).
+    #[serde(skip_serializing_if = "is_false")]
     pub check_ambiguous_names: bool,
     pub ignore_tls_errors: bool,
     pub cookies: bool,
@@ -151,10 +186,7 @@ impl Default for Config {
             include_only: vec![],
             internal_hosts: vec![],
             ignore_status: vec![],
-            user_agent: format!(
-                "Veriga/{} (+link-checker)",
-                env!("CARGO_PKG_VERSION")
-            ),
+            user_agent: format!("Veriga/{} (+link-checker)", env!("CARGO_PKG_VERSION")),
             respect_robots: true,
             seed_sitemaps: false,
             honor_nofollow: false,
@@ -169,6 +201,10 @@ impl Default for Config {
             cert_warn_days: 14,
             max_link_header_links: 100,
             check_ambiguous_names: false,
+            canonical_urls: false,
+            report_aliases: false,
+            report_rel: false,
+            xml_declaration_encoding: false,
             ignore_tls_errors: false,
             cookies: true,
             block_private: true,

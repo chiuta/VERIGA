@@ -217,7 +217,7 @@ pub struct LinkResult {
     #[serde(default)]
     pub h1: Option<String>,
     /// Tipurile de relație (`rel`) ale legăturilor către această țintă, fără duplicate.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub rel: Vec<String>,
 }
 
@@ -298,25 +298,25 @@ pub struct Session {
     pub truncated: bool,
     pub cancelled: bool,
     /// Grupuri de adrese echivalente scrise diferit.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub aliases: Vec<AliasGroup>,
     /// Constatări de accesibilitate ale numelor de legături.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub a11y: Vec<crate::a11y::A11yFinding>,
     /// Avertismente de sintaxă întâlnite la parcurgere (de pildă în antetul `Link`).
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub warnings: Vec<String>,
     /// Constatări despre legături canonice și etichete hreflang.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub seo: Vec<crate::seo::SeoFinding>,
     /// Subresurse `http:` pe pagini `https:`.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub mixed: Vec<crate::mixed::MixedFinding>,
     /// Rezultatele verificării `integrity` (SRI).
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub sri: Vec<crate::sri::SriFinding>,
     /// Avertizări despre certificatele TLS ale gazdelor https.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub certs: Vec<crate::cert::CertFinding>,
 }
 

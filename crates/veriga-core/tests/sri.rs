@@ -89,8 +89,32 @@ async fn sri_verdicts() {
     assert_eq!(v("/s1.css"), Some(SriVerdict::NoAlgorithm));
     assert_eq!(v("/s2.css"), Some(SriVerdict::InvalidSyntax));
     assert_eq!(v("img"), Some(SriVerdict::Inapplicable));
-    let txt = veriga_core::report::to_text(&s);
-    assert!(txt.contains("SRI"));
+    let txt = {
+        let mut c = s.clone();
+        c.config.lang = "en".into();
+        veriga_core::report::to_text(&c)
+    };
+    let ok = s
+        .sri
+        .iter()
+        .filter(|f| f.verdict == SriVerdict::Match)
+        .count();
+    assert_eq!(ok, 2);
+    assert!(
+        txt.lines()
+            .any(|l| l == format!("== Subresource integrity (SRI) == ({ok} match)")),
+        "{txt}"
+    );
+    let bad = s
+        .sri
+        .iter()
+        .find(|f| f.verdict == SriVerdict::Mismatch)
+        .unwrap();
+    assert!(
+        txt.lines()
+            .any(|l| l == format!("{} — {}", bad.page, bad.verdict.label("en"))),
+        "{txt}"
+    );
 }
 
 #[tokio::test]

@@ -364,7 +364,10 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
                     &page_url,
                     &b.text,
                     sh.cfg.check_forms,
-                    sh.cfg.check_nonweb,
+                    crate::extract::ExtractOpts {
+                        keep_nonweb: sh.cfg.check_nonweb,
+                        detect_feeds: sh.cfg.check_feeds,
+                    },
                 );
                 if sh.cfg.check_seo_links {
                     seo = crate::seo::page_findings(t.url.as_str(), &e.canonicals, &e.hreflangs);
@@ -386,11 +389,8 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
                 anchors = Some(e.anchors);
                 if sh.cfg.check_link_names || sh.cfg.check_ambiguous_names {
                     let names = crate::a11y::link_names(&b.text, &page_url);
-                    a11y = crate::a11y::findings(
-                        t.url.as_str(),
-                        &names,
-                        sh.cfg.check_ambiguous_names,
-                    );
+                    a11y =
+                        crate::a11y::findings(t.url.as_str(), &names, sh.cfg.check_ambiguous_names);
                     if !sh.cfg.check_link_names {
                         a11y.retain(|f| f.kind == crate::a11y::A11yKind::Ambiguous);
                     }
@@ -469,7 +469,7 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
 
 // ───────────────────────────── HTTP ─────────────────────────────
 
-fn decode(buf: &[u8], ct: Option<&str>) -> String {
+fn decode(buf: &[u8], ct: Option<&str>, xml_decl: bool) -> String {
     static SNIFF: OnceLock<Regex> = OnceLock::new();
     let mut label: Option<String> = None;
     if let Some(c) = ct {
@@ -507,7 +507,7 @@ fn decode(buf: &[u8], ct: Option<&str>) -> String {
             });
             if let Some(c) = re.captures(&head) {
                 label = Some(c[1].to_string());
-            } else if head.trim_start().starts_with("<?xml") {
+            } else if xml_decl && head.trim_start().starts_with("<?xml") {
                 // declarația XML: <?xml version="1.0" encoding="ISO-8859-1"?>
                 static XML_ENC: OnceLock<Regex> = OnceLock::new();
                 let re = XML_ENC.get_or_init(|| {
@@ -951,7 +951,7 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
                 if let Some(kind) = kind {
                     a.body = Some(Body {
                         kind,
-                        text: decode(&buf, ct.as_deref()),
+                        text: decode(&buf, ct.as_deref(), cfg.xml_declaration_encoding),
                     });
                 }
             }
@@ -1086,7 +1086,7 @@ async fn file_check(sh: &Shared, t: &Task, r: &mut LinkResult) -> Option<Body> {
                         } else {
                             BodyKind::Html
                         },
-                        text: decode(cut, None),
+                        text: decode(cut, None, sh.cfg.xml_declaration_encoding),
                     });
                 }
             }
@@ -1410,9 +1410,11 @@ mod tests {
     #[test]
     fn decode_honours_xml_declaration_encoding() {
         let b = b"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><t>caf\xe9</t>";
-        assert!(decode(b, None).contains("café"));
+        assert!(decode(b, None, true).contains("café"));
         // antetul HTTP are prioritate
-        assert!(decode(b, Some("text/xml; charset=windows-1252")).contains("café"));
+        assert!(decode(b, Some("text/xml; charset=windows-1252"), true).contains("café"));
+        // implicit (ca înainte): declarația XML nu e folosită
+        assert!(!decode(b, None, false).contains("café"));
     }
 
     use super::*;
@@ -1474,7 +1476,7 @@ mod tests {
         for u in "<a href=\"/x\">ă</a>".encode_utf16() {
             b.extend_from_slice(&u.to_le_bytes());
         }
-        assert!(decode(&b, None).contains("href=\"/x\""));
+        assert!(decode(&b, None, false).contains("href=\"/x\""));
     }
 
     #[test]

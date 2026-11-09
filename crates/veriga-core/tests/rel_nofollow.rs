@@ -47,6 +47,7 @@ async fn crawl(honor: bool) -> veriga_core::Session {
     let base = server().await;
     let mut cfg = Config::with_start(base);
     cfg.honor_nofollow = honor;
+    cfg.report_rel = true;
     cfg.retries = 0;
     cfg.timeout_secs = 5;
     veriga_core::run(cfg, Control::new(), None).await.unwrap()

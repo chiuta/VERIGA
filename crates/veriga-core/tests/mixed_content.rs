@@ -69,8 +69,20 @@ async fn mixed_content_on_https_page() {
     let js = s.mixed.iter().find(|m| m.target.ends_with("a.js")).unwrap();
     assert_eq!(js.category, MixedCategory::Blockable);
     assert!(img.note.is_none());
-    let txt = veriga_core::report::to_text(&s);
-    assert!(txt.contains("Conținut mixt") || txt.contains("Mixed content"));
+    let txt = {
+        let mut c = s.clone();
+        c.config.lang = "en".into();
+        veriga_core::report::to_text(&c)
+    };
+    assert!(
+        txt.lines()
+            .any(|l| l == "== Mixed content (http in https) =="),
+        "{txt}"
+    );
+    assert!(
+        txt.lines().any(|l| l == format!("    {}", img.target)),
+        "{txt}"
+    );
 }
 
 #[tokio::test]

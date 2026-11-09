@@ -346,10 +346,7 @@ impl Default for ProposeOpts {
         Self {
             verify: true,
             timeout_secs: 20,
-            user_agent: format!(
-                "Veriga/{} (+link-checker)",
-                env!("CARGO_PKG_VERSION")
-            ),
+            user_agent: format!("Veriga/{} (+link-checker)", env!("CARGO_PKG_VERSION")),
             only: None,
             lang: "ro".into(),
             concurrency: 12,

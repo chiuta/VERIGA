@@ -270,11 +270,19 @@ pub fn to_text(s: &Session) -> String {
     }
     if !s.sri.is_empty() {
         use crate::sri::SriVerdict;
-        let ok = s.sri.iter().filter(|f| f.verdict == SriVerdict::Match).count();
+        let ok = s
+            .sri
+            .iter()
+            .filter(|f| f.verdict == SriVerdict::Match)
+            .count();
         let _ = writeln!(
             o,
             "== {} == ({} {})",
-            tr(lang, "Integritatea subresurselor (SRI)", "Subresource integrity (SRI)"),
+            tr(
+                lang,
+                "Integritatea subresurselor (SRI)",
+                "Subresource integrity (SRI)"
+            ),
             ok,
             tr(lang, "corespund", "match")
         );
@@ -288,7 +296,11 @@ pub fn to_text(s: &Session) -> String {
         let _ = writeln!(
             o,
             "== {} ==",
-            tr(lang, "Conținut mixt (http în https)", "Mixed content (http in https)")
+            tr(
+                lang,
+                "Conținut mixt (http în https)",
+                "Mixed content (http in https)"
+            )
         );
         for f in &s.mixed {
             let _ = writeln!(o, "{} — {}", f.page, f.category.label(lang));
@@ -433,7 +445,8 @@ pub fn to_csv(s: &Session, delim: u8, only_broken: bool) -> String {
     let s = &s.redacted();
     let lang = safe_lang(&s.config.lang);
     let mut w = csv_writer(delim);
-    let _ = w.write_record([
+    let with_rel = s.config.report_rel;
+    let mut head = vec![
         "Address",
         "Status-Code",
         "Status",
@@ -448,8 +461,11 @@ pub fn to_csv(s: &Session, delim: u8, only_broken: bool) -> String {
         "Time-ms",
         "Message",
         "Found-On",
-        "Rel",
-    ]);
+    ];
+    if with_rel {
+        head.push("Rel");
+    }
+    let _ = w.write_record(&head);
     for r in &s.results {
         if only_broken && !r.status.is_broken(&s.config) {
             continue;
@@ -463,6 +479,7 @@ pub fn to_csv(s: &Session, delim: u8, only_broken: bool) -> String {
                 break;
             }
         }
+        let rel = r.rel.join(" ");
         let row = [
             r.url.as_str(),
             &r.http_status.map(|c| c.to_string()).unwrap_or_default(),
@@ -478,10 +495,12 @@ pub fn to_csv(s: &Session, delim: u8, only_broken: bool) -> String {
             &r.elapsed_ms.to_string(),
             r.message.as_str(),
             &found.join(" | "),
-            &r.rel.join(" "),
+            &rel,
         ];
+        // coloana `Rel` doar la cerere (implicit rezultatul este identic cu cel dinainte)
+        let cols = if with_rel { row.len() } else { row.len() - 1 };
         // injecție de formule: titlurile/URL-urile vin din pagini necontrolate de utilizator
-        let _ = w.write_record(row.iter().map(|c| crate::fixer::csv_safe(c)));
+        let _ = w.write_record(row[..cols].iter().map(|c| crate::fixer::csv_safe(c)));
     }
     String::from_utf8(w.into_inner().unwrap_or_default()).unwrap_or_default()
 }

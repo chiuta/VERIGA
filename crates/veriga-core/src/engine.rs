@@ -111,7 +111,13 @@ struct Coord {
     https_subs: Vec<(String, Url, crate::extract::Sub)>,
     canon: Vec<(String, Url)>,
     alias_forms: HashMap<String, BTreeMap<String, BTreeSet<String>>>,
+    alias_capped: bool,
 }
+
+/// Plafoane de memorie pentru urmărirea adreselor echivalente (`report_aliases`).
+const MAX_ALIAS_KEYS: usize = 100_000;
+const MAX_ALIAS_FORMS: usize = 10;
+const MAX_ALIAS_PARENTS: usize = 20;
 
 impl Coord {
     fn new(cfg: Arc<Config>, sh: Arc<Shared>, tx: Option<UnboundedSender<Event>>) -> Result<Self> {
@@ -155,6 +161,7 @@ impl Coord {
             https_subs: vec![],
             canon: vec![],
             alias_forms: HashMap::new(),
+            alias_capped: false,
         })
     }
 
@@ -317,7 +324,9 @@ impl Coord {
     }
 
     fn add_start(&mut self, mut url: Url) {
-        crate::urlutil::canonicalize(&mut url);
+        if self.cfg.canonical_urls {
+            crate::urlutil::canonicalize(&mut url);
+        }
         let key = normalize(&url);
         if self.index.contains_key(&key) {
             return;
@@ -342,10 +351,12 @@ impl Coord {
 
     /// Unește tipurile de relație ale unei legături noi în rezultatul țintei.
     fn merge_rel(&mut self, idx: usize, rel: &[String]) {
-        let r = &mut self.results[idx];
-        for t in rel {
-            if !r.rel.contains(t) {
-                r.rel.push(t.clone());
+        if self.cfg.report_rel {
+            let r = &mut self.results[idx];
+            for t in rel {
+                if !r.rel.contains(t) {
+                    r.rel.push(t.clone());
+                }
             }
         }
         // ținta devine parcursă dacă o legătură fără nofollow o cere și încă nu a pornit
@@ -403,7 +414,9 @@ impl Coord {
         for (page, target) in list {
             let mut t = target.clone();
             t.set_fragment(None);
-            crate::urlutil::canonicalize(&mut t);
+            if self.cfg.canonical_urls {
+                crate::urlutil::canonicalize(&mut t);
+            }
             let key = normalize(&t);
             if key == page {
                 continue; // canonica spre pagina însăși este permisă
@@ -411,14 +424,48 @@ impl Coord {
             let Some(&i) = self.index.get(&key) else {
                 continue;
             };
-            if let Some(f) = crate::seo::canonical_target_finding(
-                &page,
-                &key,
-                self.results[i].status,
-                &self.cfg,
-            ) {
+            if let Some(f) =
+                crate::seo::canonical_target_finding(&page, &key, self.results[i].status, &self.cfg)
+            {
                 self.seo.push(f);
             }
+        }
+    }
+
+    /// Reține o scriere a unei adrese (doar cu `report_aliases`); memoria este plafonată:
+    /// cel mult `MAX_ALIAS_KEYS` adrese, `MAX_ALIAS_FORMS` scrieri pe adresă și
+    /// `MAX_ALIAS_PARENTS` pagini pe scriere.
+    fn note_alias(&mut self, written: &str, url: &Url, parent: &Parent) {
+        if written.is_empty() || !matches!(url.scheme(), "http" | "https") {
+            return;
+        }
+        let mut k = url.clone();
+        k.set_fragment(None);
+        // cheia echivalentă indiferent de opțiunea de canonizare a cererilor
+        crate::urlutil::canonicalize(&mut k);
+        let key = k.to_string();
+        let form = crate::urlutil::written_without_fragment(written);
+        let forms = match self.alias_forms.get_mut(&key) {
+            Some(f) => f,
+            None => {
+                if self.alias_forms.len() >= MAX_ALIAS_KEYS {
+                    if !self.alias_capped {
+                        self.alias_capped = true;
+                        self.warnings.push(format!(
+                            "adrese echivalente: urmărite doar primele {MAX_ALIAS_KEYS} adrese"
+                        ));
+                    }
+                    return;
+                }
+                self.alias_forms.entry(key).or_default()
+            }
+        };
+        if let Some(ps) = forms.get_mut(&form) {
+            if ps.len() < MAX_ALIAS_PARENTS {
+                ps.insert(parent.url.clone());
+            }
+        } else if forms.len() < MAX_ALIAS_FORMS {
+            forms.entry(form).or_default().insert(parent.url.clone());
         }
     }
 
@@ -445,16 +492,11 @@ impl Coord {
 
     fn add_link(&mut self, l: RawLink, parent: &Parent, parent_depth: u32) {
         let mut url = l.url;
-        crate::urlutil::canonicalize(&mut url);
-        if matches!(url.scheme(), "http" | "https") && !l.written.is_empty() {
-            let mut k = url.clone();
-            k.set_fragment(None);
-            self.alias_forms
-                .entry(k.to_string())
-                .or_default()
-                .entry(crate::urlutil::written_without_fragment(&l.written))
-                .or_default()
-                .insert(parent.url.clone());
+        if self.cfg.canonical_urls {
+            crate::urlutil::canonicalize(&mut url);
+        }
+        if self.cfg.report_aliases {
+            self.note_alias(&l.written, &url, parent);
         }
         let frag = url.fragment().map(|f| f.to_string());
         url.set_fragment(None);
@@ -488,7 +530,14 @@ impl Coord {
         if let Some(&i) = self.index.get(&key) {
             self.add_parent(i, p);
             self.merge_rel(i, &l.rel);
-            self.note_sri(i, &url, l.integrity.as_ref(), l.crossorigin.as_ref(), parent, true);
+            self.note_sri(
+                i,
+                &url,
+                l.integrity.as_ref(),
+                l.crossorigin.as_ref(),
+                parent,
+                true,
+            );
             return;
         }
         let depth = parent_depth + 1;
@@ -528,7 +577,9 @@ impl Coord {
         let idx = self.results.len();
         let mut r = LinkResult::new(&key, l.kind, depth, internal);
         r.parents.push(p);
-        r.rel = l.rel.clone();
+        if self.cfg.report_rel {
+            r.rel = l.rel.clone();
+        }
         if self.cfg.honor_nofollow && parse && l.rel.iter().any(|t| t == "nofollow") {
             parse = false;
             self.nofollow_idx.insert(idx);
@@ -723,7 +774,10 @@ impl Coord {
         self.mixed.extend(o.mixed);
         self.sri.extend(o.sri);
         for c in o.certs {
-            let e = self.cert_obs.entry(c.host_port.clone()).or_insert((c.clone(), 0));
+            let e = self
+                .cert_obs
+                .entry(c.host_port.clone())
+                .or_insert((c.clone(), 0));
             e.1 += 1;
             if e.0.der.is_none() {
                 e.0.der = c.der;

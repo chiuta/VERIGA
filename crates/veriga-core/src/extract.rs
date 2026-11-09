@@ -254,16 +254,26 @@ fn parent_name(el: &ElementRef) -> String {
 }
 
 pub fn extract_html(page: &Url, html: &str, check_forms: bool) -> Extracted {
-    extract_html_opts(page, html, check_forms, false)
+    extract_html_opts(page, html, check_forms, ExtractOpts::default())
 }
 
-/// Ca `extract_html`; cu `keep_nonweb`, adresele `tel:` și `data:` se păstrează (pentru validare).
+/// Opțiuni ale extragerii; implicit comportamentul neschimbat (fără funcții noi).
+#[derive(Clone, Copy, Debug, Default)]
+pub struct ExtractOpts {
+    /// Adresele `tel:` și `data:` se păstrează (pentru validare).
+    pub keep_nonweb: bool,
+    /// `link rel=alternate` cu tip RSS/Atom primește tipul `Feed` (altfel rămâne «Legătură»).
+    pub detect_feeds: bool,
+}
+
+/// Ca `extract_html`, cu opțiuni explicite.
 pub fn extract_html_opts(
     page: &Url,
     html: &str,
     check_forms: bool,
-    keep_nonweb: bool,
+    opts: ExtractOpts,
 ) -> Extracted {
+    let keep_nonweb = opts.keep_nonweb;
     // `<noscript>` este text brut pentru parserul cu scripting activ, dar conține linkuri reale
     // pentru vizitatorii fără JavaScript: îi eliminăm doar etichetele, ca să fie parcurs conținutul.
     static NOSCRIPT: OnceLock<Regex> = OnceLock::new();
@@ -335,9 +345,9 @@ pub fn extract_html_opts(
             if v.attr("integrity").is_some() {
                 let applicable = match name {
                     "script" => true,
-                    "link" => parse_rel(v.attr("rel").unwrap_or("")).iter().any(|t| {
-                        matches!(t.as_str(), "stylesheet" | "preload" | "modulepreload")
-                    }),
+                    "link" => parse_rel(v.attr("rel").unwrap_or(""))
+                        .iter()
+                        .any(|t| matches!(t.as_str(), "stylesheet" | "preload" | "modulepreload")),
                     _ => false,
                 };
                 if !applicable {
@@ -412,7 +422,8 @@ pub fn extract_html_opts(
                         {
                             hreflangs.push(hl.to_string());
                         }
-                        let is_feed = rel_tokens.iter().any(|t| t == "alternate")
+                        let is_feed = opts.detect_feeds
+                            && rel_tokens.iter().any(|t| t == "alternate")
                             && v.attr("type").is_some_and(crate::feed::is_feed_type);
                         let kind = if is_feed {
                             LinkKind::Feed

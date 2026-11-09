@@ -151,6 +151,18 @@ struct Cli {
     /// Legăturile cu rel="nofollow" se verifică, dar ținta lor nu se parcurge
     #[arg(long)]
     honor_nofollow: bool,
+    /// Unifică scrierile echivalente ale aceleiași adrese (%7e = ~, hexazecimale mari/mici) într-o singură legătură
+    #[arg(long)]
+    canonical_urls: bool,
+    /// Raportează grupurile de adrese echivalente scrise diferit (informare; memorie plafonată)
+    #[arg(long)]
+    report_aliases: bool,
+    /// Păstrează atributul rel al legăturilor: coloana Rel în CSV/TSV, linia rel: în text și cheia rel în JSON
+    #[arg(long)]
+    report_rel: bool,
+    /// Respectă codificarea din declarația <?xml encoding=…?> când lipsesc antetul și meta charset
+    #[arg(long)]
+    xml_encoding: bool,
     /// Permite contactarea adreselor private/locale găsite pe un site public (implicit blocate: anti-SSRF)
     #[arg(long)]
     allow_private: bool,
@@ -245,6 +257,10 @@ fn build_config(c: &Cli) -> Result<Config> {
     cfg.respect_robots = !c.no_robots;
     cfg.seed_sitemaps = c.sitemap;
     cfg.honor_nofollow = c.honor_nofollow;
+    cfg.canonical_urls = c.canonical_urls;
+    cfg.report_aliases = c.report_aliases;
+    cfg.report_rel = c.report_rel;
+    cfg.xml_declaration_encoding = c.xml_encoding;
     cfg.check_nonweb = c.check_schemes;
     cfg.check_cert_expiry = c.check_cert_expiry;
     cfg.cert_warn_days = c.cert_warn_days;
@@ -512,6 +528,26 @@ const HELP_EN: &[(&str, &str, Option<&str>)] = &[
         None,
     ),
     (
+        "canonical_urls",
+        "Merge equivalent spellings of one address (%7e = ~, hex case) into a single checked link",
+        None,
+    ),
+    (
+        "report_aliases",
+        "Report groups of equivalent addresses written differently (informational; memory is capped)",
+        None,
+    ),
+    (
+        "report_rel",
+        "Keep the rel attribute of links: Rel column in CSV/TSV, rel: line in text, rel key in JSON",
+        None,
+    ),
+    (
+        "xml_encoding",
+        "Honour the encoding in the <?xml encoding=...?> declaration when no header or meta charset is given",
+        None,
+    ),
+    (
         "allow_private",
         "Allow contacting private/local addresses found on a public site (blocked by default: anti-SSRF)",
         None,
@@ -592,7 +628,8 @@ const HELP_EN: &[(&str, &str, Option<&str>)] = &[
     ),
 ];
 
-const ABOUT_EN: &str = "VERIGA — link checker (independent implementation), for websites and local directories";
+const ABOUT_EN: &str =
+    "VERIGA — link checker (independent implementation), for websites and local directories";
 const LONG_ABOUT_EN: &str = "Crawls a website (or a local directory), checks every link — pages, images, CSS, \
 scripts, frames, media, objects, e-mail, FTP, anchors — and produces HTML/CSV/TSV/JSON/text/sitemap reports.\n\n\
 Examples:\n  veriga https://example.org -o report.html -o broken.csv\n  veriga ./site --orphans ./site\n  veriga --recheck session.veriga -o report.html";
@@ -639,7 +676,13 @@ async fn main() -> Result<()> {
         bail!(tr("--fff-out cere --fff-in", "--fff-out needs --fff-in"));
     }
     if let Some(p) = &cli.fff_in {
-        let inp = fff::read(p).with_context(|| trf!("plic FFF necitibil: {}", "cannot read the FFF envelope: {}", p.display()))?;
+        let inp = fff::read(p).with_context(|| {
+            trf!(
+                "plic FFF necitibil: {}",
+                "cannot read the FFF envelope: {}",
+                p.display()
+            )
+        })?;
         let links: Vec<String> = inp.items.iter().filter_map(fff::link_of).collect();
         if !cli.no_external {
             cli.start.extend(links);
@@ -652,12 +695,22 @@ async fn main() -> Result<()> {
     if let Some(inp) = &fff_input {
         if cli.start.is_empty() && cli.recheck.is_none() {
             // nimic de verificat în rețea: se adnotează local și se iese
-            let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
+            let now = chrono::Utc::now()
+                .format("%Y-%m-%dT%H:%M:%S%.3fZ")
+                .to_string();
             if let Some(o) = &cli.fff_out {
                 let items = fff::annotate(&inp.items, None, &now);
-                std::fs::write(o, fff::envelope(inp, items, &now)).with_context(|| trf!("nu pot scrie {}", "cannot write {}", o.display()))?;
+                std::fs::write(o, fff::envelope(inp, items, &now))
+                    .with_context(|| trf!("nu pot scrie {}", "cannot write {}", o.display()))?;
                 if !cli.quiet {
-                    eprintln!("{}", trf!("Plic FFF scris: {} (fără legături de verificat în rețea)", "FFF envelope written: {} (no network links to check)", o.display()));
+                    eprintln!(
+                        "{}",
+                        trf!(
+                            "Plic FFF scris: {} (fără legături de verificat în rețea)",
+                            "FFF envelope written: {} (no network links to check)",
+                            o.display()
+                        )
+                    );
                 }
             }
             return Ok(());
@@ -817,9 +870,12 @@ async fn main() -> Result<()> {
     }
     write_outputs(&session, &cli.out, cli.only_broken)?;
     if let (Some(inp), Some(o)) = (&fff_input, &cli.fff_out) {
-        let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
+        let now = chrono::Utc::now()
+            .format("%Y-%m-%dT%H:%M:%S%.3fZ")
+            .to_string();
         let items = fff::annotate(&inp.items, Some(&session), &now);
-        std::fs::write(o, fff::envelope(inp, items, &now)).with_context(|| trf!("nu pot scrie {}", "cannot write {}", o.display()))?;
+        std::fs::write(o, fff::envelope(inp, items, &now))
+            .with_context(|| trf!("nu pot scrie {}", "cannot write {}", o.display()))?;
         if !cli.quiet {
             eprintln!("→ {}", o.display());
         }

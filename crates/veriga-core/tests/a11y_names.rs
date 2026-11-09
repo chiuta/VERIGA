@@ -42,7 +42,15 @@ async fn findings_are_reported_when_enabled() {
     assert!(kinds.contains(&A11yKind::Meaningless));
     assert!(kinds.contains(&A11yKind::Ambiguous));
     assert_eq!(kinds.len(), 3);
-    assert!(veriga_core::report::to_text(&s).contains("== "));
+    let txt = {
+        let mut c = s.clone();
+        c.config.lang = "en".into();
+        veriga_core::report::to_text(&c)
+    };
+    assert!(
+        txt.lines().any(|l| l == "== Link name accessibility =="),
+        "{txt}"
+    );
 }
 
 #[tokio::test]

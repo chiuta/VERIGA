@@ -72,7 +72,25 @@ async fn canonical_and_hreflang_findings() {
     assert!(!s.seo.iter().any(|f| f.value == "ro"));
     // redirecționata nu apare ca ruptă
     assert!(!has(SeoKind::CanonicalBroken, "/p2", "/mv"));
-    assert!(veriga_core::report::to_text(&s).contains("canon"));
+    let txt = {
+        let mut c = s.clone();
+        c.config.lang = "en".into();
+        veriga_core::report::to_text(&c)
+    };
+    let lines: Vec<&str> = txt.lines().collect();
+    assert!(
+        lines.contains(&"== Canonical links and hreflang =="),
+        "{txt}"
+    );
+    let broken = s
+        .seo
+        .iter()
+        .find(|f| f.kind == SeoKind::CanonicalBroken)
+        .unwrap();
+    assert!(
+        lines.contains(&format!("    {}", broken.value).as_str()),
+        "{txt}"
+    );
 }
 
 #[tokio::test]

@@ -47,6 +47,7 @@ async fn run(enabled: bool) -> veriga_core::Session {
     });
     let mut cfg = Config::with_start(base);
     cfg.check_link_header = enabled;
+    cfg.report_rel = true;
     cfg.retries = 0;
     cfg.timeout_secs = 5;
     veriga_core::run(cfg, Control::new(), None).await.unwrap()

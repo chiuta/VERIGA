@@ -57,6 +57,8 @@ async fn alias_forms_are_grouped_and_fetched_once() {
         }
     });
     let mut cfg = Config::with_start(base.clone());
+    cfg.report_aliases = true;
+    cfg.canonical_urls = true;
     cfg.retries = 0;
     cfg.timeout_secs = 5;
     let s = veriga_core::run(cfg, Control::new(), None).await.unwrap();
@@ -86,5 +88,24 @@ async fn alias_forms_are_grouped_and_fetched_once() {
         .find(|g| g.canonical.ends_with("/u/~user"))
         .unwrap();
     assert_eq!(user.forms.len(), 3); // %7E, ~, %7e (fragmentul nu contează)
-    assert!(veriga_core::report::to_text(&s).contains("= "));
+    let txt = {
+        let mut c = s.clone();
+        c.config.lang = "en".into();
+        veriga_core::report::to_text(&c)
+    };
+    let lines: Vec<&str> = txt.lines().collect();
+    assert!(
+        lines.contains(&"== Equivalent addresses written differently (info) =="),
+        "{txt}"
+    );
+    assert!(
+        lines.contains(&format!("{}u/~user", base).as_str()),
+        "{txt}"
+    );
+    for f in ["%7Euser", "~user", "%7euser"] {
+        assert!(
+            lines.contains(&format!("    = {base}u/{f}").as_str()),
+            "{f}: {txt}"
+        );
+    }
 }

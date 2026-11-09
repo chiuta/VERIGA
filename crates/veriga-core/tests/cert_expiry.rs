@@ -72,7 +72,18 @@ async fn one_finding_per_host_port_with_link_count() {
     assert!(f.days.unwrap() > 1000);
     assert_eq!(f.links, 4); // pagina de start + 3 legături
     assert!(f.host_port.starts_with("127.0.0.1:"));
-    assert!(veriga_core::report::to_text(&s).contains("127.0.0.1"));
+    let txt = {
+        let mut c = s.clone();
+        c.config.lang = "en".into();
+        veriga_core::report::to_text(&c)
+    };
+    let lines: Vec<&str> = txt.lines().collect();
+    assert!(lines.contains(&"== TLS certificates =="), "{txt}");
+    let row = lines
+        .iter()
+        .find(|l| l.starts_with(&format!("{} — ", f.host_port)))
+        .unwrap_or_else(|| panic!("{txt}"));
+    assert!(row.ends_with(" — 4 links"), "{row}");
 }
 
 #[tokio::test]

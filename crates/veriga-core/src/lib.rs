@@ -26,8 +26,8 @@ pub mod rules;
 pub mod sarif;
 pub mod seo;
 pub mod sitemap;
-pub mod sri;
 pub mod srcscan;
+pub mod sri;
 pub mod textio;
 pub mod urlutil;
 
