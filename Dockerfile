@@ -15,6 +15,7 @@ LABEL org.opencontainers.image.title="VERIGA" \
       org.opencontainers.image.url="https://veriga.chiuta.ro" \
       org.opencontainers.image.licenses="MIT"
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=build /src/LICENSE /src/THIRD-PARTY-NOTICES.md /licenses/
 COPY --from=build /src/target/release/veriga /veriga
 COPY --from=build --chown=65532:65532 /data /data
 USER 65532:65532

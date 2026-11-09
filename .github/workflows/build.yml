@@ -272,8 +272,8 @@ jobs:
         with: { path: in, pattern: "veriga-*-unknown-linux-musl", merge-multiple: true }
       - name: Pregătește binarele
         run: |
-          mkdir -p ctx/bin/amd64 ctx/bin/arm64
-          tar xzf in/veriga-x86_64-unknown-linux-musl.tar.gz -C in && cp in/veriga-x86_64-unknown-linux-musl/veriga ctx/bin/amd64/
+          mkdir -p ctx/bin/amd64 ctx/bin/arm64 ctx/licenses
+          tar xzf in/veriga-x86_64-unknown-linux-musl.tar.gz -C in && cp in/veriga-x86_64-unknown-linux-musl/veriga ctx/bin/amd64/ && cp in/veriga-x86_64-unknown-linux-musl/LICENSE in/veriga-x86_64-unknown-linux-musl/THIRD-PARTY-NOTICES.md ctx/licenses/
           tar xzf in/veriga-aarch64-unknown-linux-musl.tar.gz -C in && cp in/veriga-aarch64-unknown-linux-musl/veriga ctx/bin/arm64/
       - name: Construiește și încearcă imaginea (amd64)
         run: |
