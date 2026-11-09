@@ -17,6 +17,126 @@ o una carpeta local y comprueba sus enlaces. Se presenta en tres formas que comp
 
 Las sesiones (`.veriga`, JSON) son intercambiables entre las tres formas.
 
+## Qué comprueba
+
+- **Enlaces HTML**: `a`, `area`, `img` (+`srcset`, `data-src`), `source`, `video`/`audio`/`track`, `embed`, `object`/`param`,
+  `applet`, `iframe`/`frame`, `script`, `link` (estilos, iconos, preload), `form[action]` (opcional), `input[type=image]`,
+  `background=`, `meta refresh`, `og:image`/`twitter:image`, `cite`, SVG `image`/`use`, `<base href>`.
+- **CSS**: `url(...)` y `@import`, tanto en archivos `.css` como en `<style>` y atributos `style`.
+- **Protocolos**: HTTP/HTTPS (HEAD con respaldo a GET), `file://` y rutas locales, FTP (autenticación, `SIZE`/`CWD`),
+  `mailto:` (sintaxis).
+- **Redirecciones**: cadena completa con códigos de estado, detección de bucles, límite configurable y opción «las redirecciones son errores».
+- **Anclas `#fragment`**: se comprueban en las páginas rastreadas (`id` y `name`).
+- **Archivos huérfanos**: archivos del directorio del sitio a los que no apunta ningún enlace.
+- **Diferencias de mayúsculas** en rutas locales (funciona en Windows/macOS, falla en Linux).
+- **robots.txt** (grupos, `Allow`/`Disallow` con `*` y `$`, `Crawl-delay`) y punto de partida desde **sitemap.xml**.
+- **Observaciones**: títulos duplicados o ausentes, respuestas lentas, estadísticas por tipo MIME.
+- Codificaciones de caracteres (cabecera, BOM, `<meta charset>`), incluidas páginas antiguas en Windows-1250.
+
+## Opciones principales
+
+Hilos concurrentes y límite por host, tiempo de espera, reintentos (respetando `Retry-After`), profundidad máxima, límite de URL,
+enlaces externos sí/no, «permanecer en el directorio», excluir / no seguir / solo estos (regex), hosts internos adicionales,
+códigos HTTP tratados como correctos (p. ej. 999), User-Agent, proxy (HTTP/SOCKS), autenticación Basic (solo hosts internos),
+cabeceras y cookies, certificados no válidos, retardo entre solicitudes.
+
+## Proxies gratuitos y éticos
+
+Elige un preajuste con `--proxy-preset tor|tor-browser|warp` (lista: `--list-proxy-presets`) o, en la GUI, en «Proxy gratuito ético…». Todos son puntos SOCKS5 locales (`socks5h://127.0.0.1:…`): los nombres los resuelve el proxy, no tu sistema. Tor (voluntarios, sin ánimo de lucro, código abierto) es la opción recomendada; la comprobación se limita a 4 hilos y 2 conexiones por servidor, y algunos sitios bloquean las salidas de Tor, así que pueden aparecer falsos «enlaces rotos». Cloudflare WARP es gratuito, pero es un servicio comercial con cliente cerrado. Las listas de proxies públicos abiertos se excluyen a propósito: suelen estar comprometidos o interceptar el tráfico. Tu propio proxy sigue disponible con `--proxy`.
+
+## Informes
+
+HTML autónomo (se abre en cualquier parte), CSV, TSV, JSON, texto, sitemap.xml, un árbol del sitio y una sesión `.veriga`.
+**Nueva comprobación de enlaces rotos** a partir de una sesión guardada (`--recheck`, un botón en la GUI/web).
+
+## CLI
+
+```bash
+veriga https://example.com -o report.html -o broken.csv --only-broken
+veriga ./site --orphans ./site --fragments -o report.html          # carpeta local + huérfanos
+veriga https://example.com --sitemap --stay-in-dir -d 4 -t 50
+veriga --recheck session.veriga -o report.html                      # solo enlaces rotos
+veriga https://example.com --ignore-status 999 --exclude '/logout' -o s.veriga
+```
+
+Código de salida `2` si se encontraron enlaces rotos (útil en CI); `--no-fail` lo desactiva. `veriga --help` lo muestra todo. Código de salida `3` si la ejecución se canceló o se truncó por `--max-urls` / `--max-per-pattern` (trampas de rastreo, por defecto 5000 páginas por patrón de ruta); `3` tiene prioridad sobre `2`. `veriga check URL` equivale a `veriga URL`.
+
+## Compilación
+
+```bash
+cargo build --release                 # veriga + veriga-gui
+cargo build --release -p veriga-cli   # solo CLI
+cargo test --workspace
+```
+
+El flujo de trabajo `.github/workflows/build.yml` genera paquetes para: Windows x64/ARM64, macOS Intel/Apple Silicon,
+Linux x64/ARM64 (glibc, con GUI) y Linux x64/ARM64 (musl, CLI estático). El `Dockerfile` construye una imagen mínima con la CLI.
+
+## Tutoriales en vídeo
+
+Diez tutoriales breves grabados con la aplicación real y subtitulados en 8 idiomas (ro, en, fr, it, es, pt, de, hu): primer análisis, filtros, detalle de un enlace, opciones, exportación, Guardian (reparaciones; dominios, mapa, tendencias), línea de comandos, edición HTML y edición portátil. En https://veriga.chiuta.ro/#tutoriale o en `assets/tutorials/`: cada `.mp4` lleva las 8 pistas de subtítulos y los `.vtt` van al lado. Sin audio; las explicaciones están en los subtítulos.
+
+## Edición portátil (PortableApps.com)
+
+VERIGA también se distribuye como paquete **PortableApps.com Format 3.9**, `VERIGAPortable_<versión>_Multilingual.zip` (archivos de la release). Descomprímelo donde quieras (memoria USB, carpeta sincronizada) y ejecuta `VERIGAPortable.exe`.
+
+- Todo lo que genera la aplicación permanece en `Data\` (estado de Guardian en `Data\.veriga`); no se escribe nada en el registro ni en `%APPDATA%`. Borrar `Data\` es seguro: se recrea.
+- El lanzador elige la versión x64 o ARM64 según la arquitectura nativa; `VERIGAPortable.exe sesion.veriga` abre una sesión guardada (asociación de archivos `.veriga`).
+- La CLI es `App\VERIGA\veriga.exe`. La estructura se comprueba en CI con `portableapps/validate.py`; el código del lanzador es `crates/veriga-launcher`.
+- El instalador oficial `.paf.exe` se construye con PortableApps.com Installer (herramienta para Windows); la carpeta ya tiene la estructura requerida.
+
+## Paquetes para móvil y servidor
+
+PWA (instalable, sin conexión): <https://veriga.chiuta.ro/app/> · Termux: `packaging/termux/install.sh` · Docker: `docker run --rm ghcr.io/chiuta/veriga check https://example.org` · temporizador systemd, `.deb`/`.rpm`, CronJob de Kubernetes y paquete **YunoHost**: ver [`packaging/`](packaging/README.md). No se ofrece un APK nativo de Android.
+
+## La edición HTML de archivo único
+
+`web/veriga.html` se ejecuta al 100 % en el navegador, sin servidor:
+
+- **Carpeta local** (arrastre la carpeta del sitio o use «Elegir carpeta»): comprobación completa de enlaces internos, CSS, anclas, huérfanos,
+  diferencias de mayúsculas y títulos duplicados. Aquí el navegador no impone ninguna limitación.
+- **Sitio en línea**: un navegador no puede leer el estado HTTP de otros dominios (CORS). Los resultados son completos si el archivo se abre desde el
+  mismo sitio o a través de su propio proxy CORS (plantilla `https://proxy/?u={url}`). En caso contrario, los enlaces externos se marcan
+  como *no verificables* si el servidor responde, o *sin conexión* si no lo hace; nunca un falso «OK».
+- **Lista de URL / HTML pegado**.
+- No comprueba FTP ni lee robots.txt (restricciones del navegador). Para eso, use la CLI/GUI.
+
+## Guardian — reparación, historial, cumplimiento
+
+VERIGA incluye además las funciones de un «guardián de enlaces» (inspirado en el plugin *Trade-Free Link Guardian* de WordPress), pero como herramienta independiente que trabaja sobre **archivos**: HTML, Markdown, exportación de WordPress (WXR `.xml`, menús incluidos) y sitemaps.
+
+* **Reparaciones deterministas, verificadas en vivo** — `scheme_typo` (`htp://`, `https//`), `unmangle` (esquema duplicado, `%20`, puntuación final), `missing_scheme` (`www.…`), `tracking` (`utm_*`, `fbclid`, `gclid`…), `protocol` (http→https), `www` (coherencia), `redirect` (solo 301/308). Una reparación se aplica automáticamente **solo si la nueva URL respondió correctamente**; sin verificación queda como «propuesta».
+* **Reparaciones manuales** — sustitución de URL, «desenlazar» (conserva el texto) y consulta en Wayback Machine (opcional, nunca se invoca automáticamente).
+* **Seguridad** — una copia de seguridad por ejecución, un diario de cambios y **deshacer** individual o por ejecución (byte a byte, `&amp;` incluido); solo se escriben los bytes del tramo afectado.
+* **401/403 = «merece una segunda revisión»**, no un enlace roto (opción activada por defecto).
+* **Vistas e informes** — dominios, mapa de salud por página, vista «libro», redirecciones (permanentes/temporales), deriva de contenido (título/H1 frente a la ejecución anterior), nuevos/resueltos, tendencias del historial, un **informe de cumplimiento** por periodo y una insignia de impacto (en el menú o en ≥ 3 páginas). Las exportaciones CSV neutralizan las celdas con fórmulas.
+* **404 de los registros de acceso** (Apache/nginx), con sugerencias de redirección y exportación a `.htaccess`.
+* **Programación** — `veriga wizard` (4 pasos) escribe `veriga-guardian.json`; `veriga watch --config … [--once]` se ejecuta periódicamente (o desde cron/Task Scheduler), conserva el historial, repara automáticamente las reglas elegidas y notifica por webhook o `sendmail`.
+
+```
+veriga lint ./site                       # análisis sin conexión
+veriga fix ./site --session s.veriga     # proponer + verificar en vivo (simulacro)
+veriga fix ./site --apply                # escribir, con copia de seguridad y diario
+veriga fix ./site --unlink https://dead.example/x --apply
+veriga undo --list ; veriga undo --run 20261027-173720
+veriga log404 access.log --known s.veriga -o redirect.htaccess
+veriga guardian s.veriga --prev old.veriga --record -o guardian.html
+veriga compliance s.veriga --days 30 -o compliance.html
+```
+
+GUI: el botón **🛡 Guardian**. Edición HTML: la sección **Guardian** (los cambios se hacen en memoria; usted descarga los archivos o los escribe en una carpeta si el navegador lo permite; la verificación en vivo está limitada por CORS).
+
+**Lo que no se puede replicar de un plugin de WordPress:** la búsqueda de `old slug` en la base de datos, el gancho de guardado del editor, WP-Cron, multisitio y `wp_mail`. En su lugar: importación WXR, archivos en disco, `watch`/cron y `sendmail`/webhook. La lista de funciones se reconstruyó a partir de la descripción pública y de conversaciones previas, no del código fuente del plugin.
+
+Apoye el proyecto: https://www.buymeacoffee.com/echo.of.the.strings
+
+## Límites conocidos
+
+- No envía informes por correo electrónico (SMTP) ni detecta huérfanos por FTP; solo en un directorio local.
+- No se leen los sitemaps comprimidos `.xml.gz`.
+- Las páginas que construyen sus enlaces con JavaScript no se renderizan (no hay motor de navegador); se analiza el HTML servido.
+- La interfaz gráfica solo se ha probado bajo una pantalla virtual (Linux/X11): rastreo, filtros, panel de detalles y Guardian. Las versiones para Windows y macOS las genera la CI, pero no se han probado de forma interactiva.
+
 ## Sobre «clean-room»
 
 VERIGA es una **implementación independiente**, no un proyecto clean-room documentado. No se aplicó un procedimiento formal (equipos separados de análisis e implementación, especificaciones revisadas) y el historial del repositorio empieza con un único commit grande. El código se escribió a partir del comportamiento general de los verificadores de enlaces y de especificaciones públicas (HTML, CSS, HTTP, robots.txt/RFC 9309, FTP, sitemaps.org). Las sesiones de desarrollo del autor no muestran el uso del código o del ejecutable de otro verificador. El registro de procedencia y los puntos abiertos están en [docs/clean-room/PROVENANCE.md](docs/clean-room/PROVENANCE.md).
