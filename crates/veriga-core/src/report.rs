@@ -224,6 +224,27 @@ pub fn to_text(s: &Session) -> String {
         );
     }
     let _ = writeln!(o);
+    if !s.aliases.is_empty() {
+        let _ = writeln!(
+            o,
+            "== {} ==",
+            tr(
+                lang,
+                "Adrese echivalente scrise diferit (informare)",
+                "Equivalent addresses written differently (info)"
+            )
+        );
+        for g in &s.aliases {
+            let _ = writeln!(o, "{}", g.canonical);
+            for f in &g.forms {
+                let _ = writeln!(o, "    = {}", f.written);
+                for p in f.parents.iter().take(5) {
+                    let _ = writeln!(o, "        ↳ {p}");
+                }
+            }
+        }
+        let _ = writeln!(o);
+    }
     let groups = broken_grouped(s);
     if groups.is_empty() {
         let _ = writeln!(
@@ -906,6 +927,7 @@ mod tests {
             ignored: 0,
             truncated: false,
             cancelled: false,
+            aliases: vec![],
         }
     }
 

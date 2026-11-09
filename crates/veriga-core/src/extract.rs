@@ -13,6 +13,8 @@ pub struct RawLink {
     pub url: Url,
     pub kind: LinkKind,
     pub text: String,
+    /// Adresa absolută așa cum a fost scrisă de autor (pentru detectarea alias-urilor).
+    pub written: String,
 }
 
 #[derive(Debug, Default)]
@@ -39,6 +41,15 @@ fn css_import_re() -> &'static Regex {
 fn refresh_re() -> &'static Regex {
     static R: OnceLock<Regex> = OnceLock::new();
     R.get_or_init(|| Regex::new(r#"(?i)url\s*=\s*['"]?([^'";]+)"#).unwrap())
+}
+
+fn has_scheme(s: &str) -> bool {
+    let Some((sch, _)) = s.split_once(':') else {
+        return false;
+    };
+    let mut c = sch.chars();
+    c.next().is_some_and(|f| f.is_ascii_alphabetic())
+        && c.all(|x| x.is_ascii_alphanumeric() || matches!(x, '+' | '-' | '.'))
 }
 
 struct Sink<'a> {
@@ -73,6 +84,11 @@ impl<'a> Sink<'a> {
                     ("mailto", _) => LinkKind::Mailto,
                     ("ftp" | "ftps", LinkKind::Page | LinkKind::Link) => LinkKind::Ftp,
                     _ => kind,
+                },
+                written: if has_scheme(raw) {
+                    raw.to_string()
+                } else {
+                    u.to_string()
                 },
                 url: u,
                 text: truncate_chars(text, 120),

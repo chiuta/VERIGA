@@ -49,6 +49,8 @@ Pick a preset with `--proxy-preset tor|tor-browser|warp` (list them with `--list
 Self-contained HTML (opens anywhere), CSV, TSV, JSON, text, sitemap.xml, a site tree, a `.veriga` session.
 **Re-check of broken links** from a saved session (`--recheck`, a button in the GUI/web).
 
+**Alias addresses:** different spellings of the same address (host case, default port, needlessly percent-encoded characters, dot segments) are merged into one check and listed as an informational group in the text and JSON reports (`aliases`); path/query case, parameter order, trailing slash and `www.` are never merged.
+
 ## CLI
 
 ```bash

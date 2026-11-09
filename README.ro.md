@@ -49,6 +49,8 @@ Alege un preset cu `--proxy-preset tor|tor-browser|warp` (listă: `--list-proxy-
 HTML autonom (se deschide oriunde), CSV, TSV, JSON, text, sitemap.xml, arbore al site-ului, sesiune `.veriga`.
 **Reverificare a linkurilor rupte** dintr-o sesiune salvată (`--recheck`, buton în GUI/web).
 
+**Adrese alias:** scrierile diferite ale aceleiași adrese (majuscule în gazdă, port implicit, caractere codate procentual inutil, segmente cu puncte) sunt unificate într-o singură verificare și listate informativ, ca grup, în rapoartele text și JSON (`aliases`); majusculele din cale/interogare, ordinea parametrilor, bara finală și `www.` nu se unifică niciodată.
+
 ## CLI
 
 ```bash

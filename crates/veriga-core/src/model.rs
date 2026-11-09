@@ -264,6 +264,20 @@ pub enum Event {
     Finished,
 }
 
+/// O formă scrisă a unei adrese și paginile în care apare.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct AliasForm {
+    pub written: String,
+    pub parents: Vec<String>,
+}
+
+/// Mai multe scrieri distincte ale aceleiași adrese (informare, nu eroare).
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct AliasGroup {
+    pub canonical: String,
+    pub forms: Vec<AliasForm>,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Session {
     pub version: u32,
@@ -275,6 +289,9 @@ pub struct Session {
     pub ignored: usize,
     pub truncated: bool,
     pub cancelled: bool,
+    /// Grupuri de adrese echivalente scrise diferit.
+    #[serde(default)]
+    pub aliases: Vec<AliasGroup>,
 }
 
 /// Proxy fără `user:parolă@` (credențialele nu se salvează pe disc).
@@ -379,6 +396,7 @@ mod tests {
             ignored: 0,
             truncated: false,
             cancelled: false,
+            aliases: vec![],
         }
     }
 
@@ -414,6 +432,7 @@ mod tests {
             ignored: 0,
             truncated: false,
             cancelled: false,
+            aliases: vec![],
         };
         s.config.start = vec!["http://bob:s3cret@h/a".into()];
         let mut r = LinkResult::new("http://bob:s3cret@h/a", LinkKind::Page, 0, true);
@@ -443,6 +462,7 @@ mod tests {
             ignored: 0,
             truncated: false,
             cancelled: false,
+            aliases: vec![],
         };
         s.config.lang = "x\"><script>alert(1)</script><i a=\"".into();
         let html = crate::report::to_html(&s);

@@ -10,7 +10,7 @@ use crate::trf;
 use crate::urlutil::*;
 use anyhow::{Context, Result, anyhow, bail};
 use regex::Regex;
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
@@ -87,6 +87,8 @@ struct Coord {
     broken: usize,
     last_progress: Instant,
     start_urls: Vec<Url>,
+    /// canonic -> scriere -> pagini în care apare
+    alias_forms: HashMap<String, BTreeMap<String, BTreeSet<String>>>,
 }
 
 impl Coord {
@@ -119,6 +121,7 @@ impl Coord {
             broken: 0,
             last_progress: Instant::now() - Duration::from_secs(1),
             start_urls: vec![],
+            alias_forms: HashMap::new(),
         })
     }
 
@@ -276,7 +279,8 @@ impl Coord {
         self.queued += 1;
     }
 
-    fn add_start(&mut self, url: Url) {
+    fn add_start(&mut self, mut url: Url) {
+        crate::urlutil::canonicalize(&mut url);
         let key = normalize(&url);
         if self.index.contains_key(&key) {
             return;
@@ -305,8 +309,40 @@ impl Coord {
         }
     }
 
+    /// Grupurile cu cel puțin două scrieri distincte ale aceleiași adrese.
+    fn alias_groups(&self) -> Vec<AliasGroup> {
+        let mut v: Vec<AliasGroup> = self
+            .alias_forms
+            .iter()
+            .filter(|(_, forms)| forms.len() >= 2)
+            .map(|(k, forms)| AliasGroup {
+                canonical: k.clone(),
+                forms: forms
+                    .iter()
+                    .map(|(w, ps)| AliasForm {
+                        written: w.clone(),
+                        parents: ps.iter().cloned().collect(),
+                    })
+                    .collect(),
+            })
+            .collect();
+        v.sort_by(|a, b| a.canonical.cmp(&b.canonical));
+        v
+    }
+
     fn add_link(&mut self, l: RawLink, parent: &Parent, parent_depth: u32) {
         let mut url = l.url;
+        crate::urlutil::canonicalize(&mut url);
+        if matches!(url.scheme(), "http" | "https") && !l.written.is_empty() {
+            let mut k = url.clone();
+            k.set_fragment(None);
+            self.alias_forms
+                .entry(k.to_string())
+                .or_default()
+                .entry(crate::urlutil::written_without_fragment(&l.written))
+                .or_default()
+                .insert(parent.url.clone());
+        }
         let frag = url.fragment().map(|f| f.to_string());
         url.set_fragment(None);
         let key = url.to_string();
@@ -609,6 +645,7 @@ impl Coord {
                                 url,
                                 kind: LinkKind::Page,
                                 text: String::new(),
+                                written: l.clone(),
                             },
                             &parent,
                             0,
@@ -849,6 +886,7 @@ pub async fn run(
     co.mark_unchecked();
     co.emit(Event::Finished);
 
+    let aliases = co.alias_groups();
     let mut config = (*cfg).clone();
     config.basic_auth = None;
     Ok(Session {
@@ -861,6 +899,7 @@ pub async fn run(
         ignored: co.ignored,
         truncated: co.truncated,
         cancelled,
+        aliases,
     })
 }
 
@@ -927,6 +966,7 @@ pub async fn recheck(
         ignored: session.ignored,
         truncated: session.truncated,
         cancelled,
+        aliases: session.aliases,
     })
 }
 

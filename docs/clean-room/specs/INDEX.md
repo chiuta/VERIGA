@@ -7,7 +7,7 @@ Toate au statusul **candidat** (neaprobate; „Aprobată de mine” nebifat). Di
 | Ordine | Nr. | Slug | Status | Sursă publică principală | Mărime | Dependențe |
 |---|---|---|---|---|---|---|
 | 1 | 01 | sitemap-comprimat | implementat (teste trec) | sitemaps.org Protocol; RFC 1952 | S | — (extinde citirea sitemap existentă) |
-| 2 | 13 | alias-adrese | candidat | RFC 3986 §6; RFC 9110 §4.2.3 | S | — |
+| 2 | 13 | alias-adrese | implementat (teste trec) | RFC 3986 §6; RFC 9110 §4.2.3 | S | — |
 | 3 | 05 | relatii-legatura | candidat | HTML Living Standard (link types) | S | — |
 | 4 | 03 | raport-sarif | candidat | OASIS SARIF 2.1.0 | M | — |
 | 5 | 04 | raport-junit | candidat | Apache Ant JUnitReport; W3C XML 1.0 | S | — |
