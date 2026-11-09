@@ -1,4 +1,4 @@
-VERIGA is an independently implemented link checker in the spirit of Xenu Link Sleuth: it crawls a site, reports broken links, redirect chains, slow pages and orphans, and can propose (and, if asked, apply) repairs.
+VERIGA is an independently implemented link checker: it crawls a site, reports broken links, redirect chains, slow pages and orphans, and can propose (and, if asked, apply) repairs.
 
 This package provides:
 

@@ -35,7 +35,7 @@ Priority: optional
 Architecture: $darch
 Maintainer: Alexio <alexio@trom.tf>
 Homepage: https://veriga.chiuta.ro
-Description: link checker (Xenu-like) with scheduled Link Guardian
+Description: link checker with scheduled Link Guardian
  Finds broken links, redirects and slow pages; static binary, no dependencies.
  Enable the daily Guardian with: systemctl enable --now veriga-watch.timer
  after creating /etc/veriga/guardian.json (see /usr/share/doc/veriga).
@@ -74,7 +74,7 @@ if command -v rpmbuild >/dev/null; then
 Name: veriga
 Version: $ver
 Release: 1
-Summary: Link checker (Xenu-like) with scheduled Link Guardian
+Summary: Link checker with scheduled Link Guardian
 License: MIT
 URL: https://veriga.chiuta.ro
 BuildArch: $rarch

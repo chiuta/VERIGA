@@ -36,7 +36,7 @@ impl Default for OrphanConfig {
 pub struct Config {
     /// URL-uri, căi de fișiere sau directoare locale de la care începe verificarea.
     pub start: Vec<String>,
-    /// Număr maxim de verificări simultane (Xenu: „threads”).
+    /// Număr maxim de verificări simultane.
     pub threads: usize,
     /// Conexiuni simultane maxime către același server.
     pub per_host: usize,

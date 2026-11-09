@@ -10,7 +10,7 @@ RUN cargo build --release --locked -p veriga-cli \
 
 FROM scratch
 LABEL org.opencontainers.image.title="VERIGA" \
-      org.opencontainers.image.description="Verificator de legături (Xenu-like) — CLI static" \
+      org.opencontainers.image.description="Verificator de legături — CLI static" \
       org.opencontainers.image.source="https://github.com/chiuta/VERIGA" \
       org.opencontainers.image.url="https://veriga.chiuta.ro" \
       org.opencontainers.image.licenses="MIT"
