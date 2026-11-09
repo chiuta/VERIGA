@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+## [1.2.0] — 2026-11-09
+
 ### Adăugat
 - Funcții noi, **toate aditive și dezactivate implicit** (fără ele rapoartele CSV/TSV/JSON/text/HTML/XML/arbore, codurile de ieșire sunt identice cu cele din 1.1.0; sesiunile `.veriga` au același format, dar conțin și `config.user_agent`, iar o sesiune scrisă cu `--check-feeds` nu poate fi deschisă de 1.1.0): `--honor-nofollow`, `--check-schemes` (tel:/geo:/data:), `--check-link-names` / `--check-ambiguous-names`, `--check-link-header`, `--check-seo-links` (canonical, hreflang), `--check-mixed-content`, `--check-feeds` (RSS/Atom), `--check-sri`, `--check-cert-expiry` / `--cert-warn-days`, plus ieșirile `-o x.sarif` (SARIF 2.1.0) și `-o x.junit` (JUnit XML), și citirea hărților de site `.xml.gz` cu `--sitemap`. / New features, all additive and off by default.
 - Comutatoare pentru comportamente care înainte nu existau: `--report-rel` (coloana `Rel`, cheia JSON `rel`, linia `rel:`), `--report-aliases` (grupuri de adrese echivalente; memorie plafonată), `--canonical-urls` (unifică `%7e` cu `~`), `--xml-encoding` (codificarea din declarația `<?xml?>`). / Opt-in switches for the rest of the new behaviour.
