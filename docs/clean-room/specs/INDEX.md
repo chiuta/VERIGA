@@ -9,7 +9,7 @@ Toate au statusul **candidat** (neaprobate; „Aprobată de mine” nebifat). Di
 | 1 | 01 | sitemap-comprimat | implementat (teste trec) | sitemaps.org Protocol; RFC 1952 | S | — (extinde citirea sitemap existentă) |
 | 2 | 13 | alias-adrese | implementat (teste trec) | RFC 3986 §6; RFC 9110 §4.2.3 | S | — |
 | 3 | 05 | relatii-legatura | implementat (teste trec) | HTML Living Standard (link types) | S | — |
-| 4 | 03 | raport-sarif | candidat | OASIS SARIF 2.1.0 | M | — |
+| 4 | 03 | raport-sarif | implementat (teste trec) | OASIS SARIF 2.1.0 | M | — |
 | 5 | 04 | raport-junit | candidat | Apache Ant JUnitReport; W3C XML 1.0 | S | — |
 | 6 | 11 | scheme-nonweb | candidat | RFC 3966, 5870, 2397; Fetch | S | — |
 | 7 | 12 | nume-accesibil-legatura | candidat | WCAG 2.2; Accname 1.2 | M | — |

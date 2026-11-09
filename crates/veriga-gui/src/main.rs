@@ -380,6 +380,11 @@ impl App {
             "json" => ("JSON", "json", report::to_json(s).into_bytes()),
             "txt" => ("Text", "txt", report::to_text(s).into_bytes()),
             "xml" => ("Sitemap XML", "xml", report::to_sitemap_xml(s).into_bytes()),
+            "sarif" => (
+                "SARIF",
+                "sarif",
+                veriga_core::sarif::to_sarif(s).into_bytes(),
+            ),
             "tree" => (
                 tr("Arbore", "Tree"),
                 "txt",
@@ -519,6 +524,7 @@ impl eframe::App for App {
                         ("json", "JSON"),
                         ("txt", "Text"),
                         ("xml", "Sitemap XML"),
+                        ("sarif", "SARIF"),
                         ("tree", self.t("Arbore site", "Site tree")),
                     ] {
                         if ui.button(l).clicked() {

@@ -53,6 +53,8 @@ Self-contained HTML (opens anywhere), CSV, TSV, JSON, text, sitemap.xml, a site 
 
 **Alias addresses:** different spellings of the same address (host case, default port, needlessly percent-encoded characters, dot segments) are merged into one check and listed as an informational group in the text and JSON reports (`aliases`); path/query case, parameter order, trailing slash and `www.` are never merged.
 
+**SARIF 2.1.0** (`-o report.sarif`): broken links become `error`, redirects / 401-403 / slow responses `warning`, skipped or orphan items `note`; good links are not emitted. The location is the page (or file) containing the link, as a URI; `region.startLine` is only written when a line is known (crawl results currently carry no line, so it is omitted). Output is deterministic and written atomically.
+
 ## CLI
 
 ```bash
