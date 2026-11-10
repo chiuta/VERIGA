@@ -4,6 +4,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+### Adăugat
+- **Plugin WordPress „VERIGA Link Checker”** (`packaging/wordpress/`, WordPress ≥ 6.2, testat pentru 7.1.4, PHP ≥ 7.4): Unelte → VERIGA încorporează aplicația HTML (aceeași origine cu administrarea), iar fila „Verificare programată” rulează opțional binarul VERIGA (zilnic/săptămânal sau la cerere), păstrează rapoarte HTML/JSON protejate și trimite rezumat prin `wp_mail`. Fără shell (argumente ca vector), cale validată, fără drepturi de scriere pentru toți, rapoarte servite doar administratorilor cu CSP `sandbox`. Traducere română inclusă. ZIP-ul se construiește cu `python3 packaging/wordpress/build.py` și se atașează la release.
+
 ## [1.3.0] — 2026-11-10
 
 ### Adăugat

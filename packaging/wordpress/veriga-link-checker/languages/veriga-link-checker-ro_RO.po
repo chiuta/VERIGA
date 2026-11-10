@@ -1,0 +1,180 @@
+# VERIGA Link Checker — Romanian translation
+msgid ""
+msgstr ""
+"Project-Id-Version: VERIGA Link Checker 1.3.0\n"
+"Language: ro_RO\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : (n==0 || (n%100>0 && n%100<20)) ? 1 : 2);\n"
+
+msgid "[%1$s] VERIGA: the link check failed"
+msgstr "[%1$s] VERIGA: verificarea legăturilor a eșuat"
+
+msgid "found on:"
+msgstr "găsit pe:"
+
+msgid "… and more in the full report."
+msgstr "… și altele în raportul complet."
+
+msgid "Another check is already running."
+msgstr "O altă verificare rulează deja."
+
+msgid "This server does not allow running programs (proc_open is disabled)."
+msgstr "Acest server nu permite rularea de programe (proc_open este dezactivat)."
+
+msgid "No VERIGA binary is configured."
+msgstr "Nu este configurat niciun binar VERIGA."
+
+msgid "The binary path must be absolute."
+msgstr "Calea binarului trebuie să fie absolută."
+
+msgid "The binary file name must start with \"veriga\"."
+msgstr "Numele fișierului binar trebuie să înceapă cu „veriga”."
+
+msgid "The binary file does not exist."
+msgstr "Fișierul binar nu există."
+
+msgid "The binary file is not executable by the web server user."
+msgstr "Fișierul binar nu poate fi executat de utilizatorul serverului web."
+
+msgid "The binary file is world-writable; refusing to run it."
+msgstr "Fișierul binar poate fi scris de oricine; refuz să-l rulez."
+
+msgid "The check exceeded the time limit and was stopped."
+msgstr "Verificarea a depășit limita de timp și a fost oprită."
+
+msgid "The program could not be started."
+msgstr "Programul nu a putut fi pornit."
+
+msgid "The check failed (%s)."
+msgstr "Verificarea a eșuat (%s)."
+
+msgid "Open"
+msgstr "Deschide"
+
+msgid "You are not allowed to do this."
+msgstr "Nu aveți voie să faceți asta."
+
+msgid "Link checker"
+msgstr "Verificator de legături"
+
+msgid "Scheduled check"
+msgstr "Verificare programată"
+
+msgid "assets/veriga.html is missing: reinstall the plugin from the release ZIP."
+msgstr "Lipsește assets/veriga.html: reinstalați pluginul din ZIP-ul de release."
+
+msgid "The checker runs entirely in your browser. Choose “Online site” and enter your site address; it is the same origin as this admin, so no cross-site permission is needed."
+msgstr "Verificatorul rulează în întregime în browser. Alegeți „Site online” și introduceți adresa site-ului; are aceeași origine ca această administrare, deci nu e nevoie de nicio permisiune între site-uri."
+
+msgid "Settings saved."
+msgstr "Setările au fost salvate."
+
+msgid "The check was queued and will start in the background shortly. Reload this page to see the result."
+msgstr "Verificarea a fost pusă în coadă și va porni în fundal în curând. Reîncărcați pagina ca să vedeți rezultatul."
+
+msgid "Use the Link checker tab instead."
+msgstr "Folosiți în schimb fila Verificator de legături."
+
+msgid "Optional: a server-side check with the VERIGA command-line program (a static binary from the GitHub releases, e.g. the “linux-musl” build). It crawls the public site address, stores an HTML/JSON report and e-mails a summary."
+msgstr "Opțional: verificare pe server cu programul VERIGA în linie de comandă (un binar static din release-urile GitHub, de ex. varianta „linux-musl”). Parcurge adresa publică a site-ului, păstrează un raport HTML/JSON și trimite un rezumat prin e-mail."
+
+msgid "VERIGA binary (absolute path)"
+msgstr "Binar VERIGA (cale absolută)"
+
+msgid "Locked: set by the VERIGA_BINARY constant, or editing is disabled on this installation (DISALLOW_FILE_EDIT / multisite)."
+msgstr "Blocat: setat prin constanta VERIGA_BINARY sau editarea este dezactivată pe această instalare (DISALLOW_FILE_EDIT / multisite)."
+
+msgid "The file name must start with “veriga”. Keep the file outside the web root and not writable by the web server."
+msgstr "Numele fișierului trebuie să înceapă cu „veriga”. Păstrați fișierul în afara rădăcinii web și nescriptibil pentru serverul web."
+
+msgid "Frequency"
+msgstr "Frecvență"
+
+msgid "Off (manual only)"
+msgstr "Oprit (doar manual)"
+
+msgid "Daily"
+msgstr "Zilnic"
+
+msgid "Weekly"
+msgstr "Săptămânal"
+
+msgid "E-mail"
+msgstr "E-mail"
+
+msgid "Only when links are broken (or the check fails)"
+msgstr "Doar când există legături rupte (sau verificarea eșuează)"
+
+msgid "After every check"
+msgstr "După fiecare verificare"
+
+msgid "Never"
+msgstr "Niciodată"
+
+msgid "Recipients, separated by commas. Empty = the site administrator address."
+msgstr "Destinatari, separați prin virgulă. Gol = adresa administratorului site-ului."
+
+msgid "Options"
+msgstr "Opțiuni"
+
+msgid "Skip external links (check only this site)"
+msgstr "Omite legăturile externe (verifică doar acest site)"
+
+msgid "Allow private/local addresses (needed when the site address resolves to a private IP, e.g. intranet or Docker)"
+msgstr "Permite adrese private/locale (necesar când adresa site-ului se rezolvă la un IP privat, de ex. intranet sau Docker)"
+
+msgid "Maximum URLs"
+msgstr "Număr maxim de URL-uri"
+
+msgid "Time limit (seconds)"
+msgstr "Limită de timp (secunde)"
+
+msgid "Save settings"
+msgstr "Salvează setările"
+
+msgid "Last check"
+msgstr "Ultima verificare"
+
+msgid "A check is running now…"
+msgstr "O verificare rulează acum…"
+
+msgid "Next scheduled check: %s"
+msgstr "Următoarea verificare programată: %s"
+
+msgid "Finished: %s"
+msgstr "Încheiată: %s"
+
+msgid "the crawl was truncated (URL limit reached); raise the limit for a full result."
+msgstr "parcurgerea a fost trunchiată (limita de URL-uri atinsă); măriți limita pentru un rezultat complet."
+
+msgid "Status"
+msgstr "Stare"
+
+msgid "Found on"
+msgstr "Găsit pe"
+
+msgid "Report %s"
+msgstr "Raport %s"
+
+msgid "No check has run yet."
+msgstr "Nu a rulat încă nicio verificare."
+
+msgid "Run a check now"
+msgstr "Rulează o verificare acum"
+
+msgid "The report does not exist."
+msgstr "Raportul nu există."
+
+msgid "[%1$s] VERIGA: %2$d broken link"
+msgid_plural "[%1$s] VERIGA: %2$d broken links"
+msgstr[0] "[%1$s] VERIGA: %2$d legătură ruptă"
+msgstr[1] "[%1$s] VERIGA: %2$d legături rupte"
+msgstr[2] "[%1$s] VERIGA: %2$d de legături rupte"
+
+msgid "%d broken link"
+msgid_plural "%d broken links"
+msgstr[0] "%d legătură ruptă"
+msgstr[1] "%d legături rupte"
+msgstr[2] "%d de legături rupte"

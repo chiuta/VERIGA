@@ -231,8 +231,22 @@ jobs:
           python3 -m pip install --break-system-packages pyyaml
           python3 -c "import yaml,sys; [list(yaml.safe_load_all(open(f))) for f in ('packaging/k8s/cronjob.yaml','packaging/docker/docker-compose.yml')]"
           python3 -c "import json; json.load(open('packaging/systemd/guardian.example.json'))"
+          python3 packaging/wordpress/build.py --check
+          find packaging/wordpress -name '*.php' -print0 | xargs -0 -n1 php -l
+          php packaging/wordpress/tests/admin.php
       - uses: actions/download-artifact@v8
         with: { path: in, name: "veriga-${{ matrix.target }}" }
+      - name: Plugin WordPress (teste cu binarul real + ZIP)
+        run: |
+          t=${{ matrix.target }}
+          tar xzf in/veriga-$t.tar.gz -C in
+          mkdir -p wpsite && printf '<a href="b.html">b</a><a href="nope.html">x</a>' > wpsite/index.html && printf 'b' > wpsite/b.html
+          python3 -m http.server 8777 --bind 127.0.0.1 -d wpsite >/dev/null 2>&1 &
+          sleep 1
+          VERIGA_BIN="$PWD/in/veriga-$t/veriga" php packaging/wordpress/tests/run.php
+          python3 packaging/wordpress/build.py
+          unzip -l dist/veriga-link-checker-*.zip | tail -3
+          rm -f dist/veriga-link-checker-*.zip   # ZIP-ul se atașează o singură dată, în jobul de release
       - name: Construiește .deb și .rpm
         run: |
           sudo apt-get update && sudo apt-get install -y rpm
@@ -316,6 +330,8 @@ jobs:
           case "$TAG" in "v$ver"|"v$ver-"*) echo "eticheta $TAG corespunde versiunii $ver" ;; *) echo "::error::eticheta $TAG nu corespunde versiunii $ver din Cargo.toml"; exit 1 ;; esac
       - uses: actions/download-artifact@v8
         with: { path: dist, merge-multiple: true }
+      - name: Plugin WordPress (ZIP)
+        run: python3 packaging/wordpress/build.py
       - name: Sume de control
         working-directory: dist
         run: sha256sum * > SHA256SUMS
