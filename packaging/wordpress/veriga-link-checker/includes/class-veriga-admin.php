@@ -143,8 +143,12 @@ final class Veriga_Admin {
 				echo '</div>';
 			} else {
 				$n = (int) $state['broken'];
-				/* translators: %d: number of broken links. */
-				echo '<p><strong>' . esc_html( sprintf( _n( '%d broken link', '%d broken links', $n, 'veriga-link-checker' ), $n ) ) . '</strong>';
+				if ( isset( $state['summary'] ) && ! $state['summary'] ) {
+					echo '<p><strong>' . esc_html__( 'The report is too large to summarize here; open the full report below.', 'veriga-link-checker' ) . '</strong>';
+				} else {
+					/* translators: %d: number of broken links. */
+					echo '<p><strong>' . esc_html( sprintf( _n( '%d broken link', '%d broken links', $n, 'veriga-link-checker' ), $n ) ) . '</strong>';
+				}
 				if ( ! empty( $state['truncated'] ) ) {
 					echo ' — ' . esc_html__( 'the crawl was truncated (URL limit reached); raise the limit for a full result.', 'veriga-link-checker' );
 				}
@@ -177,22 +181,26 @@ final class Veriga_Admin {
 		$old = Veriga_Runner::settings();
 		$new = $old;
 		// phpcs:disable WordPress.Security.NonceVerification -- verified in guard().
+		// Every field is read as a string: array-valued or missing inputs must never reach the sanitizers.
+		$in = static function ( string $k, string $d = '' ): string {
+			return isset( $_POST[ $k ] ) && is_string( $_POST[ $k ] ) ? wp_unslash( $_POST[ $k ] ) : $d;
+		};
 		if ( Veriga_Runner::can_set_binary() && isset( $_POST['binary'] ) ) {
-			$b = trim( wp_unslash( (string) $_POST['binary'] ) );
+			$b = trim( $in( 'binary' ) );
 			if ( '' === $b || '' === Veriga_Runner::validate_binary( $b ) ) {
 				$new['binary'] = $b;
 			}
 		}
-		$f                  = isset( $_POST['frequency'] ) ? sanitize_key( wp_unslash( $_POST['frequency'] ) ) : 'off';
+		$f                  = sanitize_key( $in( 'frequency', 'off' ) );
 		$new['frequency']   = in_array( $f, array( 'off', 'daily', 'weekly' ), true ) ? $f : 'off';
-		$n                  = isset( $_POST['notify'] ) ? sanitize_key( wp_unslash( $_POST['notify'] ) ) : 'broken';
+		$n                  = sanitize_key( $in( 'notify', 'broken' ) );
 		$new['notify']      = in_array( $n, array( 'never', 'broken', 'always' ), true ) ? $n : 'broken';
-		$mails              = array_filter( preg_split( '/[\s,;]+/', isset( $_POST['emails'] ) ? wp_unslash( (string) $_POST['emails'] ) : '', -1, PREG_SPLIT_NO_EMPTY ), 'is_email' );
+		$mails              = array_filter( preg_split( '/[\s,;]+/', $in( 'emails' ), -1, PREG_SPLIT_NO_EMPTY ), 'is_email' );
 		$new['emails']      = implode( ', ', array_map( 'sanitize_email', $mails ) );
 		$new['no_external'] = empty( $_POST['no_external'] ) ? 0 : 1;
 		$new['allow_priv']  = empty( $_POST['allow_priv'] ) ? 0 : 1;
-		$new['max_urls']    = max( 100, min( 1000000, (int) ( $_POST['max_urls'] ?? 5000 ) ) );
-		$new['timeout']     = max( 60, min( 7200, (int) ( $_POST['timeout'] ?? 900 ) ) );
+		$new['max_urls']    = max( 100, min( 1000000, (int) $in( 'max_urls', '5000' ) ) );
+		$new['timeout']     = max( 60, min( 7200, (int) $in( 'timeout', '900' ) ) );
 		// phpcs:enable
 		update_option( Veriga_Runner::OPT, $new, false );
 		Veriga_Runner::reschedule();

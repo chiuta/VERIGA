@@ -1,7 +1,7 @@
 <?php
 /** Test de fum pentru Veriga_Admin: randare ambele file cu date ostile în starea salvată; verifică escaparea. */
 define( 'ABSPATH', __DIR__ );
-define( 'VERIGA_LC_VERSION', '1.3.0' );
+define( 'VERIGA_LC_VERSION', '1.3.1' );
 define( 'VERIGA_LC_FILE', realpath( __DIR__ . '/../veriga-link-checker' ) . '/veriga-link-checker.php' );
 define( 'VERIGA_LC_DIR', dirname( VERIGA_LC_FILE ) . '/' );
 $GLOBALS['opts'] = array();
@@ -49,4 +49,25 @@ ok( false !== strpos( $s, '3 broken links' ) && false !== strpos( $s, 'veriga_lc
 update_option( Veriga_Runner::STATE, array( 'time' => 1, 'ok' => false, 'error' => 'binary_bad_name', 'log' => $evil ) );
 ob_start(); Veriga_Admin::render(); $e = ob_get_clean();
 ok( false === strpos( $e, '<script>alert' ) && false !== strpos( $e, 'must start with' ), 'stare de eroare: mesaj + log escapat' );
+
+// save(): intrări ostile (matrice, tipuri greșite, valori extreme), fără avertismente PHP
+function check_admin_referer( $a ) { return true; }
+function wp_unslash( $v ) { return $v; }
+function sanitize_key( $k ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $k ) ); }
+function sanitize_email( $e ) { return $e; }
+function is_email( $e ) { return (bool) filter_var( $e, FILTER_VALIDATE_EMAIL ); }
+function wp_safe_redirect( $u ) { throw new Exception( 'redirect' ); }
+function wp_clear_scheduled_hook( $h ) {}
+function wp_schedule_event() {}
+function wp_die( $m ) { throw new Exception( 'die' ); }
+set_error_handler( function ( $no, $str ) { global $fail; if ( ! ( error_reporting() & $no ) ) { return false; } echo "FAIL : avertisment PHP: $str\n"; $fail++; return true; } );
+$_POST = array( 'binary' => array( '/x' ), 'frequency' => array( 'daily' ), 'notify' => array(), 'emails' => array( 'a@b.ro' ), 'max_urls' => array( 5 ), 'timeout' => '999999999999', 'no_external' => array( 'x' ) );
+try { Veriga_Admin::save(); } catch ( Exception $e ) {}
+$st = Veriga_Runner::settings();
+ok( 'off' === $st['frequency'] && 'broken' === $st['notify'] && '' === $st['emails'] && 7200 === $st['timeout'] && 5000 === $st['max_urls'], 'save(): intrări de tip matrice neutralizate, valori extreme limitate' );
+$_POST = array( 'binary' => '/bin/sh', 'frequency' => 'hourly', 'notify' => 'always', 'emails' => "a@b.ro,\nx@y.zz;nu-e", 'max_urls' => '-9', 'timeout' => '1' );
+try { Veriga_Admin::save(); } catch ( Exception $e ) {}
+$st = Veriga_Runner::settings();
+ok( '' === $st['binary'] && 'off' === $st['frequency'] && 'always' === $st['notify'] && 'a@b.ro, x@y.zz' === $st['emails'] && 100 === $st['max_urls'] && 60 === $st['timeout'], 'save(): binar invalid refuzat, frecvență necunoscută → off, e-mailuri filtrate, limite aplicate' );
+restore_error_handler();
 echo $fail ? "\n$fail TESTE EȘUATE\n" : "\nTOATE TESTELE ADMIN AU TRECUT\n"; exit( $fail ? 1 : 0 );

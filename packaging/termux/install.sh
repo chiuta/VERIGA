@@ -2,9 +2,9 @@
 # Instalează VERIGA (CLI static aarch64) în Termux, cu verificarea sumei SHA-256.
 #   (script nefixat de pe main: citiți-l înainte sau descărcați-l de la o etichetă)
 #   curl -fsSL https://raw.githubusercontent.com/chiuta/VERIGA/main/packaging/termux/install.sh | sh
-#   sau cu versiune fixată:  VERIGA_VERSION=v1.3.0 sh install.sh
+#   sau cu versiune fixată:  VERIGA_VERSION=v1.3.1 sh install.sh
 set -eu
-VER=${VERIGA_VERSION:-v1.3.0}
+VER=${VERIGA_VERSION:-v1.3.1}
 PREFIX=${PREFIX:-/data/data/com.termux/files/usr}
 case "$(uname -m)" in
   aarch64|arm64) T=aarch64-unknown-linux-musl ;;

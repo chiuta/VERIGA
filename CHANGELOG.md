@@ -4,8 +4,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+## [1.3.1] — 2026-11-10
+
 ### Adăugat
 - **Plugin WordPress „VERIGA Link Checker”** (`packaging/wordpress/`, WordPress ≥ 6.2, testat pentru 7.1.4, PHP ≥ 7.4): Unelte → VERIGA încorporează aplicația HTML (aceeași origine cu administrarea), iar fila „Verificare programată” rulează opțional binarul VERIGA (zilnic/săptămânal sau la cerere), păstrează rapoarte HTML/JSON protejate și trimite rezumat prin `wp_mail`. Fără shell (argumente ca vector), cale validată, fără drepturi de scriere pentru toți, rapoarte servite doar administratorilor cu CSP `sandbox`. Traducere română inclusă. ZIP-ul se construiește cu `python3 packaging/wordpress/build.py` și se atașează la release.
+
+### Securitate (audit adversarial al suprafeței adăugate în 1.3.0)
+- **Plugin WordPress:** citirea ieșirii programului nu mai e încetinită de somn între citiri (o ieșire de 400 MB se consumă într-o secundă, cu memorie constantă, în loc să țină rularea până la timeout); rapoartele JSON peste 32 MB nu se mai încarcă în memorie (rezumat „nerezumat”, e-mail trimis oricum); valorile din site-ul verificat (URL-uri, pagini, nume de site) sunt curățate de caractere de control înainte de e-mail și afișare (fără injecție de antete); toate câmpurile de setări se citesc ca șiruri (intrările de tip matrice nu mai produc avertismente); jurnalul programului nu mai poate conține secvențe escape.
+- **Aplicație HTML:** verificat adversarial că un site ostil (titluri, linkuri, redirectări, antete, `<base>`, `javascript:`/`data:`) și o sesiune importată ostilă nu execută cod nici în aplicație, nici în raportul exportat, inclusiv în context same-origin (cum rulează în WordPress); test de regresie `web/tests/xss.test.js`.
+- Neschimbat: nucleul și CLI-ul (identice cu 1.2.1 la nivel de cod).
 
 ## [1.3.0] — 2026-11-10
 

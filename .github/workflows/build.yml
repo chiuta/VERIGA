@@ -244,6 +244,7 @@ jobs:
           python3 -m http.server 8777 --bind 127.0.0.1 -d wpsite >/dev/null 2>&1 &
           sleep 1
           VERIGA_BIN="$PWD/in/veriga-$t/veriga" php packaging/wordpress/tests/run.php
+          php packaging/wordpress/tests/hostile.php
           python3 packaging/wordpress/build.py
           unzip -l dist/veriga-link-checker-*.zip | tail -3
           rm -f dist/veriga-link-checker-*.zip   # ZIP-ul se atașează o singură dată, în jobul de release
