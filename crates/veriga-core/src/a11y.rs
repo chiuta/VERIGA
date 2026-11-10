@@ -186,7 +186,7 @@ pub fn accessible_name(doc: &Html, a: &ElementRef) -> String {
 
 /// Numele tuturor legăturilor (`a` cu `href`) dintr-o pagină.
 pub fn link_names(html: &str, page: &Url) -> Vec<LinkName> {
-    let doc = Html::parse_document(html);
+    let doc = Html::parse_document(crate::extract::cap_parse_events(html).0);
     let mut base = page.clone();
     if let Ok(sel) = Selector::parse("base[href]")
         && let Some(b) = doc.select(&sel).next()

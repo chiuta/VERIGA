@@ -683,7 +683,23 @@ async fn main() -> Result<()> {
                 p.display()
             )
         })?;
-        let links: Vec<String> = inp.items.iter().filter_map(fff::link_of).collect();
+        let mut links: Vec<String> = inp.items.iter().filter_map(fff::link_of).collect();
+        // legăturile private/locale din plic nu devin puncte de start (ar ocoli anti-SSRF), decât cu --allow-private
+        if !cli.allow_private {
+            let before = links.len();
+            links.retain(|l| !fff::is_private_link(l));
+            let skipped = before - links.len();
+            if skipped > 0 && !cli.quiet {
+                eprintln!(
+                    "{}",
+                    trf!(
+                        "{} legături private/locale din plic ignorate (anti-SSRF; vezi --allow-private)",
+                        "{} private/local links in the envelope ignored (anti-SSRF; see --allow-private)",
+                        skipped
+                    )
+                );
+            }
+        }
         if !cli.no_external {
             cli.start.extend(links);
         }

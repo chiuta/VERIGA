@@ -23,6 +23,7 @@ pub fn esc(s: &str) -> String {
             '>' => o.push_str("&gt;"),
             '"' => o.push_str("&quot;"),
             '\'' => o.push_str("&#39;"),
+            c if crate::fixer::is_report_control(c) => o.push('\u{FFFD}'),
             _ => o.push(c),
         }
     }
@@ -1118,5 +1119,16 @@ mod tests {
         assert!(csv.contains("'=HYPERLINK"));
         let xml = to_sitemap_xml(&s);
         assert!(!xml.contains("<script>"), "sitemap XML neescapat");
+    }
+}
+
+#[cfg(test)]
+mod control_char_tests {
+    use super::esc;
+
+    #[test]
+    fn html_escape_drops_control_characters() {
+        assert_eq!(esc("a\u{1b}]0;PWN\u{7}b<"), "a\u{FFFD}]0;PWN\u{FFFD}b&lt;");
+        assert_eq!(esc("a\tb\nc"), "a\tb\nc");
     }
 }

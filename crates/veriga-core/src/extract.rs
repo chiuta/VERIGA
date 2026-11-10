@@ -73,6 +73,29 @@ pub struct Extracted {
     pub hreflangs: Vec<String>,
     /// Numele elementelor cu `integrity` la care atributul nu se aplică.
     pub sri_notes: Vec<String>,
+    /// Pagina a depășit bugetul de parsare ([`MAX_PARSE_EVENTS`]): s-a analizat doar începutul ei.
+    pub parse_truncated: bool,
+}
+
+/// Bugetul de «evenimente de parsare» (octeți NUL și semne `<`) pe pagină. Parserul HTML păstrează în
+/// memorie fiecare eroare și fiecare nod: o pagină de 7 MB doar din NUL sau din `<` ocupa 560–710 MB
+/// (amplificare ≈100×), iar cu multe fire în paralel un site ostil putea epuiza memoria. 200.000 de
+/// evenimente înseamnă aproximativ 100.000 de elemente, cu mult peste o pagină reală.
+pub const MAX_PARSE_EVENTS: usize = 200_000;
+
+/// Taie `html` la depășirea bugetului de parsare; întoarce textul de parsat și dacă a fost tăiat.
+pub fn cap_parse_events(html: &str) -> (&str, bool) {
+    let mut n = 0usize;
+    for (i, b) in html.bytes().enumerate() {
+        if b == b'<' || b == 0 {
+            n += 1;
+            if n > MAX_PARSE_EVENTS {
+                // `<` și NUL sunt ASCII: `i` este mereu la limită de caracter
+                return (&html[..i], true);
+            }
+        }
+    }
+    (html, false)
 }
 
 fn css_url_re() -> &'static Regex {
@@ -279,9 +302,13 @@ pub fn extract_html_opts(
     static NOSCRIPT: OnceLock<Regex> = OnceLock::new();
     let nos = NOSCRIPT.get_or_init(|| Regex::new(r"(?i)</?noscript\b[^>]*>").unwrap());
     let unwrapped = nos.replace_all(html, "");
-    let doc = Html::parse_document(&unwrapped);
+    let (capped, parse_truncated) = cap_parse_events(&unwrapped);
+    let doc = Html::parse_document(capped);
     let all = Selector::parse("*").unwrap();
-    let mut out = Extracted::default();
+    let mut out = Extracted {
+        parse_truncated,
+        ..Extracted::default()
+    };
 
     // <base href>
     let mut base = page.clone();
@@ -734,5 +761,48 @@ mod tests {
         let h = r#"<form action="/f" rel="nofollow"></form>"#;
         assert!(extract_html(&page, h, false).links.is_empty());
         assert_eq!(extract_html(&page, h, true).links[0].rel, vec!["nofollow"]);
+    }
+}
+
+#[cfg(test)]
+mod hardening_tests {
+    use super::*;
+
+    #[test]
+    fn nul_flood_is_cut_at_the_parse_budget() {
+        // 4 MB de NUL ocupau ~400 MB în parser (amplificare ≈100×)
+        let html = format!("<a href=\"/ok\">x</a>{}", "\0".repeat(4 << 20));
+        let (cut, truncated) = cap_parse_events(&html);
+        assert!(truncated);
+        assert!(cut.len() < 300_000, "tăiat la {} octeți", cut.len());
+        let page = Url::parse("http://example.org/").unwrap();
+        let e = extract_html(&page, &html, false);
+        assert!(e.parse_truncated);
+        // începutul paginii rămâne analizat
+        assert!(e.links.iter().any(|l| l.url.path() == "/ok"));
+    }
+
+    #[test]
+    fn lt_flood_and_dense_tags_are_cut_but_normal_pages_are_not() {
+        let (_, t) = cap_parse_events(&"<".repeat(MAX_PARSE_EVENTS + 1));
+        assert!(t);
+        let (_, t) = cap_parse_events(&"<".repeat(MAX_PARSE_EVENTS));
+        assert!(!t, "exact bugetul nu se taie");
+        // o pagină mare, dar reală: 20.000 de legături (≈40.000 de semne «<»)
+        let big: String = (0..20_000)
+            .map(|i| format!("<li><a href=\"/p/{i}\">p</a></li>"))
+            .collect();
+        let page = Url::parse("http://example.org/").unwrap();
+        let e = extract_html(&page, &big, false);
+        assert!(!e.parse_truncated);
+        assert_eq!(e.links.len(), 20_000);
+    }
+
+    #[test]
+    fn cut_never_splits_a_multibyte_character() {
+        let s = format!("é{}ü", "<".repeat(MAX_PARSE_EVENTS + 5));
+        let (cut, t) = cap_parse_events(&s);
+        assert!(t && cut.starts_with('é'));
+        assert!(std::str::from_utf8(cut.as_bytes()).is_ok());
     }
 }

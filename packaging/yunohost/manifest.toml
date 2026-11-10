@@ -6,7 +6,7 @@ description.en = "Link checker: finds broken links, redirects and slow pages; in
 description.fr = "Vérificateur de liens : liens cassés, redirections et pages lentes ; édition HTML autonome et Link Guardian planifié en option."
 description.ro = "Verificator de legături: legături rupte, redirecționări și pagini lente; ediția HTML dintr-un singur fișier și Link Guardian programat, opțional."
 
-version = "1.2.0~ynh1"
+version = "1.2.1~ynh1"
 
 maintainers = ["chiuta"]
 
@@ -53,10 +53,10 @@ ram.runtime = "20M"
 
 [resources]
     [resources.sources.main]
-    amd64.url = "https://github.com/chiuta/VERIGA/releases/download/v1.2.0/veriga-x86_64-unknown-linux-musl.tar.gz"
-    amd64.sha256 = "c7c245ffb82f87d406ce52e2bf87b5b04c1de2198563f18509403b0fd5226159"
-    arm64.url = "https://github.com/chiuta/VERIGA/releases/download/v1.2.0/veriga-aarch64-unknown-linux-musl.tar.gz"
-    arm64.sha256 = "3260d98057a35db25029d5a69b5258bdf57a1c6af8bd6d53f6a6ce8d77a6e176"
+    amd64.url = "https://github.com/chiuta/VERIGA/releases/download/v1.2.1/veriga-x86_64-unknown-linux-musl.tar.gz"
+    amd64.sha256 = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    arm64.url = "https://github.com/chiuta/VERIGA/releases/download/v1.2.1/veriga-aarch64-unknown-linux-musl.tar.gz"
+    arm64.sha256 = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
 
     autoupdate.strategy = "latest_github_release"
     autoupdate.asset.amd64 = "^veriga-x86_64-unknown-linux-musl\\.tar\\.gz$"

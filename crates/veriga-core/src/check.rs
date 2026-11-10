@@ -382,6 +382,14 @@ async fn check_inner(sh: Arc<Shared>, t: Task) -> Outcome {
                         });
                     }
                 }
+                if e.parse_truncated {
+                    warnings.push(trf!(
+                        "{}: pagină HTML prea complexă (peste {} de semne «<» sau NUL): analizată doar parțial",
+                        "{}: HTML page too complex (over {} '<' or NUL bytes): only partly analysed",
+                        page_url.as_str(),
+                        crate::extract::MAX_PARSE_EVENTS
+                    ));
+                }
                 r.title = e.title;
                 r.h1 = e.h1;
                 links = e.links;

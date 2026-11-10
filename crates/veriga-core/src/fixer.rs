@@ -1112,11 +1112,32 @@ pub fn undo(log: &mut FixLog, ids: Option<&[String]>, run: Option<&str>) -> Undo
 
 // ───────────────────────── raport propuneri (CSV) ─────────────────────────
 
-/// Neutralizează celulele care ar fi interpretate ca formule în Excel/Calc.
+/// Caracter de control periculos într-un raport (`ESC`, `BEL`, C1 etc.); `\n`, `\r` și `\t` rămân.
+pub fn is_report_control(c: char) -> bool {
+    c.is_control() && !matches!(c, '\n' | '\r' | '\t')
+}
+
+/// Înlocuiește caracterele de control cu U+FFFD. Titlurile și adresele vin din pagini necontrolate:
+/// un `ESC ] 52 ; …` dintr-un titlu ar scrie în clipboard sau ar schimba titlul terminalului când
+/// raportul este afișat cu `cat`.
+pub fn defang_controls(s: &str) -> std::borrow::Cow<'_, str> {
+    if s.chars().any(is_report_control) {
+        std::borrow::Cow::Owned(
+            s.chars()
+                .map(|c| if is_report_control(c) { '\u{FFFD}' } else { c })
+                .collect(),
+        )
+    } else {
+        std::borrow::Cow::Borrowed(s)
+    }
+}
+
+/// Neutralizează celulele care ar fi interpretate ca formule în Excel/Calc și elimină caracterele de control.
 pub fn csv_safe(s: &str) -> String {
+    let s = defang_controls(s);
     match s.chars().next() {
         Some('=' | '+' | '-' | '@' | '\t' | '\r') => format!("'{s}"),
-        _ => s.to_string(),
+        _ => s.into_owned(),
     }
 }
 
@@ -1928,5 +1949,33 @@ mod tests {
         let a = run_id();
         let b = run_id();
         assert_ne!(a, b);
+    }
+}
+
+#[cfg(test)]
+mod report_control_tests {
+    use super::*;
+
+    #[test]
+    fn csv_safe_removes_terminal_escapes_and_still_blocks_formulas() {
+        let osc52 = "titlu\u{1b}]52;c;ZXZpbA==\u{7}";
+        let safe = csv_safe(osc52);
+        assert!(
+            !safe.contains('\u{1b}') && !safe.contains('\u{7}'),
+            "{safe:?}"
+        );
+        assert!(safe.starts_with("titlu"));
+        assert_eq!(csv_safe("=1+1\u{1b}[2J"), "'=1+1\u{FFFD}[2J");
+        assert_eq!(csv_safe("a\u{9b}31m"), "a\u{FFFD}31m", "CSI de 8 biți (C1)");
+        // liniile noi dintr-o celulă citată și caracterele obișnuite nu se ating
+        assert_eq!(csv_safe("Bună\nziua – ăâîșț"), "Bună\nziua – ăâîșț");
+    }
+
+    #[test]
+    fn defang_borrows_when_clean() {
+        assert!(matches!(
+            defang_controls("curat"),
+            std::borrow::Cow::Borrowed(_)
+        ));
     }
 }

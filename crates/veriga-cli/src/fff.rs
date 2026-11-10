@@ -61,6 +61,19 @@ pub fn doi_ok(d: &str) -> bool {
         && !suf.chars().any(char::is_whitespace)
 }
 
+/// Legătura indică o gazdă locală/privată (literal IP sau nume local)? Pentru astfel de legături dintr-un plic
+/// nu se face nicio cerere în mod implicit: plicul vine dintr-un lanț care procesează documente
+/// necontrolate, iar un URL privat din el ar fi tratat ca punct de start (adică exceptat de anti-SSRF).
+pub fn is_private_link(link: &str) -> bool {
+    url::Url::parse(link)
+        .ok()
+        .and_then(|u| {
+            u.host_str()
+                .map(veriga_core::netguard::host_is_private_syntactic)
+        })
+        .unwrap_or(false)
+}
+
 /// Legătura de verificat pentru o referință: URL http(s) sau https://doi.org/<DOI> (doar dacă DOI-ul are sintaxă validă).
 pub fn link_of(item: &Value) -> Option<String> {
     if let Some(u) = item.get("URL").and_then(|x| x.as_str()) {
@@ -86,6 +99,10 @@ pub fn annotate(items: &[Value], session: Option<&Session>, now: &str) -> Vec<Va
         .iter()
         .map(|it| {
             let mut it = it.clone();
+            // un element care nu e obiect (șir, număr, null) rămâne neatins: nu are unde primi `custom`
+            if !it.is_object() {
+                return it;
+            }
             let doi = it.get("DOI").and_then(|x| x.as_str()).map(str::to_string);
             let mut v = serde_json::Map::new();
             if let Some(d) = &doi {
@@ -139,10 +156,11 @@ pub fn annotate(items: &[Value], session: Option<&Session>, now: &str) -> Vec<Va
                 }
             }
             v.insert("date".into(), json!(now));
-            let obj = it.as_object_mut().expect("CSL item must be an object");
-            let c = obj.entry("custom").or_insert_with(|| json!({}));
-            if let Some(co) = c.as_object_mut() {
-                co.insert("veriga".into(), Value::Object(v));
+            if let Some(obj) = it.as_object_mut() {
+                let c = obj.entry("custom").or_insert_with(|| json!({}));
+                if let Some(co) = c.as_object_mut() {
+                    co.insert("veriga".into(), Value::Object(v));
+                }
             }
             it
         })
@@ -212,5 +230,53 @@ mod tests {
         assert!(
             parse(r#"{"fff":2,"type":"table/csv","payload":[],"created":"x","app":"y"}"#).is_err()
         );
+    }
+}
+
+#[cfg(test)]
+mod hardening_tests {
+    use super::*;
+
+    #[test]
+    fn non_object_items_do_not_panic_and_are_kept_unchanged() {
+        let inp = parse(
+            r#"{"fff":2,"type":"citation/csl","payload":["text",5,null,[1],{"URL":"https://e.org/p"},{"URL":"https://e.org/q","custom":"x"}],"created":"t","app":"a"}"#,
+        )
+        .unwrap();
+        let out = annotate(&inp.items, None, "t");
+        assert_eq!(out.len(), 6);
+        assert_eq!(out[0], "text");
+        assert_eq!(out[1], 5);
+        assert!(out[2].is_null());
+        assert_eq!(out[3], json!([1]));
+        assert_eq!(out[4]["custom"]["veriga"]["status"], "unchecked");
+        // `custom` care nu e obiect rămâne cum e (nu se suprascrie datele altcuiva)
+        assert_eq!(out[5]["custom"], "x");
+        let env = envelope(&inp, out, "t");
+        assert!(env.contains("\"app\": \"VERIGA\""));
+    }
+
+    #[test]
+    fn private_and_local_envelope_links_are_recognised() {
+        for u in [
+            "http://127.0.0.1:8080/x",
+            "http://localhost/x",
+            "http://[::1]/x",
+            "http://169.254.169.254/latest/meta-data/",
+            "http://10.0.0.5/",
+            "http://192.168.1.1/",
+            "http://2130706433/",
+            "http://0x7f000001/",
+        ] {
+            assert!(is_private_link(u), "{u}");
+        }
+        for u in [
+            "https://example.org/p",
+            "https://doi.org/10.1000/x",
+            "http://8.8.8.8/",
+        ] {
+            assert!(!is_private_link(u), "{u}");
+        }
+        assert!(!is_private_link("nu e url"));
     }
 }

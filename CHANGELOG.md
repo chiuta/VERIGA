@@ -4,6 +4,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+## [1.2.1] — 2026-11-10
+
+Remedieri din auditul adversarial al versiunii 1.2.0 (server HTTP ostil cu socket brut, sitemap-uri și fluxuri cu entități, plicuri FFF ostile, sesiuni `.veriga` modificate, certificate TLS, symlink-uri și FIFO, reparator pe redirecționări ostile, injecție în rapoarte). / Fixes from an adversarial audit of 1.2.0.
+
+### Securitate
+- `--fff-in`: URL-urile către gazde private sau locale din plic (127.x, 10.x, 169.254.x, `localhost`, IPv6 local, forme zecimale/hex) nu mai devin puncte de start, deci nu mai ocolesc protecția anti-SSRF; se ignoră cu un avertisment, iar `--allow-private` le permite explicit. Plicul vine dintr-un lanț care procesează documente necontrolate. / FFF links to private/local hosts no longer become start points (which exempted them from the anti-SSRF guard); they are ignored with a warning unless `--allow-private` is given.
+- Rapoartele CSV, TSV și HTML nu mai conțin caractere de control (ESC, BEL, C1) din titluri și adrese: un titlu ostil putea scrie în clipboard sau schimba titlul terminalului (OSC 52 / OSC 0) când raportul era afișat cu `cat`. Se înlocuiesc cu U+FFFD. / Control characters from page titles and URLs are replaced in CSV/TSV/HTML reports (terminal escape injection).
+
+### Reparat
+- Epuizare de memorie la parsarea HTML: o pagină de 7 MB doar din octeți NUL sau din semne `<` ocupa 560–710 MB (amplificare ≈100×), iar 40 de asemenea pagini în paralel ajungeau la ≈1,5 GB. Parsarea are acum un buget de 200.000 de semne `<`/NUL pe pagină; peste buget se analizează doar începutul paginii și sesiunea primește un avertisment. Aceleași pagini ocupă acum 38–122 MB. / HTML parse budget of 200,000 `<`/NUL bytes per page bounds memory (was ≈100× amplification).
+- `--fff-in`: un element al plicului care nu e obiect (șir, număr, `null`, listă) oprea programul cu `panic` (cod 101); acum rămâne neatins în plicul de ieșire. / A non-object envelope item crashed with a panic (exit 101); it is now passed through unchanged.
+
+### Verificat fără defecte
+- Anti-SSRF: 19 forme de adresă privată în redirecționări și legături (zecimal, hex, octal, IPv6 mapat, `localhost.`, userinfo, Unicode, `0.0.0.0`) — niciuna nu a ajuns la o altă gazdă. Redirecționări în buclă și lanțuri de 500, scheme `file:`/`gopher:`/`javascript:` în `Location`.
+- Plafoane: corp infinit (chunked), bombă gzip de 1 GB și de 300 MB în sitemap, sitemap cu 1.000.000 de adrese (50.000 maxim), entități XML recursive și externe (nu se expandează), antete de 10 MB și 200.000 de antete, răspunsuri care picură sau nu răspund niciodată (limitate de `--timeout`).
+- Credențialele (`--auth`, antete personalizate) nu se trimit la altă origine; parolele din proxy și din URL nu apar în rapoarte; formulele CSV sunt neutralizate; JSON, SARIF și JUnit rămân valide; reparatorul nu a aplicat nicio redirecționare ostilă; directoarele locale nu citesc în afara rădăcinii și sar peste FIFO, `/dev/zero` și bucle de symlink.
+
 ## [1.2.0] — 2026-11-09
 
 ### Adăugat
