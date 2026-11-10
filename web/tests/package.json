@@ -2,7 +2,7 @@
   "name": "veriga-web-tests",
   "private": true,
   "scripts": {
-    "test": "node csp.test.js && node core.test.js && node guardian.test.js && node a11y.test.js"
+    "test": "node csp.test.js && node core.test.js && node guardian.test.js && node a11y.test.js && node zoom.test.js"
   },
   "devDependencies": {
     "axe-core": "^4.11.0",

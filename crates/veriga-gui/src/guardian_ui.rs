@@ -3,6 +3,7 @@
 //! conformitate și configurare programată.
 
 use eframe::egui::{self, RichText};
+use egui_extras::{Column, TableBuilder};
 use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, channel};
 use veriga_core::fixer::{self, ApplyOpts, FixLog, FixStatus, Proposal, ProposeOpts};
@@ -318,23 +319,50 @@ impl GuardianUi {
                         }
                     });
                     ui.label(&self.msg);
-                    egui::ScrollArea::vertical().max_height(300.0).show(ui, |ui| {
-                        egui::Grid::new("props").striped(true).show(ui, |ui| {
-                            for (i, p) in self.props.iter().enumerate() {
-                                ui.checkbox(&mut self.sel[i], "");
-                                ui.label(if p.verified { "✔" } else { "?" });
-                                ui.label(p.rule.label(lang));
-                                if p.impact() {
-                                    ui.label(RichText::new("★").color(egui::Color32::from_rgb(220, 150, 20))).on_hover_text(t("Impact: în meniu sau pe ≥ 3 pagini", "Impact: in a menu or on ≥ 3 pages"));
-                                } else {
-                                    ui.label("");
-                                }
-                                ui.label(RichText::new(&p.old).monospace());
-                                ui.label(RichText::new(format!("→ {}", p.new)).monospace());
-                                ui.end_row();
+                    // antetul rămâne fix cât timp se derulează rândurile
+                    TableBuilder::new(ui)
+                        .id_salt("props")
+                        .striped(true)
+                        .max_scroll_height(300.0)
+                        .column(Column::exact(26.0))
+                        .column(Column::exact(22.0))
+                        .column(Column::initial(170.0).clip(true))
+                        .column(Column::exact(22.0))
+                        .column(Column::initial(300.0).clip(true))
+                        .column(Column::remainder().at_least(200.0).clip(true))
+                        .header(22.0, |mut h| {
+                            for x in ["", "✔", t("Regulă", "Rule"), "★", t("Înainte", "Before"), t("După", "After")] {
+                                h.col(|ui| {
+                                    ui.label(RichText::new(x).strong());
+                                });
                             }
+                        })
+                        .body(|body| {
+                            body.rows(22.0, self.props.len(), |mut row| {
+                                let i = row.index();
+                                let p = &self.props[i];
+                                row.col(|ui| {
+                                    ui.checkbox(&mut self.sel[i], "");
+                                });
+                                row.col(|ui| {
+                                    ui.label(if p.verified { "✔" } else { "?" });
+                                });
+                                row.col(|ui| {
+                                    ui.label(p.rule.label(lang));
+                                });
+                                row.col(|ui| {
+                                    if p.impact() {
+                                        ui.label(RichText::new("★").color(egui::Color32::from_rgb(220, 150, 20))).on_hover_text(t("Impact: în meniu sau pe ≥ 3 pagini", "Impact: in a menu or on ≥ 3 pages"));
+                                    }
+                                });
+                                row.col(|ui| {
+                                    ui.label(RichText::new(&p.old).monospace());
+                                });
+                                row.col(|ui| {
+                                    ui.label(RichText::new(format!("→ {}", p.new)).monospace());
+                                });
+                            });
                         });
-                    });
                     ui.horizontal(|ui| {
                         if ui.button(t("Selectează verificate", "Select verified")).clicked() {
                             for (i, p) in self.props.iter().enumerate() {
@@ -376,24 +404,48 @@ impl GuardianUi {
                         ui.label(&self.msg);
                     });
                     let mut undo_id: Option<String> = None;
-                    egui::ScrollArea::vertical().show(ui, |ui| {
-                        egui::Grid::new("log").striped(true).show(ui, |ui| {
-                            for e in self.log.entries.iter().rev() {
-                                ui.label(&e.run);
-                                ui.label(e.rule.label(lang));
-                                ui.label(match e.status {
-                                    FixStatus::Applied => t("aplicat", "applied"),
-                                    FixStatus::Undone => t("anulat", "undone"),
-                                    FixStatus::Conflict => t("conflict", "conflict"),
+                    let n_log = self.log.entries.len();
+                    TableBuilder::new(ui)
+                        .id_salt("log")
+                        .striped(true)
+                        .column(Column::initial(120.0).clip(true))
+                        .column(Column::initial(170.0).clip(true))
+                        .column(Column::initial(80.0))
+                        .column(Column::remainder().at_least(200.0).clip(true))
+                        .column(Column::exact(32.0))
+                        .header(22.0, |mut h| {
+                            for x in [t("Rulare", "Run"), t("Regulă", "Rule"), t("Stare", "Status"), t("Modificare", "Change"), ""] {
+                                h.col(|ui| {
+                                    ui.label(RichText::new(x).strong());
                                 });
-                                ui.label(RichText::new(format!("{} → {}", e.old, e.new)).monospace());
-                                if e.status == FixStatus::Applied && ui.small_button("↶").clicked() {
-                                    undo_id = Some(e.id.clone());
-                                }
-                                ui.end_row();
                             }
+                        })
+                        .body(|body| {
+                            body.rows(22.0, n_log, |mut row| {
+                                let e = &self.log.entries[n_log - 1 - row.index()];
+                                row.col(|ui| {
+                                    ui.label(&e.run);
+                                });
+                                row.col(|ui| {
+                                    ui.label(e.rule.label(lang));
+                                });
+                                row.col(|ui| {
+                                    ui.label(match e.status {
+                                        FixStatus::Applied => t("aplicat", "applied"),
+                                        FixStatus::Undone => t("anulat", "undone"),
+                                        FixStatus::Conflict => t("conflict", "conflict"),
+                                    });
+                                });
+                                row.col(|ui| {
+                                    ui.label(RichText::new(format!("{} → {}", e.old, e.new)).monospace());
+                                });
+                                row.col(|ui| {
+                                    if e.status == FixStatus::Applied && ui.small_button("↶").clicked() {
+                                        undo_id = Some(e.id.clone());
+                                    }
+                                });
+                            });
                         });
-                    });
                     if let Some(id) = undo_id {
                         match self.with_log(|log| fixer::undo(log, Some(&[id]), None)) {
                             Ok(rep) => self.msg = format!("{}: {} · {}: {}", t("Anulate", "Undone"), rep.undone.len(), t("conflicte", "conflicts"), rep.conflicts.len()),
@@ -403,24 +455,49 @@ impl GuardianUi {
                 }
                 Tab::Domains => match session {
                     Some(_) => {
-                        egui::ScrollArea::vertical().show(ui, |ui| {
-                            egui::Grid::new("dom").striped(true).show(ui, |ui| {
-                                for h in [t("Gazdă", "Host"), t("Total", "Total"), t("Rupte", "Broken"), "403", t("Redir.", "Redir."), "ms", t("Sănătate", "Health")] {
-                                    ui.label(RichText::new(h).strong());
+                        TableBuilder::new(ui)
+                            .id_salt("dom")
+                            .striped(true)
+                            .column(Column::initial(220.0).clip(true))
+                            .column(Column::initial(60.0))
+                            .column(Column::initial(60.0))
+                            .column(Column::initial(50.0))
+                            .column(Column::initial(60.0))
+                            .column(Column::initial(60.0))
+                            .column(Column::remainder().at_least(130.0))
+                            .header(22.0, |mut h| {
+                                for x in [t("Gazdă", "Host"), t("Total", "Total"), t("Rupte", "Broken"), "403", t("Redir.", "Redir."), "ms", t("Sănătate", "Health")] {
+                                    h.col(|ui| {
+                                        ui.label(RichText::new(x).strong());
+                                    });
                                 }
-                                ui.end_row();
-                                for d in &self.cache_domains {
-                                    ui.label(&d.host);
-                                    ui.label(d.total.to_string());
-                                    ui.label(d.broken.to_string());
-                                    ui.label(d.review.to_string());
-                                    ui.label(d.redirects.to_string());
-                                    ui.label(d.avg_ms.to_string());
-                                    ui.add(egui::ProgressBar::new((d.health / 100.0) as f32).text(format!("{:.0}%", d.health)).desired_width(120.0));
-                                    ui.end_row();
-                                }
+                            })
+                            .body(|body| {
+                                body.rows(22.0, self.cache_domains.len(), |mut row| {
+                                    let d = &self.cache_domains[row.index()];
+                                    row.col(|ui| {
+                                        ui.label(&d.host);
+                                    });
+                                    row.col(|ui| {
+                                        ui.label(d.total.to_string());
+                                    });
+                                    row.col(|ui| {
+                                        ui.label(d.broken.to_string());
+                                    });
+                                    row.col(|ui| {
+                                        ui.label(d.review.to_string());
+                                    });
+                                    row.col(|ui| {
+                                        ui.label(d.redirects.to_string());
+                                    });
+                                    row.col(|ui| {
+                                        ui.label(d.avg_ms.to_string());
+                                    });
+                                    row.col(|ui| {
+                                        ui.add(egui::ProgressBar::new((d.health / 100.0) as f32).text(format!("{:.0}%", d.health)).desired_width(120.0));
+                                    });
+                                });
                             });
-                        });
                     }
                     None => {
                         ui.label(t("Rulează întâi o verificare.", "Run a check first."));

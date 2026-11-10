@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-XKC/HVLUn54oVFTHvYxO9F6+5foM7T1dz9B9umxyjr4=' 'sha256-o/Hdu5nxu/qzuFkJ8XYGutrRNZuXd0vcp5idZn8QDu0='; style-src-elem 'sha256-pT+CdiRMyfWnJaSujq6Rw3TLJ8X7EW7oun5DaBBlBFU='; style-src-attr 'unsafe-inline'; img-src data: blob:; connect-src http: https: blob: data:; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-HCYngpHD/o8pZdRFWinAOUj4iDC3pCkbDQFFbzrGWP4=' 'sha256-uJdk8dRR8ZhHvA2Fe1zdjUa5BYlHGnTp36rMa0EKFQo='; style-src-elem 'sha256-zuijPPzZk5eF+QlTGG0Wdybk0eTtOGROwAR0p/5pCDg='; style-src-attr 'unsafe-inline'; img-src data: blob:; connect-src http: https: blob: data:; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>VERIGA — verificator de legături</title>
 <style>
 :root{--bg:#f6f6f2;--fg:#1c1f23;--mut:#677079;--card:#fff;--bd:#d8dce1;--ok:#17794c;--bad:#b3261e;--warn:#98660a;--acc:#2f5fd0;--accfg:#fff;--row:#f1f3f5}
@@ -25,7 +25,14 @@ body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,"Seg
 header{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--bd);background:var(--card);flex-wrap:wrap}
 header h1{margin:0;font-size:1.25rem;letter-spacing:.08em}
 header .sub{color:var(--mut);font-size:.85rem;flex:1}
-main{max-width:1280px;margin:0 auto;padding:14px 16px 40px}
+#app{zoom:var(--z,1)}
+main{max-width:none;margin:0 auto;padding:14px 16px calc(64px / var(--z,1))}
+th{position:sticky;top:0;z-index:1;background:var(--row);box-shadow:0 1px 0 var(--bd)}
+#zbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 10px;background:var(--card);border-top:1px solid var(--bd)}
+#zbar button{min-width:44px;min-height:40px;display:inline-flex;align-items:center;justify-content:center;padding:4px 10px}
+#zbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#zbar button[aria-pressed=true]{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+#zpct{min-width:4.2em;text-align:center;font-weight:600;font-variant-numeric:tabular-nums}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:12px}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .tab,button,.btn{font:inherit;border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:8px;padding:6px 12px;cursor:pointer}
@@ -49,7 +56,7 @@ label{display:block;font-size:.85rem;color:var(--mut);margin:8px 0 3px}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{border-radius:999px;padding:3px 11px;font-size:.85rem}
 .chip[aria-pressed=true]{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
-#tbl{height:56vh;min-height:280px;overflow:auto;border:1px solid var(--bd);border-radius:8px;position:relative;background:var(--card)}
+#tbl{height:calc((100vh - 330px) / var(--z,1));min-height:280px;overflow:auto;border:1px solid var(--bd);border-radius:8px;position:relative;background:var(--card)}
 #thead,.r{display:grid;grid-template-columns:170px 54px minmax(260px,1fr) 92px 78px 170px 40px 58px;gap:0;align-items:center;font-size:.85rem}
 #thead{position:sticky;top:0;background:var(--row);z-index:2;border-bottom:1px solid var(--bd);min-width:960px}
 #thead div{padding:6px 8px;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap}
@@ -70,6 +77,7 @@ details>summary{cursor:pointer;font-weight:600}
 </style>
 </head>
 <body>
+<div id="app">
 <a class="skip" href="#main" data-ro="Sari la conținut" data-en="Skip to content"></a>
 <header>
   <h1>VERIGA</h1>
@@ -179,6 +187,13 @@ details>summary{cursor:pointer;font-weight:600}
   </details>
 </section>
 </main>
+</div>
+<footer id="zbar" data-al-ro="Zoom" data-al-en="Zoom" aria-label="Zoom">
+  <button id="z-out" type="button" data-al-ro="Micșorează (zoom out)" data-al-en="Zoom out"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M21 21l-5.2-5.2M7.5 10.5h6"/></svg></button>
+  <span id="zpct" role="status" aria-live="polite">100%</span>
+  <button id="z-in" type="button" data-al-ro="Mărește (zoom in)" data-al-en="Zoom in"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M21 21l-5.2-5.2M7.5 10.5h6M10.5 7.5v6"/></svg></button>
+  <button id="z-auto" type="button" aria-pressed="true" data-al-ro="Zoom automat: potrivește ecranul" data-al-en="Automatic zoom: fit the screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+</footer>
 
 <script>
 'use strict';
@@ -920,7 +935,7 @@ function toTree() {
   roots.forEach(i => walk(i, 0));
   return o;
 }
-const REPORT_CSS = ':root{--bg:#fafaf7;--fg:#1d2024;--mut:#6a717b;--card:#fff;--bd:#dcdfe3;--ok:#16794a;--bad:#b3261e;--warn:#9a6700}@media (prefers-color-scheme:dark){:root{--bg:#14161a;--fg:#e8eaed;--mut:#9aa1ab;--card:#1c1f24;--bd:#2d3239;--ok:#5ccf93;--bad:#ff8a80;--warn:#f0b84a}}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif}main{max-width:1150px;margin:0 auto;padding:20px 16px}h2{font-size:1.1rem;border-bottom:1px solid var(--bd);padding-bottom:.3em;margin-top:1.6em}table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--bd);font-size:.88rem}th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);vertical-align:top;word-break:break-word}td.u{font-family:ui-monospace,monospace;font-size:.8rem}.par{display:block;color:var(--mut);font-size:.8rem}.cards{display:flex;gap:10px;flex-wrap:wrap}.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px 16px}.card b{display:block;font-size:1.5rem}.bad b{color:var(--bad)}.ok b{color:var(--ok)}';
+const REPORT_CSS = ':root{--bg:#fafaf7;--fg:#1d2024;--mut:#6a717b;--card:#fff;--bd:#dcdfe3;--ok:#16794a;--bad:#b3261e;--warn:#9a6700}@media (prefers-color-scheme:dark){:root{--bg:#14161a;--fg:#e8eaed;--mut:#9aa1ab;--card:#1c1f24;--bd:#2d3239;--ok:#5ccf93;--bad:#ff8a80;--warn:#f0b84a}}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif}main{max-width:1150px;margin:0 auto;padding:20px 16px}h2{font-size:1.1rem;border-bottom:1px solid var(--bd);padding-bottom:.3em;margin-top:1.6em}table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--bd);font-size:.88rem}th{position:sticky;top:0;z-index:1;background:var(--card);box-shadow:0 1px 0 var(--bd)}th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--bd);vertical-align:top;word-break:break-word}td.u{font-family:ui-monospace,monospace;font-size:.8rem}.par{display:block;color:var(--mut);font-size:.8rem}.cards{display:flex;gap:10px;flex-wrap:wrap}.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px 16px}.card b{display:block;font-size:1.5rem}.bad b{color:var(--bad)}.ok b{color:var(--ok)}';
 function toHtmlReport() {
   const broken = S.results.filter(r => isBroken(r.status)), red = S.results.filter(r => r.status === 'Redirected'), orph = S.results.filter(r => r.status === 'Orphan');
   const titles = new Map(); S.results.forEach(r => { if (r.internal && r.parsed && (r.content_type || '').includes('html') && r.title) (titles.get(r.title) || titles.set(r.title, []).get(r.title)).push(r.url); });
@@ -1023,10 +1038,28 @@ async function fromDrop(dt) {
 }
 
 /* ───────────── limbă ───────────── */
+// Zoom: mod automat (potrivește ecranul) sau factor manual; se păstrează în localStorage
+const ZMIN = 0.6, ZMAX = 3, ZSTEP = 0.1;
+let ZMODE = (() => { const v = lsGet('veriga.zoom'); const n = parseFloat(v); return v && v !== 'auto' && n >= ZMIN && n <= ZMAX ? n : 'auto'; })();
+function autoZoom() {
+  const z = Math.min(innerWidth / 1100, innerHeight / 680);
+  return Math.min(2.2, Math.max(1, Math.round(z * 20) / 20));
+}
+function curZoom() { return ZMODE === 'auto' ? autoZoom() : ZMODE; }
+function applyZoom() {
+  const z = curZoom();
+  document.documentElement.style.setProperty('--z', String(z));
+  $('#zpct').textContent = Math.round(z * 100) + '%';
+  $('#z-auto').setAttribute('aria-pressed', ZMODE === 'auto' ? 'true' : 'false');
+  $('#z-out').disabled = z <= ZMIN + 0.001; $('#z-in').disabled = z >= ZMAX - 0.001;
+  renderRows();
+}
+function setZoom(m) { ZMODE = m; lsSet('veriga.zoom', m === 'auto' ? 'auto' : String(m)); applyZoom(); }
+function stepZoom(d) { const z = Math.round((curZoom() + d) * 10) / 10; setZoom(Math.min(ZMAX, Math.max(ZMIN, z))); }
 function applyLang() {
   document.documentElement.lang = LANG;
   $$('[data-ro]').forEach(e => { e.textContent = LANG === 'en' ? e.dataset.en : e.dataset.ro; });
-  $$('[data-al-ro]').forEach(e => e.setAttribute('aria-label', LANG === 'en' ? e.dataset.alEn : e.dataset.alRo));
+  $$('[data-al-ro]').forEach(e => { const l = LANG === 'en' ? e.dataset.alEn : e.dataset.alRo; e.setAttribute('aria-label', l); if (e.closest('#zbar')) e.title = l; });
   $$('[data-ph-ro]').forEach(e => { e.placeholder = LANG === 'en' ? e.dataset.phEn : e.dataset.phRo; });
   $('#lang').textContent = LANG === 'en' ? 'RO' : 'EN';
   $('#exp').innerHTML = EXPORTS.map(([k, ro, en]) => `<option value="${k}">${LANG === 'en' ? en : ro}</option>`).join('');
@@ -1074,7 +1107,12 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#tbl').addEventListener('scroll', renderRows);
   $('#spacer').addEventListener('click', e => { const r = e.target.closest('.r'); if (r) showDetail(parseInt(r.dataset.i, 10)); });
   $('#detail').addEventListener('click', e => { const b = e.target.closest('[data-copy]'); if (b) { const r = S.results[parseInt(b.dataset.copy, 10)]; if (r && navigator.clipboard) navigator.clipboard.writeText(r.url).catch(() => {}); } });
+  $('#z-out').addEventListener('click', () => stepZoom(-ZSTEP));
+  $('#z-in').addEventListener('click', () => stepZoom(ZSTEP));
+  $('#z-auto').addEventListener('click', () => setZoom('auto'));
+  let zt = 0; addEventListener('resize', () => { clearTimeout(zt); zt = setTimeout(() => { if (ZMODE === 'auto') applyZoom(); else renderRows(); }, 120); });
   applyLang();
+  applyZoom();
 });
 </script>
 <script>
@@ -1428,7 +1466,7 @@ function gdTabs() {
 const needSess = () => S.results.length ? '' : `<p class="note">${gl('Rulează sau importă mai întâi o verificare.', 'Run or import a check first.')}</p>`;
 function gdRender() {
   gdTabs(); const b = $('#gd-body'); let h = '';
-  const tbl = (head, rows) => `<div style="overflow:auto;max-height:50vh"><table style="width:100%;border-collapse:collapse;font-size:.85rem"><tr>${head.map(x => `<th scope="col" style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--bd)">${x === '' ? '<span class="sr-only">' + gl('Acțiune', 'Action') + '</span>' : x}</th>`).join('')}</tr>${rows.join('')}</table></div>`;
+  const tbl = (head, rows) => `<div style="overflow:auto;max-height:calc(50vh / var(--z,1))"><table style="width:100%;border-collapse:collapse;font-size:.85rem"><tr>${head.map(x => `<th scope="col" style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--bd)">${x === '' ? '<span class="sr-only">' + gl('Acțiune', 'Action') + '</span>' : x}</th>`).join('')}</tr>${rows.join('')}</table></div>`;
   const td = (v, c) => `<td class="${c || ''}" style="padding:3px 8px;border-bottom:1px solid var(--bd);vertical-align:top;word-break:break-all">${v}</td>`;
   if (GD.tab === 'fix') {
     h += `<p class="note">${gl('Încarcă fișierele-sursă (HTML, Markdown, export WordPress .xml, sitemap). Modificările se fac în memorie; apoi descarci fișierele sau le scrii direct într-un folder. Nimic nu pleacă din browser.', 'Load source files (HTML, Markdown, WordPress export .xml, sitemap). Changes happen in memory; then download the files or write them straight into a folder. Nothing leaves the browser.')}</p>`;

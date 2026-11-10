@@ -4,6 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+### Adăugat
+- **Zoom pe bara de jos** (varianta HTML și interfața nativă): butoane cu pictograme lupă −/+, procentul curent și „Auto”. În HTML alegerea se păstrează în `localStorage`; în interfața nativă merge și Ctrl +/−.
+- **Zoom automat la pornire**: textul se mărește ca să umple ecranul (factor 100–220 %, calculat din dimensiunea ferestrei și recalculat la redimensionare); interfața nativă pornește maximizată.
+- **Antete de tabel fixe** la derulare: în HTML pentru toate tabelele (rezultate, Guardian, rapoartele exportate); în interfața nativă tabelele Guardian (propuneri, jurnal, domenii) au antet, iar tabelul principal îl avea deja.
+
 ## [1.2.1] — 2026-11-10
 
 Remedieri din auditul adversarial al versiunii 1.2.0 (server HTTP ostil cu socket brut, sitemap-uri și fluxuri cu entități, plicuri FFF ostile, sesiuni `.veriga` modificate, certificate TLS, symlink-uri și FIFO, reparator pe redirecționări ostile, injecție în rapoarte). / Fixes from an adversarial audit of 1.2.0.

@@ -75,7 +75,21 @@ struct App {
     selected: Option<usize>,
     paused: bool,
     english: bool,
+    /// None = zoom automat (potrivit ferestrei); Some(f) = factor ales de utilizator
+    zoom: Option<f32>,
+    /// ultimul factor aplicat de noi (ca să deosebim Ctrl +/- făcut de utilizator)
+    zoom_applied: f32,
     gd: guardian_ui::GuardianUi,
+}
+
+const ZOOM_MIN: f32 = 0.6;
+const ZOOM_MAX: f32 = 3.0;
+const ZOOM_STEP: f32 = 0.1;
+
+/// Factorul de zoom automat pentru o fereastră de `w`×`h` puncte logice native:
+/// textul crește ca să umple ecranul (interfața e gândită pentru ~1100×680).
+fn auto_zoom(w: f32, h: f32) -> f32 {
+    (((w / 1100.0).min(h / 680.0) * 20.0).round() / 20.0).clamp(1.0, 2.2)
 }
 
 impl App {
@@ -123,6 +137,8 @@ impl App {
             selected: None,
             paused: false,
             english: veriga_core::i18n::detect() == "en",
+            zoom: None,
+            zoom_applied: 1.0,
             gd: guardian_ui::GuardianUi::default(),
         }
     }
@@ -450,6 +466,21 @@ impl eframe::App for App {
             // 4 fps: suficient pentru progres; 10 fps ținea un nucleu ocupat la randare software
             ctx.request_repaint_after(std::time::Duration::from_millis(250));
         }
+        // zoom: Ctrl +/- făcut de utilizator trece pe manual; altfel automat după dimensiunea ferestrei
+        let cz = ctx.zoom_factor();
+        if (cz - self.zoom_applied).abs() > 0.001 {
+            self.zoom = Some(cz.clamp(ZOOM_MIN, ZOOM_MAX));
+        }
+        let want = self.zoom.unwrap_or_else(|| {
+            let k = ctx.pixels_per_point() / ctx.native_pixels_per_point().unwrap_or(1.0);
+            ctx.input(|i| i.viewport().inner_rect)
+                .map(|r| auto_zoom(r.width() * k, r.height() * k))
+                .unwrap_or(1.0)
+        });
+        if (want - cz).abs() > 0.001 {
+            ctx.set_zoom_factor(want);
+        }
+        self.zoom_applied = want;
         let lang = self.lang();
         {
             let eng = self.english;
@@ -1002,6 +1033,46 @@ impl eframe::App for App {
                 });
         }
 
+        egui::Panel::bottom("zoom").show(root, |ui| {
+            ui.add_space(2.0);
+            ui.horizontal(|ui| {
+                ui.add_space(((ui.available_width() - 300.0) / 2.0).max(0.0));
+                let cur = self.zoom_applied;
+                let out = egui::Button::new("🔍➖");
+                if ui
+                    .add_enabled(cur > ZOOM_MIN + 0.001, out)
+                    .on_hover_text(self.t("Micșorează (zoom out)", "Zoom out"))
+                    .clicked()
+                {
+                    self.zoom = Some((((cur - ZOOM_STEP) * 10.0).round() / 10.0).max(ZOOM_MIN));
+                }
+                ui.label(
+                    RichText::new(format!("{:>3.0}%", cur * 100.0))
+                        .strong()
+                        .monospace(),
+                );
+                let inn = egui::Button::new("🔍➕");
+                if ui
+                    .add_enabled(cur < ZOOM_MAX - 0.001, inn)
+                    .on_hover_text(self.t("Mărește (zoom in)", "Zoom in"))
+                    .clicked()
+                {
+                    self.zoom = Some((((cur + ZOOM_STEP) * 10.0).round() / 10.0).min(ZOOM_MAX));
+                }
+                if ui
+                    .selectable_label(self.zoom.is_none(), "Auto")
+                    .on_hover_text(self.t(
+                        "Zoom automat: potrivește ecranul",
+                        "Automatic zoom: fit the screen",
+                    ))
+                    .clicked()
+                {
+                    self.zoom = None;
+                }
+            });
+            ui.add_space(2.0);
+        });
+
         egui::CentralPanel::default().show(root, |ui| {
             ui.horizontal(|ui| {
                 let all = self.results.len();
@@ -1209,6 +1280,7 @@ fn run() -> eframe::Result<()> {
     let opts = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1180.0, 760.0])
+            .with_maximized(true)
             .with_min_inner_size([760.0, 480.0])
             .with_title("VERIGA — verificator de legături"),
         ..Default::default()
@@ -1235,4 +1307,18 @@ fn run() -> eframe::Result<()> {
             Ok(Box::new(app))
         }),
     )
+}
+
+#[cfg(test)]
+mod zoom_tests {
+    use super::auto_zoom;
+
+    #[test]
+    fn auto_zoom_fills_the_screen_but_stays_sane() {
+        assert_eq!(auto_zoom(1920.0, 1080.0), 1.6); // Full HD: text mărit
+        assert_eq!(auto_zoom(1180.0, 760.0), 1.05); // fereastra implicită
+        assert_eq!(auto_zoom(800.0, 500.0), 1.0); // ecran mic: nu micșorăm sub 100%
+        assert_eq!(auto_zoom(7680.0, 4320.0), 2.2); // 8K: plafon
+        assert_eq!(auto_zoom(0.0, 0.0), 1.0);
+    }
 }
