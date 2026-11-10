@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+## [1.3.0] — 2026-11-10
+
 ### Adăugat
 - **Zoom pe bara de jos** (varianta HTML și interfața nativă): butoane cu pictograme lupă −/+, procentul curent și „Auto”. În HTML alegerea se păstrează în `localStorage`; în interfața nativă merge și Ctrl +/−.
 - **Zoom automat la pornire**: textul se mărește ca să umple ecranul (factor 100–220 %, calculat din dimensiunea ferestrei și recalculat la redimensionare); interfața nativă pornește maximizată.
