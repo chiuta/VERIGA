@@ -4,7 +4,7 @@ Tags: broken links, link checker, seo, maintenance, trade-free
 Requires at least: 6.2
 Tested up to: 7.1.4
 Requires PHP: 7.4
-Stable tag: 1.3.1
+Stable tag: 1.3.2
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -51,6 +51,9 @@ Tick "Allow private/local addresses" on the Scheduled check tab. VERIGA blocks p
 No. There is no telemetry and no account. E-mails go through your site's own `wp_mail`.
 
 == Changelog ==
+
+= 1.3.2 =
+* Bundles VERIGA 1.3.2: the automatic zoom no longer flickers (also hardened in the embedded app).
 
 = 1.3.1 =
 * Security hardening after an adversarial audit: bounded reading of the program output, reports above 32 MB are no longer parsed in memory, values from the crawled site are stripped of control characters before they reach e-mails and the admin, every settings field is read as a string. Bundles VERIGA 1.3.1.

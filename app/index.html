@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-HCYngpHD/o8pZdRFWinAOUj4iDC3pCkbDQFFbzrGWP4=' 'sha256-uJdk8dRR8ZhHvA2Fe1zdjUa5BYlHGnTp36rMa0EKFQo='; style-src-elem 'sha256-zuijPPzZk5eF+QlTGG0Wdybk0eTtOGROwAR0p/5pCDg='; style-src-attr 'unsafe-inline'; img-src 'self' data: blob:; connect-src http: https: blob: data:; base-uri 'none'; form-action 'none'; object-src 'none'; manifest-src 'self'; worker-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-riFkiuzfuUEw0FppfOdFlHHNXJcEW6UJ5zkO/7JbK48=' 'sha256-uJdk8dRR8ZhHvA2Fe1zdjUa5BYlHGnTp36rMa0EKFQo='; style-src-elem 'sha256-zuijPPzZk5eF+QlTGG0Wdybk0eTtOGROwAR0p/5pCDg='; style-src-attr 'unsafe-inline'; img-src 'self' data: blob:; connect-src http: https: blob: data:; base-uri 'none'; form-action 'none'; object-src 'none'; manifest-src 'self'; worker-src 'self'">
 <title>VERIGA — verificator de legături</title>
 <style>
 :root{--bg:#f6f6f2;--fg:#1c1f23;--mut:#677079;--card:#fff;--bd:#d8dce1;--ok:#17794c;--bad:#b3261e;--warn:#98660a;--acc:#2f5fd0;--accfg:#fff;--row:#f1f3f5}
@@ -1045,7 +1045,18 @@ function autoZoom() {
   const z = Math.min(innerWidth / 1100, innerHeight / 680);
   return Math.min(2.2, Math.max(1, Math.round(z * 20) / 20));
 }
-function curZoom() { return ZMODE === 'auto' ? autoZoom() : ZMODE; }
+let ZAUTO = autoZoom(), zFlips = [];
+function curZoom() { return ZMODE === 'auto' ? ZAUTO : ZMODE; }
+// La redimensionare: histerezis (≥ 0,1) și întrerupător — peste 4 schimbări automate în 5 s se îngheață factorul curent
+function onResizeZoom() {
+  if (ZMODE !== 'auto') { renderRows(); return; }
+  const t = autoZoom();
+  if (Math.abs(t - ZAUTO) < 0.095) { renderRows(); return; }
+  const now = Date.now(); zFlips = zFlips.filter(x => now - x < 5000); zFlips.push(now);
+  if (zFlips.length > 4) { ZMODE = ZAUTO; }
+  else { ZAUTO = t; }
+  applyZoom();
+}
 function applyZoom() {
   const z = curZoom();
   document.documentElement.style.setProperty('--z', String(z));
@@ -1054,7 +1065,7 @@ function applyZoom() {
   $('#z-out').disabled = z <= ZMIN + 0.001; $('#z-in').disabled = z >= ZMAX - 0.001;
   renderRows();
 }
-function setZoom(m) { ZMODE = m; lsSet('veriga.zoom', m === 'auto' ? 'auto' : String(m)); applyZoom(); }
+function setZoom(m) { ZMODE = m; if (m === 'auto') ZAUTO = autoZoom(); lsSet('veriga.zoom', m === 'auto' ? 'auto' : String(m)); applyZoom(); }
 function stepZoom(d) { const z = Math.round((curZoom() + d) * 10) / 10; setZoom(Math.min(ZMAX, Math.max(ZMIN, z))); }
 function applyLang() {
   document.documentElement.lang = LANG;
@@ -1110,7 +1121,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#z-out').addEventListener('click', () => stepZoom(-ZSTEP));
   $('#z-in').addEventListener('click', () => stepZoom(ZSTEP));
   $('#z-auto').addEventListener('click', () => setZoom('auto'));
-  let zt = 0; addEventListener('resize', () => { clearTimeout(zt); zt = setTimeout(() => { if (ZMODE === 'auto') applyZoom(); else renderRows(); }, 120); });
+  let zt = 0; addEventListener('resize', () => { clearTimeout(zt); zt = setTimeout(onResizeZoom, 120); });
   applyLang();
   applyZoom();
 });

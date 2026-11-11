@@ -1,7 +1,7 @@
 <?php
 /** Test de fum pentru Veriga_Admin: randare ambele file cu date ostile în starea salvată; verifică escaparea. */
 define( 'ABSPATH', __DIR__ );
-define( 'VERIGA_LC_VERSION', '1.3.1' );
+define( 'VERIGA_LC_VERSION', '1.3.2' );
 define( 'VERIGA_LC_FILE', realpath( __DIR__ . '/../veriga-link-checker' ) . '/veriga-link-checker.php' );
 define( 'VERIGA_LC_DIR', dirname( VERIGA_LC_FILE ) . '/' );
 $GLOBALS['opts'] = array();
