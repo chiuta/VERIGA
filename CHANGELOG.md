@@ -4,6 +4,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+### Reparat
+- **Interfața nativă (Windows 11 / ecrane cu scalare DPI): zoomul automat pâlpâia mărind și micșorând continuu.** Dimensiunea ferestrei raportată de egui rămâne în urmă cu 1–2 cadre după o schimbare de zoom, iar conversia ei cu factorul nou dădea o valoare greșită și o buclă fără sfârșit (reprodus sub Xvfb cu scalare simulată: ciclu 100 % → 105 % → 115 % → 100 %). Acum: așteptare de 4 cadre după fiecare schimbare, histerezis de 0,1, fără revenire la 100 % când dimensiunea lipsește și un întrerupător de siguranță (peste 4 schimbări în 5 s zoomul automat se oprește și rămâne pe valoarea curentă). Teste: model al întârzierii care reproduce ciclarea fără corecție și converge cu ea. `VERIGA_ZOOM_DEBUG=1` afișează schimbările de zoom.
+
 ## [1.3.1] — 2026-11-10
 
 ### Adăugat

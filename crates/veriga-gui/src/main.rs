@@ -79,12 +79,27 @@ struct App {
     zoom: Option<f32>,
     /// ultimul factor aplicat de noi (ca să deosebim Ctrl +/- făcut de utilizator)
     zoom_applied: f32,
+    /// cadre de așteptare după o schimbare de zoom: dimensiunea ferestrei raportată de egui rămâne în urmă
+    zoom_wait: u8,
+    /// plasă de siguranță: (început fereastră, număr de schimbări automate)
+    zoom_flips: Option<(std::time::Instant, u8)>,
     gd: guardian_ui::GuardianUi,
 }
 
 const ZOOM_MIN: f32 = 0.6;
 const ZOOM_MAX: f32 = 3.0;
 const ZOOM_STEP: f32 = 0.1;
+
+/// Ca `auto_zoom`, dar cu histerezis: se schimbă doar dacă diferența față de factorul curent e de cel puțin 0,1,
+/// ca să nu pâlpâie la limita dintre două trepte.
+fn auto_zoom_hysteresis(current: f32, w: f32, h: f32) -> f32 {
+    let target = auto_zoom(w, h);
+    if (target - current).abs() >= 0.095 {
+        target
+    } else {
+        current
+    }
+}
 
 /// Factorul de zoom automat pentru o fereastră de `w`×`h` puncte logice native:
 /// textul crește ca să umple ecranul (interfața e gândită pentru ~1100×680).
@@ -139,6 +154,8 @@ impl App {
             english: veriga_core::i18n::detect() == "en",
             zoom: None,
             zoom_applied: 1.0,
+            zoom_wait: 0,
+            zoom_flips: None,
             gd: guardian_ui::GuardianUi::default(),
         }
     }
@@ -471,14 +488,46 @@ impl eframe::App for App {
         if (cz - self.zoom_applied).abs() > 0.001 {
             self.zoom = Some(cz.clamp(ZOOM_MIN, ZOOM_MAX));
         }
-        let want = self.zoom.unwrap_or_else(|| {
-            let k = ctx.pixels_per_point() / ctx.native_pixels_per_point().unwrap_or(1.0);
-            ctx.input(|i| i.viewport().inner_rect)
-                .map(|r| auto_zoom(r.width() * k, r.height() * k))
-                .unwrap_or(1.0)
-        });
+        let want = match self.zoom {
+            Some(z) => z,
+            None if self.zoom_wait > 0 => {
+                // `inner_rect` (în puncte) rămâne în urmă cu 1–2 cadre după o schimbare de zoom: dacă l-am converti acum
+                // cu factorul nou am obține o dimensiune greșită și zoomul ar oscila (reprodus sub scalare DPI).
+                self.zoom_wait -= 1;
+                ctx.request_repaint();
+                cz
+            }
+            None => {
+                let k = ctx.pixels_per_point() / ctx.native_pixels_per_point().unwrap_or(1.0);
+                match ctx.input(|i| i.viewport().inner_rect) {
+                    Some(r) => auto_zoom_hysteresis(cz, r.width() * k, r.height() * k),
+                    None => cz, // fără dimensiune: păstrăm valoarea curentă, nu revenim la 100 %
+                }
+            }
+        };
+        let mut want = want;
+        if self.zoom.is_none() && (want - cz).abs() > 0.001 {
+            let now = std::time::Instant::now();
+            let (t0, n) = match self.zoom_flips {
+                Some((t0, n)) if now.duration_since(t0).as_secs() < 5 => (t0, n + 1),
+                _ => (now, 1),
+            };
+            self.zoom_flips = Some((t0, n));
+            if n > 4 {
+                // oscilație: renunțăm la zoomul automat și păstrăm factorul curent
+                self.zoom = Some(cz.clamp(ZOOM_MIN, ZOOM_MAX));
+                want = cz;
+            }
+        }
         if (want - cz).abs() > 0.001 {
+            if std::env::var_os("VERIGA_ZOOM_DEBUG").is_some() {
+                eprintln!(
+                    "zoom {cz:.2} -> {want:.2} (manual: {})",
+                    self.zoom.is_some()
+                );
+            }
             ctx.set_zoom_factor(want);
+            self.zoom_wait = 4;
         }
         self.zoom_applied = want;
         let lang = self.lang();
@@ -1068,6 +1117,7 @@ impl eframe::App for App {
                     .clicked()
                 {
                     self.zoom = None;
+                    self.zoom_wait = 4;
                 }
             });
             ui.add_space(2.0);
@@ -1311,7 +1361,7 @@ fn run() -> eframe::Result<()> {
 
 #[cfg(test)]
 mod zoom_tests {
-    use super::auto_zoom;
+    use super::{auto_zoom, auto_zoom_hysteresis};
 
     #[test]
     fn auto_zoom_fills_the_screen_but_stays_sane() {
@@ -1320,5 +1370,62 @@ mod zoom_tests {
         assert_eq!(auto_zoom(800.0, 500.0), 1.0); // ecran mic: nu micșorăm sub 100%
         assert_eq!(auto_zoom(7680.0, 4320.0), 2.2); // 8K: plafon
         assert_eq!(auto_zoom(0.0, 0.0), 1.0);
+    }
+
+    #[test]
+    fn hysteresis_prevents_flicker_near_a_step_boundary() {
+        let mut z = 1.0;
+        for w in [1165.0, 1180.0, 1172.0, 1176.0, 1168.0] {
+            z = auto_zoom_hysteresis(z, w, 760.0);
+            assert_eq!(z, 1.0, "diferență sub 0,1 → rămâne");
+        }
+        assert_eq!(auto_zoom_hysteresis(1.0, 1920.0, 1080.0), 1.6); // fereastră mărită: trece
+        assert_eq!(auto_zoom_hysteresis(1.6, 1180.0, 760.0), 1.05); // și înapoi
+    }
+
+    /// Simulează egui: `inner_rect` e raportat în puncte la factorul de cu 2 cadre în urmă, dar convertit cu factorul
+    /// curent (greșit, ca pe Windows) ar cicla. Cu perioada de așteptare bucla converge și rămâne stabilă.
+    fn simulate(nw: f32, nh: f32, wait_frames: u8) -> (Vec<f32>, f32) {
+        let mut zoom = 1.0_f32;
+        let mut wait = 0u8;
+        let mut hist = vec![zoom, zoom];
+        let mut changes = Vec::new();
+        for _ in 0..80 {
+            let stale = hist[hist.len() - 2];
+            let (rw, rh) = (nw / stale * zoom, nh / stale * zoom);
+            let want = if wait > 0 {
+                wait -= 1;
+                zoom
+            } else {
+                auto_zoom_hysteresis(zoom, rw, rh)
+            };
+            if (want - zoom).abs() > 0.001 {
+                changes.push(want);
+                wait = wait_frames;
+            }
+            zoom = want;
+            hist.push(zoom);
+        }
+        (changes, zoom)
+    }
+
+    #[test]
+    fn lagging_window_size_converges_without_oscillation() {
+        // fără așteptare, modelul reproduce ciclarea raportată pe Windows 11
+        let (bad, _) = simulate(1920.0, 1080.0, 0);
+        assert!(
+            bad.len() > 5,
+            "modelul trebuie să reproducă defectul: {bad:?}"
+        );
+        // cu așteptarea din aplicație: o singură schimbare, stabil
+        for (w, h, expect) in [
+            (1920.0, 1080.0, 1.6),
+            (2560.0, 1440.0, 2.1),
+            (1180.0, 760.0, 1.0),
+        ] {
+            let (ch, z) = simulate(w, h, 4);
+            assert!(ch.len() <= 1, "{w}x{h}: prea multe schimbări {ch:?}");
+            assert_eq!(z, expect, "{w}x{h}");
+        }
     }
 }
