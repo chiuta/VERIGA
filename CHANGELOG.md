@@ -4,6 +4,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+### Adăugat (experiența de utilizare)
+- **Interfața nativă:** ecran de început cu pașii de urmat și butoane „Alege folder…” / „Deschide sesiune”; buton „Alege folder…” lângă câmpul de start; bandă-rezumat colorată („✖ 4 linkuri rupte în 1 pagină” / „✔ Niciun link rupt”); după verificare se afișează automat filtrul „Rupte”; coloană nouă „Găsit pe”; scurtături (Ctrl+Enter pornește, Ctrl+F caută, Esc golește căutarea, ↑/↓ aleg rândul); titlul ferestrei arată progresul/rezultatul; erorile de intrare apar evidențiat în bara de jos; `veriga-gui <folder|adresă> [--start]` completează (și pornește) verificarea.
+- **Aplicația HTML / PWA / plugin WordPress:** bandă-rezumat, filtru automat „Rupte” la final, derulare automată la progres/rezultate, coloană „Găsit pe”, navigare cu săgeți în tabel, Ctrl+Enter / „/” / Esc, titlul filei cu progres (⏳ 45 % → ✖ 4), panou de detalii evidențiat, tabel simplificat pe ecran îngust; linkurile `mailto:`/`ftp:` apar ca „E-mail”/„FTP”.
+- **CLI:** ultima linie rezumă rezultatul („✖ 4 linkuri rupte pe 1 pagină · 6 URL-uri verificate în 2,5 s”), colorată în terminal (respectă `NO_COLOR`).
+
+### Reparat
+- Aplicația HTML: mesajele de validare (de ex. „Alege mai întâi un folder”) erau în secțiunea ascunsă și nu se vedeau; acum apar sub butoane.
+- Mesaj clar pentru fișier local lipsă („fișierul nu există: …”), în loc de eroarea brută a sistemului de operare.
+
 ## [1.3.2] — 2026-11-11
 
 ### Reparat

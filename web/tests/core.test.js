@@ -52,7 +52,7 @@ const ok = (c, m) => { if (!c) { fails++; console.log('FAIL:', m); } else consol
   // randare tabel + export
   w.eval('applyView')();
   ok(w.document.querySelectorAll('#spacer .r').length > 0, 'rânduri randate în tabel (jsdom: clientHeight=0 → verificăm view)');
-  ok(w.eval('S.view.length') === R.length, 'view are toate rezultatele');
+  ok(w.eval('S.view.length') === R.length || w.eval('S.filter') === 'broken', 'view are toate rezultatele (sau filtrul automat pe rupte)');
   w.eval("S.filter='broken'"); w.eval('applyView')();
   ok(w.eval('S.view.length') >= 5, 'filtru rupte: ' + w.eval('S.view.length'));
   const csv = w.eval("toCsv(',', true)"); ok(csv.split('\n').length > 4 && csv.startsWith('Address,'), 'CSV rupte generat');

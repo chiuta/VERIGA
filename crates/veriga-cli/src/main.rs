@@ -933,10 +933,67 @@ async fn main() -> Result<()> {
         }
         std::process::exit(3);
     }
+    if !cli.quiet {
+        let color = tty && std::env::var_os("NO_COLOR").is_none();
+        eprintln!("{}", verdict_line(&session, color));
+    }
     if broken > 0 && !cli.no_fail {
         std::process::exit(2);
     }
     Ok(())
+}
+
+/// Ultima linie, pe stderr: verdictul dintr-o privire (✖ N rupte pe M pagini / ✔ niciun link rupt).
+fn verdict_line(s: &Session, color: bool) -> String {
+    let broken: Vec<_> = s.broken().collect();
+    let pages = broken
+        .iter()
+        .flat_map(|r| r.parents.iter().map(|p| p.url.as_str()))
+        .collect::<std::collections::HashSet<_>>()
+        .len();
+    let secs = match (
+        chrono::DateTime::parse_from_rfc3339(&s.started),
+        chrono::DateTime::parse_from_rfc3339(&s.finished),
+    ) {
+        (Ok(a), Ok(b)) => (b - a).num_milliseconds().max(0) as f64 / 1000.0,
+        _ => 0.0,
+    };
+    verdict_text(s.results.len(), broken.len(), pages, secs, color)
+}
+
+fn verdict_text(total: usize, n: usize, pages: usize, secs: f64, color: bool) -> String {
+    let tail = trf!(
+        "{} URL-uri verificate în {:.1} s",
+        "{} URLs checked in {:.1} s",
+        total,
+        secs
+    );
+    let (mark, text, code) = if n == 0 {
+        (
+            "✔",
+            tr("niciun link rupt", "no broken links").to_string(),
+            "32",
+        )
+    } else {
+        let what = if n == 1 {
+            tr("link rupt", "broken link")
+        } else {
+            tr("linkuri rupte", "broken links")
+        };
+        let on = if pages == 0 {
+            String::new()
+        } else if pages == 1 {
+            trf!(" pe 1 pagină", " on 1 page")
+        } else {
+            trf!(" pe {pages} pagini", " on {pages} pages")
+        };
+        ("✖", format!("{n} {what}{on}"), "31")
+    };
+    if color {
+        format!("\x1b[1;{code}m{mark} {text}\x1b[0m · {tail}")
+    } else {
+        format!("{mark} {text} · {tail}")
+    }
 }
 
 #[cfg(test)]
@@ -992,6 +1049,19 @@ mod tests {
     }
 
     use clap::CommandFactory;
+
+    #[test]
+    fn verdict_line_says_it_at_a_glance() {
+        i18n::set("en");
+        assert_eq!(
+            verdict_text(7, 0, 0, 1.25, false),
+            "✔ no broken links · 7 URLs checked in 1.2 s"
+        );
+        assert!(verdict_text(7, 1, 1, 0.5, false).starts_with("✖ 1 broken link on 1 page"));
+        assert!(verdict_text(7, 4, 2, 0.5, false).starts_with("✖ 4 broken links on 2 pages"));
+        assert!(verdict_text(7, 4, 2, 0.5, true).starts_with("\u{1b}[1;31m✖"));
+        assert!(!verdict_text(7, 4, 2, 0.5, false).contains('\u{1b}'));
+    }
 
     #[test]
     fn help_lists_subcommands() {

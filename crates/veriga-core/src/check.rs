@@ -1037,7 +1037,19 @@ async fn file_check(sh: &Shared, t: &Task, r: &mut LinkResult) -> Option<Body> {
     match tokio::fs::metadata(&path).await {
         Err(e) => {
             r.status = Status::LocalMissing;
-            r.message = format!("{}: {e}", path.display());
+            r.message = match e.kind() {
+                std::io::ErrorKind::NotFound => trf!(
+                    "fișierul nu există: {}",
+                    "file not found: {}",
+                    path.display()
+                ),
+                std::io::ErrorKind::PermissionDenied => trf!(
+                    "fără permisiune de citire: {}",
+                    "no permission to read: {}",
+                    path.display()
+                ),
+                _ => format!("{}: {e}", path.display()),
+            };
             None
         }
         Ok(_) if sh.case_mismatch(&path).await.is_some() => {

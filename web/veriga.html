@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-riFkiuzfuUEw0FppfOdFlHHNXJcEW6UJ5zkO/7JbK48=' 'sha256-uJdk8dRR8ZhHvA2Fe1zdjUa5BYlHGnTp36rMa0EKFQo='; style-src-elem 'sha256-zuijPPzZk5eF+QlTGG0Wdybk0eTtOGROwAR0p/5pCDg='; style-src-attr 'unsafe-inline'; img-src data: blob:; connect-src http: https: blob: data:; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-CgAScuFZ1pKXMNGVfSP14d416Qco3ROAnfB6PpjpamI=' 'sha256-uJdk8dRR8ZhHvA2Fe1zdjUa5BYlHGnTp36rMa0EKFQo='; style-src-elem 'sha256-a8VMdJ3OHewnZdAAAl0FTxbEw3xSkom47Fk85zNJdQI='; style-src-attr 'unsafe-inline'; img-src data: blob:; connect-src http: https: blob: data:; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>VERIGA — verificator de legături</title>
 <style>
 :root{--bg:#f6f6f2;--fg:#1c1f23;--mut:#677079;--card:#fff;--bd:#d8dce1;--ok:#17794c;--bad:#b3261e;--warn:#98660a;--acc:#2f5fd0;--accfg:#fff;--row:#f1f3f5}
@@ -57,16 +57,24 @@ label{display:block;font-size:.85rem;color:var(--mut);margin:8px 0 3px}
 .chip{border-radius:999px;padding:3px 11px;font-size:.85rem}
 .chip[aria-pressed=true]{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
 #tbl{height:calc((100vh - 330px) / var(--z,1));min-height:280px;overflow:auto;border:1px solid var(--bd);border-radius:8px;position:relative;background:var(--card)}
-#thead,.r{display:grid;grid-template-columns:170px 54px minmax(260px,1fr) 92px 78px 170px 40px 58px;gap:0;align-items:center;font-size:.85rem}
-#thead{position:sticky;top:0;background:var(--row);z-index:2;border-bottom:1px solid var(--bd);min-width:960px}
+#thead,.r{display:grid;grid-template-columns:170px 54px minmax(260px,1fr) minmax(190px,.7fr) 92px 78px 170px 40px 58px;gap:0;align-items:center;font-size:.85rem}
+#thead{position:sticky;top:0;background:var(--row);z-index:2;border-bottom:1px solid var(--bd);min-width:1160px}
 #thead div{padding:6px 8px;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap}
-#spacer{position:relative;min-width:960px}
+#spacer{position:relative;min-width:1160px}
 .r{position:absolute;left:0;right:0;height:28px;border-bottom:1px solid var(--bd);cursor:pointer}
 .r:hover{background:var(--row)}.r.sel{background:var(--row);outline:2px solid var(--acc);outline-offset:-2px}
 .r div{padding:0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .u{font-family:ui-monospace,Consolas,monospace;font-size:.8rem}
 .s-bad{color:var(--bad);font-weight:600}.s-ok{color:var(--ok)}.s-warn{color:var(--warn)}.s-mut{color:var(--mut)}
 #detail{margin-top:10px;font-size:.9rem}
+#detail:not(:empty){border:1px solid var(--bd);border-radius:8px;padding:10px;background:var(--row)}
+#smsg:not(:empty){margin-top:8px;padding:8px 12px;border-radius:8px;background:var(--row);border-left:4px solid var(--warn)}
+.sumbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px;margin-bottom:12px;border-radius:10px;border:1px solid var(--bd);border-left-width:6px;font-weight:600}
+.sumbar:empty{display:none}.sumbar.bad{border-left-color:var(--bad)}.sumbar.good{border-left-color:var(--ok)}.sumbar.run{border-left-color:var(--acc)}
+.sumbar small{font-weight:400;color:var(--mut)}
+#tbl:focus-visible{outline:3px solid var(--acc)}
+@media (max-width:700px){#thead,.r{grid-template-columns:150px minmax(200px,1fr) minmax(130px,.6fr)}#thead,#spacer{min-width:520px}
+#thead>div:nth-child(n+4):not(:nth-child(4)),.r>div:nth-child(n+4):not(:nth-child(4)){display:none}#thead>div:nth-child(2),.r>div:nth-child(2){display:none}}
 #detail .par{display:block;color:var(--mut);font-size:.82rem;word-break:break-all}
 a{color:var(--acc)}
 .note{color:var(--mut);font-size:.82rem}
@@ -154,6 +162,7 @@ details>summary{cursor:pointer;font-weight:600}
     <button id="b-recheck" disabled data-ro="↻ Reverifică rupte" data-en="↻ Recheck broken"></button>
     <label class="btn" style="margin:0;color:var(--fg)"><span data-ro="📂 Importă sesiune" data-en="📂 Import session"></span><input id="b-import" type="file" accept=".json,.veriga" hidden></label>
   </div>
+  <div id="smsg" class="note" role="status" aria-live="polite"></div>
 </section>
 
 <section class="card hide" id="prog">
@@ -168,6 +177,7 @@ details>summary{cursor:pointer;font-weight:600}
 </section>
 
 <section class="card hide" id="res">
+  <div id="sumbar" class="sumbar" role="status"></div>
   <div class="row sp">
     <div class="chips" id="chips"></div>
     <div class="row">
@@ -177,7 +187,7 @@ details>summary{cursor:pointer;font-weight:600}
   </div>
   <div id="tbl" style="margin-top:10px"><div id="thead"></div><div id="spacer"></div></div>
   <div id="detail" class="note"></div>
-  <div id="msg" class="note" role="status" aria-live="polite"></div>
+  <div id="msg" class="note"></div>
 </section>
 <section class="card" id="gd">
   <details id="gd-det">
@@ -464,6 +474,7 @@ function enqueue(u, kind, depth, parent) {
   if (S.index.has(key)) { if (parent) addParent(S.results[S.index.get(key)], parent); return; }
   const pl = plan(u, kind, depth);
   if (!pl) return;
+  if (u.protocol === 'mailto:' && kind === 'Page') kind = 'Mailto'; else if (/^ftps?:$/.test(u.protocol) && kind === 'Page') kind = 'Ftp';
   if (S.results.length >= S.cfg.maxUrls) { S.truncated = true; return; }
   const idx = S.results.length;
   const r = newResult(key, kind, depth, pl.internal);
@@ -763,7 +774,8 @@ async function start() {
   }
   S.startUrls = startUrls;
   S.running = true; S.started = new Date().toISOString(); S.t0 = performance.now();
-  setRunning(true); show('#prog', true); show('#res', true); msg('');
+  setRunning(true); show('#prog', true); show('#res', true); msg(''); S.filter = 'all'; $('#detail').innerHTML = '';
+  try { $('#prog').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth', block: 'start' }); } catch (e) {}
   for (const u of startUrls) {
     const key = normKey(u);
     if (S.index.has(key)) continue;
@@ -785,7 +797,10 @@ async function start() {
   if (S.cancelled) { for (const r of S.results) if (r.status === 'Pending') { r.status = 'Skipped'; r.message = T('neverificat (oprit)', 'not checked (stopped)'); } }
   else { $('#c-phase').textContent = T('ancore și orfani…', 'anchors and orphans…'); if (S.cfg.checkFragments) finalizeFragments(); finalizeOrphans(); }
   S.running = false; $('#c-phase').textContent = '';
-  setRunning(false); refreshProgress(true); applyView();
+  setRunning(false);
+  if (!S.cancelled && S.results.some(r => isBroken(r.status))) S.filter = 'broken';
+  refreshProgress(true); applyView();
+  if (S.results.some(r => isBroken(r.status))) { try { $('#res').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth', block: 'start' }); } catch (e) {} }
   msg(`${T('Terminat', 'Finished')}: ${S.results.length} URL · ${S.results.filter(r => isBroken(r.status)).length} ${T('rupte', 'broken')}`);
 }
 function activeMode() { const t = $('#tl-main .tab[aria-selected=true]'); return t ? t.dataset.mode : 'folder'; }
@@ -811,7 +826,7 @@ async function recheck() {
 
 /* ───────────── UI: progres, tabel ───────────── */
 function show(sel, on) { $(sel).classList.toggle('hide', !on); }
-function msg(t) { $('#msg').textContent = t || ''; }
+function msg(t) { $('#msg').textContent = t || ''; $('#smsg').textContent = t || ''; }
 function setRunning(on) {
   $('#b-start').disabled = on; $('#b-pause').disabled = !on; $('#b-stop').disabled = !on; $('#b-recheck').disabled = on;
   $('#b-pause').textContent = T('⏸ Pauză', '⏸ Pause');
@@ -823,9 +838,25 @@ function refreshProgress(final) {
   const pct = final ? 100 : Math.min(99, (S.done / total) * 100);
   $('#bar').style.width = pct + '%'; $('#pbar').setAttribute('aria-valuenow', String(Math.round(pct)));
   buildChips(); if (!final) applyView(true);
+  const nb = S.results.filter(r => isBroken(r.status)).length;
+  updateSummary(final, nb, pct);
+  try { document.title = final ? (nb ? '✖ ' + nb + ' · ' : '✔ ') + BASE_TITLE : Math.round(pct) + '% · ' + BASE_TITLE; } catch (e) {}
+}
+const BASE_TITLE = document.title;
+function updateSummary(final, nb, pct) {
+  const el = $('#sumbar'); if (!el) return;
+  const rev = S.results.filter(r => isReview(r.status)).length, red = S.results.filter(r => r.status === 'Redirected').length, orp = S.results.filter(r => r.status === 'Orphan').length;
+  const extra = [rev ? rev + ' ' + T('de verificat', 'to review') : '', red ? red + ' ' + T('redirecționări', 'redirects') : '', orp ? orp + ' ' + T('orfane', 'orphans') : ''].filter(Boolean).join(' · ');
+  if (!final) { el.className = 'sumbar run'; el.innerHTML = `⏳ ${T('Se verifică…', 'Checking…')} ${Math.round(pct)}% · ${nb} ${T('rupte până acum', 'broken so far')}`; return; }
+  const total = S.results.length;
+  if (S.cancelled) { el.className = 'sumbar run'; el.innerHTML = `■ ${T('Oprit', 'Stopped')} · ${nb} ${T('rupte', 'broken')} <small>${total} URL</small>`; return; }
+  if (!nb) { el.className = 'sumbar good'; el.innerHTML = `✔ ${T('Niciun link rupt', 'No broken links')} <small>${total} URL${extra ? ' · ' + esc(extra) : ''}</small>`; return; }
+  const pages = new Set(S.results.filter(r => isBroken(r.status)).flatMap(r => (r.parents || []).map(p => p.url))).size;
+  el.className = 'sumbar bad';
+  el.innerHTML = `✖ ${nb} ${T(nb === 1 ? 'link rupt' : 'linkuri rupte', nb === 1 ? 'broken link' : 'broken links')}${pages ? ' ' + T('în ' + pages + (pages === 1 ? ' pagină' : ' pagini'), 'on ' + pages + (pages === 1 ? ' page' : ' pages')) : ''} <small>${total} URL${extra ? ' · ' + esc(extra) : ''} · ${T('Click pe un rând pentru detalii', 'Click a row for details')}</small>`;
 }
 
-const COLS = [['Stare', 'Status', 'status'], ['Cod', 'Code', 'code'], ['URL', 'URL', 'url'], ['Tip', 'Type', 'kind'], ['Mărime', 'Size', 'size'], ['Titlu', 'Title', 'title'], ['Niv.', 'Lvl', 'depth'], ['ms', 'ms', 'time']];
+const COLS = [['Stare', 'Status', 'status'], ['Cod', 'Code', 'code'], ['URL', 'URL', 'url'], ['Găsit pe', 'Found on', 'found'], ['Tip', 'Type', 'kind'], ['Mărime', 'Size', 'size'], ['Titlu', 'Title', 'title'], ['Niv.', 'Lvl', 'depth'], ['ms', 'ms', 'time']];
 function buildHead() {
   $('#thead').innerHTML = COLS.map(([ro, en, k]) => `<div data-sort="${k}">${LANG === 'en' ? en : ro}${S.sort === k ? (S.desc ? ' ▼' : ' ▲') : ''}</div>`).join('');
 }
@@ -836,8 +867,9 @@ function matchFilter(r, f) {
 function buildChips() {
   $('#chips').innerHTML = FILTERS.map(([k, ro, en]) => `<button class="chip" data-f="${k}" aria-pressed="${S.filter === k}">${LANG === 'en' ? en : ro} (${S.results.reduce((a, r) => a + (matchFilter(r, k) ? 1 : 0), 0)})</button>`).join('');
 }
+function foundOn(r) { const p = r.parents && r.parents[0]; if (!p) return ''; const n = new Set(r.parents.map(x => x.url)).size; return p.url.replace(/^file:\/\/\/[^/]*\//, '') + (n > 1 ? ' (+' + (n - 1) + ')' : ''); }
 function sortKey(r, k) {
-  switch (k) { case 'status': return stLabel(r.status); case 'code': return r.http_status || 0; case 'url': return r.url; case 'kind': return r.kind; case 'size': return r.size || 0; case 'title': return r.title || ''; case 'depth': return r.depth; case 'time': return r.elapsed_ms; default: return 0; }
+  switch (k) { case 'found': return foundOn(r); case 'status': return stLabel(r.status); case 'code': return r.http_status || 0; case 'url': return r.url; case 'kind': return r.kind; case 'size': return r.size || 0; case 'title': return r.title || ''; case 'depth': return r.depth; case 'time': return r.elapsed_ms; default: return 0; }
 }
 function applyView(soft) {
   const q = S.q.toLowerCase();
@@ -862,12 +894,13 @@ function renderRows() {
   for (let i = first; i < last; i++) {
     const idx = S.view[i], r = S.results[idx];
     const cls = isBroken(r.status) ? 's-bad' : r.status === 'Ok' ? 's-ok' : (r.status === 'Redirected' || r.status === 'Orphan') ? 's-warn' : 's-mut';
-    html += `<div class="r${idx === S.selected ? ' sel' : ''}" data-i="${idx}" style="top:${i * RH}px"><div class="${cls}">${esc(stLabel(r.status))}</div><div>${r.http_status || ''}</div><div class="u" title="${esc(r.url)}">${esc(r.url)}</div><div>${esc(kindLabel(r.kind))}</div><div>${humanSize(r.size)}</div><div title="${esc(r.title || '')}">${esc(r.title || '')}</div><div>${r.depth}</div><div>${r.elapsed_ms || ''}</div></div>`;
+    html += `<div class="r${idx === S.selected ? ' sel' : ''}" data-i="${idx}" style="top:${i * RH}px"><div class="${cls}">${esc(stLabel(r.status))}</div><div>${r.http_status || ''}</div><div class="u" title="${esc(r.url)}">${esc(r.url)}</div><div class="u" title="${esc(foundOn(r))}">${esc(foundOn(r))}</div><div>${esc(kindLabel(r.kind))}</div><div>${humanSize(r.size)}</div><div title="${esc(r.title || '')}">${esc(r.title || '')}</div><div>${r.depth}</div><div>${r.elapsed_ms || ''}</div></div>`;
   }
   sp.innerHTML = html;
 }
 function showDetail(i) {
   S.selected = i; renderRows();
+  try { $('#detail').scrollIntoView({ block: 'nearest' }); } catch (e) {}
   const r = S.results[i]; if (!r) { $('#detail').innerHTML = ''; return; }
   const chain = (r.chain || []).map(h => `${h.code} ${esc(h.url)}`).join(' → ');
   $('#detail').innerHTML = `<div><b class="u">${esc(r.url)}</b> <button data-copy="${i}">⧉</button>${/^https?:/i.test(r.url) ? ` <a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">↗</a>` : ''}</div>
@@ -1098,6 +1131,23 @@ document.addEventListener('DOMContentLoaded', () => {
   }));
   $('#lang').addEventListener('click', () => { LANG = LANG === 'en' ? 'ro' : 'en'; lsSet('veriga.lang', LANG); applyLang(); });
   $('#b-start').addEventListener('click', start);
+  $('#b-start').title = 'Ctrl+Enter';
+  $('#tbl').tabIndex = 0; $('#tbl').setAttribute('aria-label', T('Rezultate; săgeți sus/jos pentru a alege un rând', 'Results; use up/down arrows to select a row'));
+  $('#tbl').addEventListener('keydown', e => {
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End', 'PageDown', 'PageUp'].includes(e.key) || !S.view.length) return;
+    e.preventDefault();
+    let pos = S.view.indexOf(S.selected); const step = e.key.startsWith('Page') ? 10 : 1;
+    pos = e.key === 'Home' ? 0 : e.key === 'End' ? S.view.length - 1 : Math.max(0, Math.min(S.view.length - 1, (pos < 0 ? (e.key.includes('Down') ? -1 : S.view.length) : pos) + (e.key.includes('Down') ? step : -step)));
+    const box = $('#tbl'); const y = pos * RH;
+    if (y < box.scrollTop) box.scrollTop = y; else if (y + RH > box.scrollTop + box.clientHeight - 40) box.scrollTop = y + RH - box.clientHeight + 40;
+    showDetail(S.view[pos]);
+  });
+  document.addEventListener('keydown', e => {
+    const t = e.target, typing = t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); if (!S.running) start(); }
+    else if (e.key === '/' && !typing && !e.ctrlKey && !e.metaKey && !e.altKey && !$('#res').classList.contains('hide')) { e.preventDefault(); $('#q').focus(); }
+    else if (e.key === 'Escape' && t === $('#q') && $('#q').value) { $('#q').value = ''; S.q = ''; applyView(); }
+  });
   $('#b-pause').addEventListener('click', () => {
     S.paused = !S.paused;
     $('#b-pause').textContent = S.paused ? T('⏵ Reia', '⏵ Resume') : T('⏸ Pauză', '⏸ Pause');

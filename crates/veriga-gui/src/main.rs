@@ -68,6 +68,8 @@ struct App {
     progress: Progress,
     phase: String,
     status_line: String,
+    status_err: bool,
+    last_title: String,
     filter: Filter,
     search: String,
     sort: SortBy,
@@ -145,6 +147,8 @@ impl App {
             progress: Progress::default(),
             phase: String::new(),
             status_line: String::new(),
+            status_err: false,
+            last_title: String::new(),
             filter: Filter::All,
             search: String::new(),
             sort: SortBy::Order,
@@ -259,8 +263,13 @@ impl App {
 
     fn start_check(&mut self) {
         match self.build_config() {
-            Err(e) => self.status_line = e,
+            Err(e) => {
+                self.status_line = e;
+                self.status_err = true;
+            }
             Ok(cfg) => {
+                self.status_err = false;
+                self.filter = Filter::All;
                 self.results.clear();
                 self.session = None;
                 self.selected = None;
@@ -331,11 +340,204 @@ impl App {
                         sm.redirected,
                         self.t("redirecționări", "redirects")
                     );
+                    // după verificare, cele rupte sunt primul lucru de văzut
+                    self.filter = if sm.broken > 0 {
+                        Filter::Broken
+                    } else {
+                        Filter::All
+                    };
+                    self.selected = None;
                     self.session = Some(s);
                 }
-                Err(e) => self.status_line = format!("{}: {e}", self.t("Eroare", "Error")),
+                Err(e) => {
+                    self.status_line = format!("{}: {e}", self.t("Eroare", "Error"));
+                    self.status_err = true;
+                }
             }
         }
+    }
+
+    /// Scurtături: Ctrl+Enter pornește, Ctrl+F caută, Esc golește căutarea, ↑/↓ aleg rândul.
+    fn shortcuts(&mut self, ctx: &egui::Context) {
+        let (go, find, esc, up, down) = ctx.input(|i| {
+            (
+                i.modifiers.command && i.key_pressed(egui::Key::Enter),
+                i.modifiers.command && i.key_pressed(egui::Key::F),
+                i.key_pressed(egui::Key::Escape),
+                i.key_pressed(egui::Key::ArrowUp),
+                i.key_pressed(egui::Key::ArrowDown),
+            )
+        });
+        if go && !self.running() {
+            self.start_check();
+        }
+        if find {
+            ctx.memory_mut(|m| m.request_focus(egui::Id::unique("veriga_search")));
+        }
+        if esc && !self.search.is_empty() {
+            self.search.clear();
+        }
+        if (up || down) && !ctx.egui_wants_keyboard_input() {
+            let vis = self.visible();
+            if !vis.is_empty() {
+                let pos = self.selected.and_then(|s| vis.iter().position(|&v| v == s));
+                let next = match (pos, down) {
+                    (None, true) => 0,
+                    (None, false) => vis.len() - 1,
+                    (Some(p), true) => (p + 1).min(vis.len() - 1),
+                    (Some(p), false) => p.saturating_sub(1),
+                };
+                self.selected = Some(vis[next]);
+            }
+        }
+    }
+
+    /// Titlul ferestrei arată progresul / rezultatul (vizibil și când fereastra e în fundal).
+    fn update_title(&mut self, ctx: &egui::Context) {
+        let broken = if self.running() {
+            self.progress.broken
+        } else {
+            self.results
+                .iter()
+                .filter(|r| r.status.is_broken(&self.cfg))
+                .count()
+        };
+        let title = if self.running() {
+            format!("{} {} · VERIGA", self.t("⏳ rupte:", "⏳ broken:"), broken)
+        } else if self.results.is_empty() {
+            "VERIGA".to_string()
+        } else if broken > 0 {
+            format!("✖ {broken} · VERIGA")
+        } else {
+            "✔ VERIGA".to_string()
+        };
+        if title != self.last_title {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.clone()));
+            self.last_title = title;
+        }
+    }
+
+    fn summary_banner(&self, ui: &mut egui::Ui) {
+        let bad = self
+            .results
+            .iter()
+            .filter(|r| r.status.is_broken(&self.cfg))
+            .count();
+        let (color, text) = if self.running() {
+            (
+                ui.visuals().selection.bg_fill,
+                format!(
+                    "⏳ {} · {} {}",
+                    self.t("Se verifică…", "Checking…"),
+                    bad,
+                    self.t("rupte până acum", "broken so far")
+                ),
+            )
+        } else if bad == 0 {
+            (
+                Color32::from_rgb(70, 170, 110),
+                format!("✔ {}", self.t("Niciun link rupt", "No broken links")),
+            )
+        } else {
+            let pages = self
+                .results
+                .iter()
+                .filter(|r| r.status.is_broken(&self.cfg))
+                .flat_map(|r| r.parents.iter().map(|p| p.url.as_str()))
+                .collect::<std::collections::HashSet<_>>()
+                .len();
+            (
+                ui.visuals().error_fg_color,
+                format!(
+                    "✖ {bad} {}{}",
+                    if bad == 1 {
+                        self.t("link rupt", "broken link")
+                    } else {
+                        self.t("linkuri rupte", "broken links")
+                    },
+                    if pages > 0 {
+                        format!(
+                            " {} {pages} {}",
+                            self.t("în", "on"),
+                            if pages == 1 {
+                                self.t("pagină", "page")
+                            } else {
+                                self.t("pagini", "pages")
+                            }
+                        )
+                    } else {
+                        String::new()
+                    }
+                ),
+            )
+        };
+        egui::Frame::new()
+            .stroke(egui::Stroke::new(1.0, color))
+            .corner_radius(6.0)
+            .inner_margin(egui::Margin::symmetric(10, 6))
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label(RichText::new(text).strong().color(color).size(16.0));
+                    ui.label(
+                        RichText::new(format!(
+                            "{} URL · {}",
+                            self.results.len(),
+                            self.t("click pe un rând pentru detalii", "click a row for details")
+                        ))
+                        .weak(),
+                    );
+                });
+            });
+        ui.add_space(4.0);
+    }
+
+    fn empty_state(&mut self, ui: &mut egui::Ui) {
+        ui.vertical_centered(|ui| {
+            ui.add_space((ui.available_height() / 4.0).max(10.0));
+            ui.heading(self.t("Verifică linkurile unui site", "Check a site's links"));
+            ui.add_space(8.0);
+            ui.label(self.t(
+                "1. Scrie o adresă (https://…) sau alege un folder cu un site salvat",
+                "1. Type an address (https://…) or choose a folder with a saved site",
+            ));
+            ui.label(self.t(
+                "2. Apasă Pornește (Ctrl+Enter)",
+                "2. Press Start (Ctrl+Enter)",
+            ));
+            ui.label(self.t(
+                "3. Linkurile rupte apar primele, cu pagina în care se află",
+                "3. Broken links appear first, with the page they are on",
+            ));
+            ui.add_space(12.0);
+            ui.horizontal(|ui| {
+                ui.add_space(((ui.available_width() - 330.0) / 2.0).max(0.0));
+                if ui
+                    .button(self.t("📁 Alege folder…", "📁 Choose folder…"))
+                    .clicked()
+                    && let Some(d) = rfd::FileDialog::new().pick_folder()
+                {
+                    self.start = d.display().to_string();
+                    self.start_check();
+                }
+                if ui
+                    .button(self.t("📂 Deschide o sesiune salvată", "📂 Open a saved session"))
+                    .clicked()
+                    && let Some(p) = rfd::FileDialog::new()
+                        .add_filter("VERIGA", &["veriga", "json"])
+                        .pick_file()
+                {
+                    self.open_session(&p);
+                }
+            });
+            ui.add_space(10.0);
+            ui.label(
+                RichText::new(self.t(
+                    "Ctrl+F caută · ↑/↓ aleg rândul · Ctrl +/- zoom",
+                    "Ctrl+F search · ↑/↓ select row · Ctrl +/- zoom",
+                ))
+                .weak(),
+            );
+        });
     }
 
     fn running(&self) -> bool {
@@ -444,6 +646,32 @@ impl App {
     }
 }
 
+/// Pagina-părinte într-o formă scurtă: fără gazda comună, iar pentru fișiere locale ultimele două segmente.
+fn short_page(parent: &str, child: &str) -> String {
+    if let Some(rest) = parent.strip_prefix("file://") {
+        let segs: Vec<&str> = rest.trim_end_matches('/').rsplit('/').take(2).collect();
+        return segs.into_iter().rev().collect::<Vec<_>>().join("/");
+    }
+    let host = |u: &str| {
+        u.split_once("://")
+            .map(|(_, r)| r.split('/').next().unwrap_or("").to_string())
+    };
+    match (host(parent), host(child)) {
+        (Some(a), Some(b)) if a == b => {
+            let path = parent
+                .split_once("://")
+                .map(|(_, r)| &r[a.len()..])
+                .unwrap_or(parent);
+            if path.is_empty() {
+                "/".to_string()
+            } else {
+                path.to_string()
+            }
+        }
+        _ => parent.to_string(),
+    }
+}
+
 fn open_in_browser(url: &str) {
     // doar http/https/file; fără interpretor de comenzi (cmd /C start era injectabil)
     let Ok(u) = url::Url::parse(url) else { return };
@@ -531,6 +759,8 @@ impl eframe::App for App {
         }
         self.zoom_applied = want;
         let lang = self.lang();
+        self.shortcuts(ctx);
+        self.update_title(ctx);
         {
             let eng = self.english;
             let sess = self.session.take();
@@ -547,7 +777,17 @@ impl eframe::App for App {
                 ui.separator();
                 let running = self.running();
                 if !running {
-                    if ui.button(self.t("▶ Pornește", "▶ Start")).clicked() {
+                    let go =
+                        egui::Button::new(RichText::new(self.t("▶ Pornește", "▶ Start")).strong())
+                            .fill(ui.visuals().selection.bg_fill);
+                    if ui
+                        .add(go)
+                        .on_hover_text(self.t(
+                            "Pornește verificarea (Ctrl+Enter)",
+                            "Start the check (Ctrl+Enter)",
+                        ))
+                        .clicked()
+                    {
                         self.start_check();
                     }
                     if ui
@@ -633,12 +873,26 @@ impl eframe::App for App {
                 "https://exemplu.ro/   sau   /cale/catre/site",
                 "https://example.com/   or   /path/to/site",
             );
-            ui.add(
-                egui::TextEdit::multiline(&mut self.start)
-                    .desired_rows(1)
-                    .desired_width(f32::INFINITY)
-                    .hint_text(start_hint),
-            );
+            ui.horizontal(|ui| {
+                let w = (ui.available_width() - 150.0).max(120.0);
+                ui.add(
+                    egui::TextEdit::multiline(&mut self.start)
+                        .desired_rows(1)
+                        .desired_width(w)
+                        .hint_text(start_hint),
+                );
+                if ui
+                    .button(self.t("📁 Alege folder…", "📁 Choose folder…"))
+                    .on_hover_text(self.t(
+                        "Verifică un site salvat local (folder cu index.html)",
+                        "Check a locally saved site (folder with index.html)",
+                    ))
+                    .clicked()
+                    && let Some(d) = rfd::FileDialog::new().pick_folder()
+                {
+                    self.start = d.display().to_string();
+                }
+            });
             ui.add_space(4.0);
         });
 
@@ -666,6 +920,11 @@ impl eframe::App for App {
                     if !self.phase.is_empty() {
                         ui.label(RichText::new(&self.phase).weak());
                     }
+                } else if self.status_err {
+                    ui.label(
+                        RichText::new(format!("⚠ {}", self.status_line))
+                            .color(ui.visuals().error_fg_color),
+                    );
                 } else {
                     ui.label(&self.status_line);
                 }
@@ -1124,6 +1383,11 @@ impl eframe::App for App {
         });
 
         egui::CentralPanel::default().show(root, |ui| {
+            if self.results.is_empty() && !self.running() {
+                self.empty_state(ui);
+                return;
+            }
+            self.summary_banner(ui);
             ui.horizontal(|ui| {
                 let all = self.results.len();
                 let broken = self
@@ -1167,6 +1431,7 @@ impl eframe::App for App {
                 ui.separator();
                 ui.add(
                     egui::TextEdit::singleline(&mut self.search)
+                        .id(egui::Id::unique("veriga_search"))
                         .hint_text(l_search)
                         .desired_width(200.0),
                 );
@@ -1187,17 +1452,19 @@ impl eframe::App for App {
                 .sense(egui::Sense::click())
                 .column(Column::initial(150.0).at_least(80.0))
                 .column(Column::initial(50.0))
-                .column(Column::remainder().at_least(250.0).clip(true))
+                .column(Column::initial(380.0).at_least(150.0).clip(true))
+                .column(Column::remainder().at_least(160.0).clip(true))
                 .column(Column::initial(90.0))
                 .column(Column::initial(70.0))
                 .column(Column::initial(200.0).clip(true))
                 .column(Column::initial(45.0))
                 .column(Column::initial(60.0))
                 .header(22.0, |mut h| {
-                    let heads: [(&str, &str, SortBy); 8] = [
+                    let heads: [(&str, &str, SortBy); 9] = [
                         ("Stare", "Status", SortBy::Status),
                         ("Cod", "Code", SortBy::Order),
                         ("URL", "URL", SortBy::Url),
+                        ("Găsit pe", "Found on", SortBy::Order),
                         ("Tip", "Type", SortBy::Kind),
                         ("Mărime", "Size", SortBy::Size),
                         ("Titlu", "Title", SortBy::Order),
@@ -1228,6 +1495,23 @@ impl eframe::App for App {
                         });
                         row.col(|ui| {
                             ui.label(&r.url);
+                        });
+                        row.col(|ui| {
+                            if let Some(p) = r.parents.first() {
+                                let n = r
+                                    .parents
+                                    .iter()
+                                    .map(|x| x.url.as_str())
+                                    .collect::<std::collections::HashSet<_>>()
+                                    .len();
+                                let short = short_page(&p.url, &r.url);
+                                let t = if n > 1 {
+                                    format!("{short} (+{})", n - 1)
+                                } else {
+                                    short
+                                };
+                                ui.label(RichText::new(t).weak());
+                            }
                         });
                         row.col(|ui| {
                             ui.label(r.kind.label(lang));
@@ -1300,10 +1584,16 @@ fn main() -> std::process::ExitCode {
             return std::process::ExitCode::SUCCESS;
         }
         Some("--help" | "-h") => {
-            println!(
-                "VERIGA GUI {}\nUtilizare: veriga-gui [fișier.veriga]\n  --version  afișează versiunea\n  --help     acest mesaj\nInterfața grafică are nevoie de un mediu desktop (afișaj). Pentru terminal/server folosiți `veriga` (CLI).",
-                env!("CARGO_PKG_VERSION")
-            );
+            let ver = env!("CARGO_PKG_VERSION");
+            if veriga_core::i18n::detect() == "en" {
+                println!(
+                    "VERIGA GUI {ver}\nUsage: veriga-gui [session.veriga | folder | https://address] [--start]\n  --start    start checking right away (with a folder or address)\n  --version  print the version\n  --help     this message\nThe graphical interface needs a desktop (display). For a terminal/server use `veriga` (CLI)."
+                );
+            } else {
+                println!(
+                    "VERIGA GUI {ver}\nUtilizare: veriga-gui [sesiune.veriga | folder | https://adresă] [--start]\n  --start    pornește verificarea imediat (cu un folder sau o adresă)\n  --version  afișează versiunea\n  --help     acest mesaj\nInterfața grafică are nevoie de un mediu desktop (afișaj). Pentru terminal/server folosiți `veriga` (CLI)."
+                );
+            }
             return std::process::ExitCode::SUCCESS;
         }
         _ => {}
@@ -1347,12 +1637,19 @@ fn run() -> eframe::Result<()> {
             cc.egui_ctx.set_fonts(fonts);
             let mut app = App::new();
             // asocierea de fișiere (PortableApps.com / dublu clic pe .veriga): primul argument = sesiune
-            if let Some(p) = std::env::args_os()
-                .nth(1)
-                .map(std::path::PathBuf::from)
-                .filter(|p| p.is_file())
-            {
-                app.open_session(&p);
+            let args: Vec<std::ffi::OsString> = std::env::args_os().skip(1).collect();
+            let auto = args.iter().any(|a| a == "--start");
+            if let Some(a) = args.iter().find(|a| !a.to_string_lossy().starts_with("--")) {
+                let p = std::path::PathBuf::from(a);
+                if p.is_file() {
+                    app.open_session(&p);
+                } else {
+                    // un folder sau o adresă: completează câmpul de start (`--start` pornește imediat)
+                    app.start = a.to_string_lossy().into_owned();
+                    if auto {
+                        app.start_check();
+                    }
+                }
             }
             Ok(Box::new(app))
         }),
@@ -1361,7 +1658,21 @@ fn run() -> eframe::Result<()> {
 
 #[cfg(test)]
 mod zoom_tests {
-    use super::{auto_zoom, auto_zoom_hysteresis};
+    use super::{auto_zoom, auto_zoom_hysteresis, short_page};
+
+    #[test]
+    fn parent_pages_are_shortened() {
+        assert_eq!(
+            short_page("file:///tmp/site/blog/a.html", "file:///x"),
+            "blog/a.html"
+        );
+        assert_eq!(short_page("https://a.ro/x/y", "https://a.ro/z"), "/x/y");
+        assert_eq!(short_page("https://a.ro", "https://a.ro/z"), "/");
+        assert_eq!(
+            short_page("https://a.ro/x", "https://b.ro/z"),
+            "https://a.ro/x"
+        );
+    }
 
     #[test]
     fn auto_zoom_fills_the_screen_but_stays_sane() {
