@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+## [1.4.0] — 2026-11-17
+
 ### Adăugat
 - **Linux mai vechi:** arhive suplimentare `veriga-x86_64-unknown-linux-gnu-glibc2.17.tar.gz` și `veriga-aarch64-unknown-linux-gnu-glibc2.17.tar.gz` (GUI + CLI), legate față de glibc 2.17 — rulează pe CentOS/RHEL 7+, Debian 8+, Ubuntu 14.04+ și mai noi. CI verifică în plus că binarele nu cer o glibc mai nouă.
 
