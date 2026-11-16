@@ -94,7 +94,7 @@ cargo test --workspace
 ```
 
 The `.github/workflows/build.yml` workflow produces archives for: Windows x64/ARM64, macOS Intel/Apple Silicon,
-Linux x64/ARM64 (glibc, with GUI) and Linux x64/ARM64 (musl, static CLI). The `Dockerfile` builds a minimal image with the CLI.
+Linux x64/ARM64 (glibc, with GUI), Linux x64/ARM64 for older distributions (`-glibc2.17`: CentOS/RHEL 7+, Debian 8+, Ubuntu 14.04+, with GUI) and Linux x64/ARM64 (musl, static CLI). The `Dockerfile` builds a minimal image with the CLI.
 
 ## Video tutorials
 

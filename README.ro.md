@@ -94,7 +94,7 @@ cargo test --workspace
 ```
 
 Fluxul `.github/workflows/build.yml` produce arhive pentru: Windows x64/ARM64, macOS Intel/Apple Silicon,
-Linux x64/ARM64 (glibc, cu GUI) și Linux x64/ARM64 (musl, CLI static). `Dockerfile` construiește o imagine minimă cu CLI-ul.
+Linux x64/ARM64 (glibc, cu GUI), Linux x64/ARM64 pentru distribuții mai vechi (`-glibc2.17`: CentOS/RHEL 7+, Debian 8+, Ubuntu 14.04+, cu GUI) și Linux x64/ARM64 (musl, CLI static). `Dockerfile` construiește o imagine minimă cu CLI-ul.
 
 ## Tutoriale video
 

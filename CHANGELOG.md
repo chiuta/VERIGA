@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+### Adăugat
+- **Linux mai vechi:** arhive suplimentare `veriga-x86_64-unknown-linux-gnu-glibc2.17.tar.gz` și `veriga-aarch64-unknown-linux-gnu-glibc2.17.tar.gz` (GUI + CLI), legate față de glibc 2.17 — rulează pe CentOS/RHEL 7+, Debian 8+, Ubuntu 14.04+ și mai noi. CI verifică în plus că binarele nu cer o glibc mai nouă.
+
+### Schimbat
+- CI rulează pe Ubuntu 26.04 și pe cel mai recent Node.js. Arhivele `…-unknown-linux-gnu` obișnuite cer acum glibc-ul din Ubuntu 26.04; pe sisteme mai vechi se folosesc cele `-glibc2.17` (sau cele statice `musl`).
+
 ### Adăugat (experiența de utilizare)
 - **Interfața nativă:** ecran de început cu pașii de urmat și butoane „Alege folder…” / „Deschide sesiune”; buton „Alege folder…” lângă câmpul de start; bandă-rezumat colorată („✖ 4 linkuri rupte în 1 pagină” / „✔ Niciun link rupt”); după verificare se afișează automat filtrul „Rupte”; coloană nouă „Găsit pe”; scurtături (Ctrl+Enter pornește, Ctrl+F caută, Esc golește căutarea, ↑/↓ aleg rândul); titlul ferestrei arată progresul/rezultatul; erorile de intrare apar evidențiat în bara de jos; `veriga-gui <folder|adresă> [--start]` completează (și pornește) verificarea.
 - **Aplicația HTML / PWA / plugin WordPress:** bandă-rezumat, filtru automat „Rupte” la final, derulare automată la progres/rezultate, coloană „Găsit pe”, navigare cu săgeți în tabel, Ctrl+Enter / „/” / Esc, titlul filei cu progres (⏳ 45 % → ✖ 4), panou de detalii evidențiat, tabel simplificat pe ecran îngust; linkurile `mailto:`/`ftp:` apar ca „E-mail”/„FTP”.

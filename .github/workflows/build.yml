@@ -134,6 +134,9 @@ jobs:
           # Linux (GUI + CLI, glibc)
           - { os: ubuntu-26.04,     target: x86_64-unknown-linux-gnu,    pkgs: "-p veriga-cli -p veriga-gui", ext: tar.gz }
           - { os: ubuntu-26.04-arm, target: aarch64-unknown-linux-gnu,   pkgs: "-p veriga-cli -p veriga-gui", ext: tar.gz }
+          # Linux vechi (GUI + CLI, glibc ≥ 2.17: CentOS/RHEL 7+, Debian 8+, Ubuntu 14.04+) — legate cu zig
+          - { os: ubuntu-26.04,     target: x86_64-unknown-linux-gnu,    pkgs: "-p veriga-cli -p veriga-gui", ext: tar.gz, zig: "2.17", suffix: "-glibc2.17" }
+          - { os: ubuntu-26.04-arm, target: aarch64-unknown-linux-gnu,   pkgs: "-p veriga-cli -p veriga-gui", ext: tar.gz, zig: "2.17", suffix: "-glibc2.17" }
           # Linux (CLI static, musl) — rulează pe orice distribuție, inclusiv Alpine/containere
           - { os: ubuntu-26.04,     target: x86_64-unknown-linux-musl,   pkgs: "-p veriga-cli", ext: tar.gz, musl: true }
           - { os: ubuntu-26.04-arm, target: aarch64-unknown-linux-musl,  pkgs: "-p veriga-cli", ext: tar.gz, musl: true }
@@ -150,17 +153,32 @@ jobs:
         with: { persist-credentials: false }
       - run: rustup toolchain install stable --profile minimal -t ${{ matrix.target }} && rustup default stable
       - uses: Swatinem/rust-cache@v2
-        with: { key: "${{ matrix.target }}" }
+        with: { key: "${{ matrix.target }}${{ matrix.suffix }}" }
+      - name: zig (glibc vechi)
+        if: matrix.zig
+        run: python3 -m pip install --break-system-packages ziglang cargo-zigbuild
       - name: musl tools
         if: matrix.musl
         run: sudo apt-get update && sudo apt-get install -y musl-tools
       - name: Build
+        if: ${{ !matrix.zig }}
         run: cargo build --release --locked --target ${{ matrix.target }} ${{ matrix.pkgs }}
+      - name: Build (glibc ${{ matrix.zig }})
+        if: matrix.zig
+        run: cargo zigbuild --release --locked --target ${{ matrix.target }}.${{ matrix.zig }} ${{ matrix.pkgs }}
+      - name: Verifică versiunea glibc cerută
+        if: matrix.zig
+        run: |
+          for b in target/${{ matrix.target }}/release/veriga target/${{ matrix.target }}/release/veriga-gui; do
+            need=$(objdump -T "$b" | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1)
+            echo "$b cere $need"
+            [ "$need" = "GLIBC_${{ matrix.zig }}" ] || [ "$(printf '%s\n' "$need" "GLIBC_${{ matrix.zig }}" | sort -V | tail -1)" = "GLIBC_${{ matrix.zig }}" ] || { echo "::error::$b cere $need > ${{ matrix.zig }}"; exit 1; }
+          done
       - name: Package (unix)
         if: matrix.ext == 'tar.gz'
         shell: bash
         run: |
-          d=veriga-${{ matrix.target }}
+          d=veriga-${{ matrix.target }}${{ matrix.suffix }}
           mkdir "$d"
           cp target/${{ matrix.target }}/release/veriga "$d"/
           [ -f target/${{ matrix.target }}/release/veriga-gui ] && cp target/${{ matrix.target }}/release/veriga-gui "$d"/
@@ -178,8 +196,8 @@ jobs:
           Compress-Archive -Path $d -DestinationPath "$d.zip"
       - uses: actions/upload-artifact@v7
         with:
-          name: veriga-${{ matrix.target }}
-          path: veriga-${{ matrix.target }}.${{ matrix.ext }}
+          name: veriga-${{ matrix.target }}${{ matrix.suffix }}
+          path: veriga-${{ matrix.target }}${{ matrix.suffix }}.${{ matrix.ext }}
           if-no-files-found: error
 
   portable:
