@@ -28,7 +28,7 @@ env:
 
 jobs:
   lint:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -42,7 +42,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-2025, macos-15]
+        os: [ubuntu-26.04, windows-2025, macos-15]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     steps:
@@ -63,7 +63,7 @@ jobs:
 
   msrv:
     # core + CLI trebuie să compileze pe versiunea minimă declarată (rust-version)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -73,7 +73,7 @@ jobs:
       - run: cargo check -p veriga-core -p veriga-cli --locked
 
   supply-chain:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -85,14 +85,14 @@ jobs:
       - run: cargo deny check
 
   web:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     defaults: { run: { working-directory: web/tests } }
     steps:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
       - uses: actions/setup-node@v4
-        with: { node-version: 24 }
+        with: { node-version: latest }
       - run: npm install --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
       - name: npm test
@@ -132,11 +132,11 @@ jobs:
       matrix:
         include:
           # Linux (GUI + CLI, glibc)
-          - { os: ubuntu-24.04,     target: x86_64-unknown-linux-gnu,    pkgs: "-p veriga-cli -p veriga-gui", ext: tar.gz }
-          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu,   pkgs: "-p veriga-cli -p veriga-gui", ext: tar.gz }
+          - { os: ubuntu-26.04,     target: x86_64-unknown-linux-gnu,    pkgs: "-p veriga-cli -p veriga-gui", ext: tar.gz }
+          - { os: ubuntu-26.04-arm, target: aarch64-unknown-linux-gnu,   pkgs: "-p veriga-cli -p veriga-gui", ext: tar.gz }
           # Linux (CLI static, musl) — rulează pe orice distribuție, inclusiv Alpine/containere
-          - { os: ubuntu-24.04,     target: x86_64-unknown-linux-musl,   pkgs: "-p veriga-cli", ext: tar.gz, musl: true }
-          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-musl,  pkgs: "-p veriga-cli", ext: tar.gz, musl: true }
+          - { os: ubuntu-26.04,     target: x86_64-unknown-linux-musl,   pkgs: "-p veriga-cli", ext: tar.gz, musl: true }
+          - { os: ubuntu-26.04-arm, target: aarch64-unknown-linux-musl,  pkgs: "-p veriga-cli", ext: tar.gz, musl: true }
           # Windows
           - { os: windows-2025,     target: x86_64-pc-windows-msvc,      pkgs: "-p veriga-cli -p veriga-gui", ext: zip }
           - { os: windows-11-arm,   target: aarch64-pc-windows-msvc,     pkgs: "-p veriga-cli -p veriga-gui", ext: zip }
@@ -217,8 +217,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-24.04,     target: x86_64-unknown-linux-musl,  rpmarch: x86_64,  debarch: amd64 }
-          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-musl, rpmarch: aarch64, debarch: arm64 }
+          - { os: ubuntu-26.04,     target: x86_64-unknown-linux-musl,  rpmarch: x86_64,  debarch: amd64 }
+          - { os: ubuntu-26.04-arm, target: aarch64-unknown-linux-musl, rpmarch: aarch64, debarch: arm64 }
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
@@ -275,7 +275,7 @@ jobs:
   docker:
     # imagine multi-arch (amd64+arm64) din binarele musl; publicată pe GHCR doar la lansări
     needs: build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     permissions:
       contents: read
@@ -315,7 +315,7 @@ jobs:
   release:
     if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
     needs: [build, portable, packaging, docker]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
       contents: write        # creează release-ul
