@@ -54,9 +54,9 @@ ram.runtime = "20M"
 [resources]
     [resources.sources.main]
     amd64.url = "https://github.com/chiuta/VERIGA/releases/download/v1.4.1/veriga-x86_64-unknown-linux-musl.tar.gz"
-    amd64.sha256 = "0ae4c615e4ad164dddd42bc65ab26d7be03ad7e19cf6084826632e074e446eb2"
+    amd64.sha256 = "2754f60a5fa0133855dab0b624f542fa9a0e8c7adbf38c4d0c53833c2934b465"
     arm64.url = "https://github.com/chiuta/VERIGA/releases/download/v1.4.1/veriga-aarch64-unknown-linux-musl.tar.gz"
-    arm64.sha256 = "06ff71853188492cc130b0a641254a34634b5586b81f133e55e17c450ad499a2"
+    arm64.sha256 = "36958e7e5b91142dbc00c9d1044e07f60cc70ad2becbfe106ae3e853196626e4"
 
     autoupdate.strategy = "latest_github_release"
     autoupdate.asset.amd64 = "^veriga-x86_64-unknown-linux-musl\\.tar\\.gz$"
