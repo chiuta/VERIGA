@@ -4,7 +4,8 @@ const s = fs.readFileSync(path.join(__dirname, '..', 'veriga.html'), 'utf8');
 const h = t => "'sha256-" + crypto.createHash('sha256').update(t).digest('base64') + "'";
 const [head, body] = s.split('<body>');
 const sty = /<style>([\s\S]*?)<\/style>/.exec(head)[1];
-const scripts = [...body.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+// toate scripturile inline executabile (inclusiv fff-compat și fff-imp din <head>)
+const scripts = [...s.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)].filter(m => !/\bsrc\s*=/.test(m[1]) && ['', 'text/javascript', 'application/javascript', 'module'].includes(((/\btype\s*=\s*["']?([^"'\s>]*)/.exec(m[1]) || [0, ''])[1] || '').toLowerCase())).map(m => m[2]);
 const csp = /Content-Security-Policy" content="([^"]*)"/.exec(s)[1];
 let bad = 0;
 for (const x of [h(sty), ...scripts.map(h)]) if (!csp.includes(x)) { bad++; console.log('lipsește hash', x); }

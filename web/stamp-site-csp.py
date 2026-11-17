@@ -6,7 +6,16 @@ path = sys.argv[1]
 check = '--check' in sys.argv
 s = open(path, encoding='utf-8').read()
 s = re.sub(r'<meta http-equiv="Content-Security-Policy"[^>]*>\n?', '', s)
-scripts = [m.group(1) for m in re.finditer(r'<script(?![^>]*\btype=)[^>]*>(.*?)</script>', s, re.S)]
+def inline_scripts(doc):
+    """Toate scripturile inline executabile (și stratul fff-compat / modulul fff-imp, adăugate de tools/compat/lower.mjs); JSON și JSON-LD nu se execută."""
+    out = []
+    for m in re.finditer(r"<script\b([^>]*)>(.*?)</script>", doc, re.S):
+        if re.search(r"\bsrc\s*=", m.group(1)): continue
+        t = re.search(r"\btype\s*=\s*[\"']?([^\"'\s>]*)", m.group(1))
+        if t and t.group(1).lower() not in ("", "text/javascript", "application/javascript", "module"): continue
+        out.append(m.group(2))
+    return out
+scripts = inline_scripts(s)
 styles = [m.group(1) for m in re.finditer(r'<style[^>]*>(.*?)</style>', s, re.S)]
 h = lambda t: "'sha256-" + base64.b64encode(hashlib.sha256(t.encode('utf-8')).digest()).decode() + "'"
 csp = ("default-src 'none'; script-src " + ' '.join(h(t) for t in scripts) + "; style-src " + ' '.join(h(t) for t in styles) +

@@ -4,6 +4,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+### Schimbat
+- Aplicația HTML (`web/veriga.html`, varianta PWA din `app/`, extensia WordPress) și pagina site-ului rulează în browsere mai vechi (Chrome/Edge 55+, Firefox 52+, Safari 10.1+/iOS 10.3+): sintaxă JavaScript ES2017, rezerve pentru API-urile care lipsesc în motoarele vechi (kit 1.8.0), iar pozițiile grupurilor de captură (`m.indices`) se deduc din textul potrivit acolo unde motorul nu le oferă — verificat pe zeci de mii de intrări aleatoare în `web/tests/indices.test.js`. Fără modificări de funcționalitate intenționate.
+- `web/stamp-csp.py` și `web/stamp-site-csp.py` calculează hash-urile CSP pentru toate scripturile inline executabile (inclusiv stratul de compatibilitate și modulele), nu doar pentru cele fără `type`.
+
+### Neverificat
+- Browserele vechi nu au fost încercate pe dispozitive reale; verificare cu parser ES2017 și într-un motor vechi simulat.
+
 ## [1.4.1] — 2026-11-17
 
 ### Reparat
