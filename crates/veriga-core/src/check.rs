@@ -664,6 +664,8 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
     };
     let mut hops = 0usize;
     let mut visited: HashSet<String> = HashSet::new();
+    // o redirecționare spre aceeași adresă care a setat un cookie (sesiune/consimțământ) nu e o buclă
+    let mut cookie_revisits = 0u8;
     visited.insert(cur.to_string());
 
     loop {
@@ -735,6 +737,7 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
             });
         }
 
+        let set_cookie = resp.headers().contains_key(reqwest::header::SET_COOKIE);
         if (300..400).contains(&code) && code != 304 {
             let Some(loc) = resp
                 .headers()
@@ -778,7 +781,13 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
                     return a;
                 }
             };
-            if !visited.insert(next.to_string()) {
+            let sets_cookie = cfg.cookies && set_cookie;
+            if !visited.insert(next.to_string())
+                && !(sets_cookie && cookie_revisits < 2 && {
+                    cookie_revisits += 1;
+                    true
+                })
+            {
                 a.status = Some(Status::TooManyRedirects);
                 a.http = Some(code);
                 a.msg = tr("buclă de redirecționări", "redirect loop").into();
@@ -943,12 +952,16 @@ async fn http_once(sh: &Shared, t: &Task, delay: Duration) -> Attempt {
                     let declared = a.size;
                     a.size = Some(buf.len() as u64);
                     if a.status == Some(Status::Ok) {
+                        // conexiunea s-a închis înainte de sfârșitul răspunsului: nu e un „OK”
+                        a.status = Some(Status::NoConnection);
+                        a.retryable = true;
                         a.msg = trf!(
                             "răspuns trunchiat: primit {} din {} octeți",
                             "truncated response: received {} of {} bytes",
                             buf.len(),
                             declared.map_or("?".to_string(), |d| d.to_string())
                         );
+                        return a;
                     }
                 } else {
                     a.size = Some(a.size.unwrap_or(0).max(buf.len() as u64));

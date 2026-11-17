@@ -9,6 +9,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 ### Reparat
 - Aplicația HTML: „1 orfan / 2 orfani” (singular/plural) în banda-rezumat; numele accesibil al tabelului de rezultate urmează limba aleasă.
 - Site: mărimile reale ale arhivelor și sumele YunoHost pentru 1.4.0.
+- Verificator: o redirecționare care revine la aceeași adresă după ce a setat un cookie (consimțământ/sesiune) nu mai este raportată drept „buclă de redirecționări” (până la 2 reveniri tolerate, doar cu cookie-uri active).
+- Verificator: un răspuns închis de server înainte de sfârșit (mai puțini octeți decât `Content-Length`) este raportat ca eroare de conexiune (reîncercabilă), nu ca „OK”.
+- Extragere: `xlink:href` din SVG (`<image>`, `<use>`, `<a>`) era ignorat; acum este verificat.
 
 ## [1.4.0] — 2026-11-17
 

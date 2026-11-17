@@ -53,7 +53,7 @@ No. There is no telemetry and no account. E-mails go through your site's own `wp
 == Changelog ==
 
 = 1.4.1 =
-* Bundles VERIGA 1.4.1: fixes the singular/plural of "orphan" in the summary and the language of the results table's accessible name.
+* Bundles VERIGA 1.4.1: fixes the singular/plural of "orphan" in the summary and the language of the results table's accessible name. The checker no longer reports a false redirect loop when a redirect sets a cookie, flags truncated responses as errors and checks SVG xlink:href links.
 
 = 1.4.0 =
 * Bundles VERIGA 1.4.0: results summary banner, automatic "broken" filter, "found on" column, keyboard navigation and a clearer validation message in the embedded app.

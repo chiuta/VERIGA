@@ -276,6 +276,13 @@ fn parent_name(el: &ElementRef) -> String {
         .unwrap_or_default()
 }
 
+/// `href` din SVG: parserul îl păstrează ca atribut cu spațiu de nume (`xlink:href`),
+/// pe care `attr("href")` nu-l găsește.
+fn svg_href(v: &scraper::node::Element) -> Option<&str> {
+    v.attr("href")
+        .or_else(|| v.attrs().find(|(k, _)| *k == "href").map(|(_, val)| val))
+}
+
 pub fn extract_html(page: &Url, html: &str, check_forms: bool) -> Extracted {
     extract_html_opts(page, html, check_forms, ExtractOpts::default())
 }
@@ -409,7 +416,7 @@ pub fn extract_html_opts(
 
             match name {
                 "a" | "area" => {
-                    if let Some(h) = v.attr("href") {
+                    if let Some(h) = v.attr("href").or_else(|| svg_href(v)) {
                         let mut text = el.text().collect::<String>();
                         if text.trim().is_empty() {
                             if let Some(alt) = v.attr("alt").or_else(|| v.attr("title")) {
@@ -584,8 +591,8 @@ pub fn extract_html_opts(
                         s.add(x, LinkKind::Link, "");
                     }
                 }
-                "image" | "use" => {
-                    if let Some(x) = v.attr("href").or_else(|| v.attr("xlink:href"))
+                "image" | "use" | "feimage" => {
+                    if let Some(x) = svg_href(v)
                         && !x.starts_with('#')
                     {
                         s.add(x, LinkKind::Image, "");
@@ -644,6 +651,18 @@ mod tests {
             .iter()
             .map(|l| (l.url.to_string(), l.kind))
             .collect()
+    }
+
+    #[test]
+    fn svg_xlink_href_is_extracted() {
+        let page = Url::parse("https://ex.ro/").unwrap();
+        let html = "<html><body><svg><image xlink:href=\"/svg-lipsa\"/><a xlink:href=\"/svg-a\"><text>t</text></a></svg></body></html>";
+        let k = kinds(&extract_html(&page, html, false));
+        assert!(
+            k.iter().any(|(u, _)| u == "https://ex.ro/svg-lipsa"),
+            "{k:?}"
+        );
+        assert!(k.iter().any(|(u, _)| u == "https://ex.ro/svg-a"), "{k:?}");
     }
 
     #[test]
