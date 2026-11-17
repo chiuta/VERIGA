@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-CgAScuFZ1pKXMNGVfSP14d416Qco3ROAnfB6PpjpamI=' 'sha256-uJdk8dRR8ZhHvA2Fe1zdjUa5BYlHGnTp36rMa0EKFQo='; style-src-elem 'sha256-a8VMdJ3OHewnZdAAAl0FTxbEw3xSkom47Fk85zNJdQI='; style-src-attr 'unsafe-inline'; img-src 'self' data: blob:; connect-src http: https: blob: data:; base-uri 'none'; form-action 'none'; object-src 'none'; manifest-src 'self'; worker-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WAwLh6BJFEPWY0JjU/O6DfrLBEijsAbURTeS8LTnD10=' 'sha256-uJdk8dRR8ZhHvA2Fe1zdjUa5BYlHGnTp36rMa0EKFQo='; style-src-elem 'sha256-a8VMdJ3OHewnZdAAAl0FTxbEw3xSkom47Fk85zNJdQI='; style-src-attr 'unsafe-inline'; img-src 'self' data: blob:; connect-src http: https: blob: data:; base-uri 'none'; form-action 'none'; object-src 'none'; manifest-src 'self'; worker-src 'self'">
 <title>VERIGA — verificator de legături</title>
 <style>
 :root{--bg:#f6f6f2;--fg:#1c1f23;--mut:#677079;--card:#fff;--bd:#d8dce1;--ok:#17794c;--bad:#b3261e;--warn:#98660a;--acc:#2f5fd0;--accfg:#fff;--row:#f1f3f5}
@@ -846,7 +846,7 @@ const BASE_TITLE = document.title;
 function updateSummary(final, nb, pct) {
   const el = $('#sumbar'); if (!el) return;
   const rev = S.results.filter(r => isReview(r.status)).length, red = S.results.filter(r => r.status === 'Redirected').length, orp = S.results.filter(r => r.status === 'Orphan').length;
-  const extra = [rev ? rev + ' ' + T('de verificat', 'to review') : '', red ? red + ' ' + T('redirecționări', 'redirects') : '', orp ? orp + ' ' + T('orfane', 'orphans') : ''].filter(Boolean).join(' · ');
+  const extra = [rev ? rev + ' ' + T('de verificat', 'to review') : '', red ? red + ' ' + T('redirecționări', 'redirects') : '', orp ? orp + ' ' + T(orp === 1 ? 'orfan' : 'orfani', orp === 1 ? 'orphan' : 'orphans') : ''].filter(Boolean).join(' · ');
   if (!final) { el.className = 'sumbar run'; el.innerHTML = `⏳ ${T('Se verifică…', 'Checking…')} ${Math.round(pct)}% · ${nb} ${T('rupte până acum', 'broken so far')}`; return; }
   const total = S.results.length;
   if (S.cancelled) { el.className = 'sumbar run'; el.innerHTML = `■ ${T('Oprit', 'Stopped')} · ${nb} ${T('rupte', 'broken')} <small>${total} URL</small>`; return; }
@@ -1101,6 +1101,7 @@ function applyZoom() {
 function setZoom(m) { ZMODE = m; if (m === 'auto') ZAUTO = autoZoom(); lsSet('veriga.zoom', m === 'auto' ? 'auto' : String(m)); applyZoom(); }
 function stepZoom(d) { const z = Math.round((curZoom() + d) * 10) / 10; setZoom(Math.min(ZMAX, Math.max(ZMIN, z))); }
 function applyLang() {
+  try { $('#tbl').setAttribute('aria-label', T('Rezultate; săgeți sus/jos pentru a alege un rând', 'Results; use up/down arrows to select a row')); $('#b-start').title = 'Ctrl+Enter'; } catch (e) {}
   document.documentElement.lang = LANG;
   $$('[data-ro]').forEach(e => { e.textContent = LANG === 'en' ? e.dataset.en : e.dataset.ro; });
   $$('[data-al-ro]').forEach(e => { const l = LANG === 'en' ? e.dataset.alEn : e.dataset.alRo; e.setAttribute('aria-label', l); if (e.closest('#zbar')) e.title = l; });
@@ -1132,7 +1133,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#lang').addEventListener('click', () => { LANG = LANG === 'en' ? 'ro' : 'en'; lsSet('veriga.lang', LANG); applyLang(); });
   $('#b-start').addEventListener('click', start);
   $('#b-start').title = 'Ctrl+Enter';
-  $('#tbl').tabIndex = 0; $('#tbl').setAttribute('aria-label', T('Rezultate; săgeți sus/jos pentru a alege un rând', 'Results; use up/down arrows to select a row'));
+  $('#tbl').tabIndex = 0;
   $('#tbl').addEventListener('keydown', e => {
     if (!['ArrowDown', 'ArrowUp', 'Home', 'End', 'PageDown', 'PageUp'].includes(e.key) || !S.view.length) return;
     e.preventDefault();

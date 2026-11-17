@@ -4,7 +4,7 @@ Tags: broken links, link checker, seo, maintenance, trade-free
 Requires at least: 6.2
 Tested up to: 7.1.4
 Requires PHP: 7.4
-Stable tag: 1.4.0
+Stable tag: 1.4.1
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -51,6 +51,9 @@ Tick "Allow private/local addresses" on the Scheduled check tab. VERIGA blocks p
 No. There is no telemetry and no account. E-mails go through your site's own `wp_mail`.
 
 == Changelog ==
+
+= 1.4.1 =
+* Bundles VERIGA 1.4.1: fixes the singular/plural of "orphan" in the summary and the language of the results table's accessible name.
 
 = 1.4.0 =
 * Bundles VERIGA 1.4.0: results summary banner, automatic "broken" filter, "found on" column, keyboard navigation and a clearer validation message in the embedded app.

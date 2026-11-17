@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+## [1.4.1] — 2026-11-17
+
+### Reparat
+- Aplicația HTML: „1 orfan / 2 orfani” (singular/plural) în banda-rezumat; numele accesibil al tabelului de rezultate urmează limba aleasă.
+- Site: mărimile reale ale arhivelor și sumele YunoHost pentru 1.4.0.
+
 ## [1.4.0] — 2026-11-17
 
 ### Adăugat
