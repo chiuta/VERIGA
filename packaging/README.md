@@ -12,3 +12,7 @@
 | **YunoHost** (package format v2) | `yunohost/` | structure checked (`yunohost/check.py`); **`package_check` not yet run on a live YunoHost** |
 
 A native Android APK is **not** provided: use the PWA (install from the browser menu) or Termux.
+
+## After publishing a release
+
+`python3 packaging/release-sync.py vX.Y.Z` copies the real values of the published release into the repo: the SHA-256 sums in `yunohost/manifest.toml` and the file sizes in the website's download list (then it regenerates the language pages and their CSP hashes). `--check` only reports what would change. Run it from the commit that was released, review `git diff`, then commit. It reads the public GitHub API and writes nothing to GitHub.
