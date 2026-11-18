@@ -4,7 +4,7 @@ Tags: broken links, link checker, seo, maintenance, trade-free
 Requires at least: 6.2
 Tested up to: 7.1.4
 Requires PHP: 7.4
-Stable tag: 1.4.1
+Stable tag: 1.5.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -51,6 +51,9 @@ Tick "Allow private/local addresses" on the Scheduled check tab. VERIGA blocks p
 No. There is no telemetry and no account. E-mails go through your site's own `wp_mail`.
 
 == Changelog ==
+
+= 1.5.0 =
+* Bundles VERIGA 1.5.0: the embedded app and this plugin run in older browsers too (Chrome/Edge 55+, Firefox 52+, Safari 10.1+), with a stricter Content-Security-Policy that hashes every inline script. Dates and times now use the maintained `jiff` library instead of the unmaintained `chrono`.
 
 = 1.4.1 =
 * Bundles VERIGA 1.4.1: fixes the singular/plural of "orphan" in the summary and the language of the results table's accessible name. The checker no longer reports a false redirect loop when a redirect sets a cookie, flags truncated responses as errors and checks SVG xlink:href links.

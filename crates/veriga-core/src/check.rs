@@ -1091,8 +1091,7 @@ async fn file_check(sh: &Shared, t: &Task, r: &mut LinkResult) -> Option<Body> {
                 .first()
                 .map(|m| m.essence_str().to_string());
             if let Ok(mt) = m.modified() {
-                let dt: chrono::DateTime<chrono::Utc> = mt.into();
-                r.last_modified = Some(dt.to_rfc2822());
+                r.last_modified = crate::clock::http_date_from_system_time(mt);
             }
             if t.parse {
                 let is_css = path
@@ -1433,9 +1432,7 @@ fn parse_retry_after_ms(v: &str) -> Option<u64> {
     if let Ok(secs) = v.parse::<u64>() {
         return Some(secs.saturating_mul(1000));
     }
-    let when = chrono::DateTime::parse_from_rfc2822(v).ok()?;
-    let ms = (when.with_timezone(&chrono::Utc) - chrono::Utc::now()).num_milliseconds();
-    Some(ms.max(0) as u64)
+    crate::clock::millis_until_http_date(v)
 }
 
 #[cfg(test)]
@@ -1519,7 +1516,12 @@ mod tests {
             parse_retry_after_ms("Sun, 06 Nov 1994 08:49:37 GMT"),
             Some(0)
         ); // în trecut
-        let fut = (chrono::Utc::now() + chrono::Duration::seconds(30)).to_rfc2822();
+        let fut = crate::clock::rfc2822_utc(
+            jiff::Timestamp::now()
+                .checked_add(jiff::SignedDuration::from_secs(30))
+                .unwrap(),
+        )
+        .unwrap();
         let ms = parse_retry_after_ms(&fut).unwrap();
         assert!((25_000..=31_000).contains(&ms), "{ms}");
         assert_eq!(parse_retry_after_ms("curând"), None);

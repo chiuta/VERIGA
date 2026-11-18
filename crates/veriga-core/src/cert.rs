@@ -1,7 +1,6 @@
 //! Citirea minimă a certificatului frunză X.509 (DER, RFC 5280): interval de valabilitate și
 //! nume alternative (SAN), pentru avertizări de expirare și nepotrivire de nume.
 
-use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 
@@ -71,12 +70,7 @@ pub fn parse_time(tag: u8, s: &str) -> Option<i64> {
         digits(rest + 6..rest + 8)?,
         digits(rest + 8..rest + 10)?,
     );
-    Some(
-        NaiveDate::from_ymd_opt(year, mo, d)?
-            .and_hms_opt(h, mi, sec)?
-            .and_utc()
-            .timestamp(),
-    )
+    crate::clock::epoch_secs_utc(year, mo, d, h, mi, sec)
 }
 
 fn time_of(b: &[u8]) -> Option<(i64, &[u8])> {
@@ -251,7 +245,7 @@ pub fn validity_status(
 }
 
 fn rfc3339(secs: i64) -> Option<String> {
-    chrono::DateTime::from_timestamp(secs, 0).map(|d| d.to_rfc3339())
+    crate::clock::rfc3339_from_secs(secs)
 }
 
 /// Constatările pentru un host:port: starea de valabilitate și, separat, numele.
@@ -340,21 +334,16 @@ mod tests {
     }
 
     fn ts(y: i32, m: u32, d: u32) -> i64 {
-        NaiveDate::from_ymd_opt(y, m, d)
-            .unwrap()
-            .and_hms_opt(0, 0, 0)
-            .unwrap()
-            .and_utc()
-            .timestamp()
+        crate::clock::epoch_secs_utc(y, m, d, 0, 0, 0).unwrap()
     }
 
     const NOW: i64 = 1_800_000_000; // 2027-01-15
 
     fn der_valid(na_off_days: i64, nb_off_days: i64) -> Vec<u8> {
         let f = |off: i64| {
-            chrono::DateTime::from_timestamp(NOW + off * 86_400, 0)
+            jiff::Timestamp::from_second(NOW + off * 86_400)
                 .unwrap()
-                .format("%Y%m%d%H%M%SZ")
+                .strftime("%Y%m%d%H%M%SZ")
                 .to_string()
         };
         cert(

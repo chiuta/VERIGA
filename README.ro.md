@@ -2,9 +2,9 @@
 
 [English](README.md) · **Română** · [Français](README.fr.md) · [Italiano](README.it.md) · [Español](README.es.md) · [Português](README.pt.md) · [Deutsch](README.de.md) · [Magyar](README.hu.md)
 
-**Descărcare:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.4.1
+**Descărcare:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.5.0
 
-Versiune: 1.4.1 · Ultima actualizare: 17.11.2026 · Pagina de prezentare: https://veriga.chiuta.ro
+Versiune: 1.5.0 · Ultima actualizare: 18.11.2026 · Pagina de prezentare: https://veriga.chiuta.ro
 
 Aplicație 64-bit în Rust, pentru Windows, macOS și Linux (x86-64 și ARM64), care parcurge un site
 sau un director local și verifică legăturile. Vine în trei forme cu același model de rezultate:
@@ -190,7 +190,7 @@ VERIGA procesează conținut necontrolat (pagini web, fișiere exportate, fișie
 | Domeniu | Stare |
 |---|---|
 | Rust | edition **2024**, MSRV **1.88** (core + CLI; dependențele lor declară cel mult 1.88), GUI **1.95** (egui 0.37); `cargo clippy -- -D warnings` și `cargo fmt --check` curate; `--locked` în CI |
-| Dependențe | reqwest 0.13 (rustls + verificator de platformă, HTTP/2, gzip/brotli/zstd), scraper 0.29, thiserror 2, eframe/egui 0.37, rfd 0.17; `cargo audit` 0 vulnerabilități; `cargo deny` (advisories, licențe, surse, ban-uri) |
+| Dependențe | reqwest 0.13 (rustls + verificator de platformă, HTTP/2, gzip/brotli/zstd), scraper 0.29, jiff 1.0, eframe/egui 0.37, rfd 0.17; `cargo audit` 0 vulnerabilități; `cargo deny` (advisories, licențe, surse, ban-uri) |
 | robots.txt | **RFC 9309**: grupuri îmbinate, potrivire exactă pe tokenul de produs, normalizare procentuală/UTF-8, `*` și `$`, cea mai lungă regulă câștigă (Allow la egalitate), plafon 500 KiB, 4xx ⇒ permis, 5xx/rețea ⇒ indisponibil, verificarea continuă (un site căzut apare rupt, nu „0 rupte”); pagina de start nu e niciodată blocată de robots.txt |
 | HTTP | RFC 9110: `Retry-After` (secunde/dată) la 429/503, redirecturi 301/302/303/307/308, `Location` relativ, `HEAD` cu revenire la `GET` |
 | URL | WHATWG URL / IDNA (UTS 46) prin crate-ul `url` (cu `idna`) |

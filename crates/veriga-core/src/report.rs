@@ -532,9 +532,9 @@ pub fn to_sitemap_xml(s: &Session) -> String {
         if let Some(lm) = r
             .last_modified
             .as_deref()
-            .and_then(|d| chrono::DateTime::parse_from_rfc2822(d).ok())
+            .and_then(crate::clock::http_date_ymd)
         {
-            let _ = write!(o, "<lastmod>{}</lastmod>", lm.format("%Y-%m-%d"));
+            let _ = write!(o, "<lastmod>{lm}</lastmod>");
         }
         o.push_str("</url>\n");
     }

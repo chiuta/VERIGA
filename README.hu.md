@@ -2,9 +2,9 @@
 
 [English](README.md) · [Română](README.ro.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [Español](README.es.md) · [Português](README.pt.md) · [Deutsch](README.de.md) · **Magyar**
 
-**Letöltés:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.4.1
+**Letöltés:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.5.0
 
-Verzió: 1.4.1 · Utolsó frissítés: 2026.11.17. · Bemutatkozó oldal: https://veriga.chiuta.ro
+Verzió: 1.5.0 · Utolsó frissítés: 2026.11.18. · Bemutatkozó oldal: https://veriga.chiuta.ro
 
 Egy 64 bites Rust alkalmazás Windowsra, macOS-re és Linuxra (x86-64 és ARM64), amely bejár egy weboldalt
 vagy egy helyi mappát, és ellenőrzi a hivatkozásait. Három formában érhető el, amelyek egyetlen közös eredménymodellen osztoznak:
@@ -40,6 +40,24 @@ külső hivatkozások igen/nem, „maradj a könyvtárban”, kizárás / ne kö
 OK-nak tekintett HTTP-kódok (pl. 999), User-Agent, proxy (HTTP/SOCKS), Basic hitelesítés (csak belső gazdagépekhez),
 fejlécek és sütik, érvénytelen tanúsítványok, késleltetés a kérések között.
 
+`--honor-nofollow` — a `rel="nofollow"` jelölésű hivatkozásokat továbbra is ellenőrzi (HTTP-állapot), de a céloldalt nem járja be további hivatkozások után; alapértelmezés szerint ki van kapcsolva. A `--report-rel` kapcsolóval minden hivatkozás `rel` tokenjei (kis- és nagybetűk megkülönböztetése nélkül, egyediek) is megjelennek a JSON-ban (`rel`), a CSV/TSV-ben (`Rel` oszlop) és a szöveges jelentésben a hibás hivatkozások mellett; enélkül ezek a kimenetek pontosan olyanok, mint a v1.1.0-ban.
+
+`--check-schemes` — ellenőrzi a `tel:`, `geo:` és `data:` címek szintaxisát (RFC 3966, RFC 5870, RFC 2397 a Fetch base64-toleranciájával); hálózati kérés nem történik. Az érvénytelenek „Érvénytelen URL” megjelöléssel és az okkal szerepelnek; az 1 MiB-nál nagyobb `data:` címek nem ellenőrzöttként jelennek meg. Alapértelmezés szerint ki van kapcsolva (ezeket a sémákat ilyenkor csendben figyelmen kívül hagyja).
+
+`--check-link-names` — kiszámítja minden `<a href>` hozzáférhető nevét (accessible name: aria-labelledby, aria-label, tartalom a képek `alt` szövegével együtt, majd `title`; a rejtett tartalom figyelmen kívül marad), és jelzi a név nélküli vagy csak írásjelekből álló hivatkozásokat (WCAG 2.4.4 / 4.1.2) a szöveges és JSON jelentésekben (`a11y`). A `--check-ambiguous-names` tájékoztató megjegyzést ad, ha azonos nevek (kis- és nagybetűk megkülönböztetése nélkül) egy oldalon különböző címekre mutatnak. Mindkettő alapértelmezés szerint ki van kapcsolva.
+
+`--check-link-header` — beolvassa a bejárt oldalak HTTP `Link` fejlécmezőit (RFC 8288), és minden megadott célt úgy ellenőriz, mint bármely más hivatkozást (forrás = a kért oldal, „Link header: …” felirattal; a `rel` tokenek megmaradnak). A hibás formátumú értékeket figyelmeztetéssel kihagyja (szöveges/JSON jelentések, `warnings`); válaszonként legfeljebb 100 hivatkozást olvas. Alapértelmezés szerint ki van kapcsolva.
+
+`--check-seo-links` — ellenőrzi a `rel="canonical"` értékeket (hibás cél, átirányított cél külön jelezve, több különböző canonical egy oldalon; az oldalra magára mutató canonical rendben van, a `Link` fejlécből olvasva is, a `--check-link-header` kapcsolóval) és a `hreflang` értékeket a `link rel=alternate` / `a` elemeken (csak BCP 47 szintaxis, IANA-regiszter nélkül; az `x-default` külső konvencióként szerepel, nem hibaként). A találatok a szöveges és JSON jelentésekben vannak (`seo`). Alapértelmezés szerint ki van kapcsolva.
+
+`--check-mixed-content` — `https:` oldalakon jelzi a `http:` felett betöltött alerőforrásokat (vegyes tartalom): a képek, a hang és a videó „opcionálisan blokkolhatók”; a szkriptek, stíluslapok, előtöltések, iframe-ek, objektumok, betűtípusok, a CSS `@import` és az űrlapműveletek „blokkolhatók”. A sima navigációs hivatkozások nem alerőforrások; a `localhost`, a `127.0.0.0/8` és a `[::1]` sosem kerül jelzésre; a `Content-Security-Policy: upgrade-insecure-requests` fejléc megjegyzést ad a találat törlése helyett; az olyan `https:` alerőforrást is jelzi, amely `http:` címre irányít át. Az eredmények a szöveges és JSON jelentésekben vannak (`mixed`). Alapértelmezés szerint ki van kapcsolva.
+
+`--check-feeds` — beolvassa a `<link rel="alternate" type="application/rss+xml|application/atom+xml">` elemen át talált (vagy a bejárás közben kapott bármely XML-válaszban szereplő) RSS 2.0 és Atom 1.0 hírcsatornákat, és ellenőrzi a bennük lévő hivatkozásokat: a csatorna és az elemek `link`, `comments`, `enclosure@url`, `source@url` mezőit, a kép `url`/`link` mezőjét, a tartós `guid`-ot, az Atom `link@href` értékét (hiányzó `rel` = alternate), a `content@src` értéket, valamint az escape-elt/CDATA HTML leírásokban és az Atom `html`/`xhtml` tartalomban lévő hivatkozásokat. A relatív címek az `xml:base`, majd a hírcsatorna címe szerint oldódnak fel. A hibás XML vagy a nem hírcsatorna dokumentum figyelmeztetést ad, hivatkozás nélkül. Alapértelmezés szerint ki van kapcsolva.
+
+`--check-sri` — ellenőrzi a `<script src>` és a `<link rel=stylesheet|preload|modulepreload>` `integrity` attribútumát: szintaxis (szabványos base64, helyes kivonathossz), felismert algoritmusok (sha256/384/512 — a jelen lévő legerősebb dönt, bármelyik értéke egyezhet), a letöltött bájtok SHA-2 kivonata, valamint a CORS a más eredetű erőforrásoknál (`crossorigin` attribútum és egyező `Access-Control-Allow-Origin`). Ítéletek: egyezik / nem egyezik / érvénytelen szintaxis / nincs felismert algoritmus / nincs CORS / nem ellenőrzött; más elemeken az `integrity` nem alkalmazhatóként van megjegyezve. Az erőforrásokat csak akkor tölti le teljesen (GET), ha egy hivatkozás kéri az ellenőrzést. Az eredmények a szöveges és JSON jelentésekben vannak (`sri`). Alapértelmezés szerint ki van kapcsolva.
+
+`--check-cert-expiry` / `--cert-warn-days N` (alapértelmezés: 14) — kiolvassa azt a levéltanúsítványt (leaf TLS certificate), amelyet minden `https` gazdagép:port bemutat az ellenőrzés során, és gazdagép:portonként egyszer jelzi, az ott ellenőrzött hivatkozások számával: lejárt, még nem érvényes, N napon belül lejár (küszöb; `0` = csak a lejártak), olvashatatlan, vagy olyan név, amely egyik SAN-bejegyzéssel sem egyezik. A `--insecure` kapcsolóval is működik. A TLS-t lehallgató proxy a saját tanúsítványát mutatja; a hibás rendszerórát nem lehet észlelni. Az eredmények a szöveges és JSON jelentésekben vannak (`certs`). Alapértelmezés szerint ki van kapcsolva.
+
 ## Ingyenes, etikus proxyk
 
 Válassz előbeállítást a `--proxy-preset tor|tor-browser|warp` kapcsolóval (lista: `--list-proxy-presets`), vagy a grafikus felületen az „Ingyenes etikus proxy…” menüből. Mind helyi SOCKS5-végpont (`socks5h://127.0.0.1:…`): a neveket a proxy oldja fel, nem a rendszered. Az ajánlott választás a Tor (önkéntesek, nonprofit, nyílt forrás); az ellenőrzés 4 szálra és szerverenként 2 kapcsolatra korlátozott, és egyes oldalak tiltják a Tor kilépőket, ezért téves „törött linkek” előfordulhatnak. A Cloudflare WARP ingyenes, de zárt kliensű kereskedelmi szolgáltatás. A nyílt nyilvános proxylistákat szándékosan nem tartalmazza: gyakran feltörtek, vagy lehallgatják a forgalmat. A saját proxy továbbra is használható a `--proxy` kapcsolóval.
@@ -48,6 +66,12 @@ Válassz előbeállítást a `--proxy-preset tor|tor-browser|warp` kapcsolóval 
 
 Önálló HTML (bárhol megnyitható), CSV, TSV, JSON, szöveg, sitemap.xml, oldalfa, egy `.veriga` munkamenet.
 **A hibás hivatkozások újraellenőrzése** mentett munkamenetből (`--recheck`, gomb a GUI-ban/weben).
+
+**Alias címek** (`--report-aliases`): ugyanannak a címnek a különböző írásmódjai (a gazdagépnév kis-/nagybetűi, az alapértelmezett port, feleslegesen százalékkal kódolt karakterek, pontszegmensek) tájékoztató csoportként jelennek meg a szöveges és JSON jelentésekben (`aliases`); az útvonal/lekérdezés kis-/nagybetűit, a paraméterek sorrendjét, a záró törtvonalat és a `www.` előtagot soha nem vonja össze. A nyilvántartás memóriakorlátos (100 000 cím, címenként 10 írásmód, írásmódonként 20 oldal). A `--canonical-urls` ezenfelül egyetlen ellenőrzéssé vonja össze az ilyen írásmódokat (és a normalizált címet jelzi); alapértelmezés szerint az URL-eket pontosan úgy ellenőrzi és jelenti, ahogy le vannak írva, mint a v1.1.0-ban. További, alapértelmezés szerint kikapcsolt kapcsoló: `--xml-encoding` (az `<?xml encoding=…?>` figyelembe vétele, ha nincs sem fejléc, sem meta charset).
+
+**SARIF 2.1.0** (`-o report.sarif`): a hibás hivatkozások `error`, az átirányítások / 401-403 / lassú válaszok `warning`, a kihagyott vagy árva elemek `note` szintűek lesznek; a jó hivatkozásokat nem bocsátja ki. A hely a hivatkozást tartalmazó oldal (vagy fájl) URI-ként; a `region.startLine` csak akkor íródik ki, ha ismert a sor (a bejárási eredmények jelenleg nem hordoznak sort, ezért elmarad). A kimenet determinisztikus, és atomi módon íródik.
+
+**JUnit XML** (`-o report.junit`): forrásoldalanként egy `testsuite`, ellenőrzött hivatkozásonként egy `testcase` (`name` = cél, `classname` = forrásoldal). A hibás hivatkozások `failure`, az időtúllépések / kapcsolat hiánya `error`, a kihagyott vagy csak átnézendő elemek `skipped` lesznek; az XML 1.0-ban tiltott karakterek U+FFFD-re cserélődnek. Az árva fájlok nem hivatkozások, ezért kimaradnak.
 
 ## CLI
 
@@ -132,8 +156,10 @@ A projekt támogatása: https://www.buymeacoffee.com/echo.of.the.strings
 
 ## Ismert korlátok
 
+- **Hálózati védelem:** a privát címek ellenőrzése feloldja a gazdagépet, majd a HTTP-kliens újra feloldja (létezik egy DNS-rebinding ablak); nem megbízható oldalakon a VERIGA-t olyan hálózatról futtassa, amely nem éri el a privát tartományokat.
+- A **`veriga watch`** alapértelmezés szerint az aktuális mappából olvassa a `./veriga-guardian.json` fájlt, és ez a fájl megnevezhet egy `sendmail` parancsot és az átírandó forrásokat: ne futtassa olyan mappában, amelyben nem bízik.
 - Nem küld jelentéseket e-mailben (SMTP), és nem észleli az árva fájlokat FTP-n — csak helyi könyvtárban.
-- A tömörített `.xml.gz` webhelytérképeket nem olvassa.
+- A tömörített `.xml.gz` sitemapokat beolvassa (a gzip-et az első bájtokból ismeri fel, nem a kiterjesztésből); a kicsomagolt méret 50 MB-ra korlátozott, és egy sitemapból az első 50 000 URL-t olvassa.
 - A JavaScripttel felépített hivatkozású oldalakat nem rendereli (nincs böngészőmotor); a kiszolgált HTML-t elemzi.
 - A grafikus felületet csak virtuális kijelzőn (Linux/X11) próbáltuk ki: bejárás, szűrők, részletek panel és Guardian. A Windows és macOS buildeket a CI állítja elő, de interaktívan nem teszteltük őket.
 
@@ -161,7 +187,7 @@ A VERIGA nem megbízható tartalmat dolgoz fel (weboldalak, exportált fájlok, 
 | Terület | Állapot |
 |---|---|
 | Rust | edition **2024**, MSRV **1.88** (mag + CLI; függőségeik legfeljebb 1.88-at deklarálnak), GUI **1.95** (egui 0.37); a `cargo clippy -- -D warnings` és a `cargo fmt --check` tiszta; `--locked` a CI-ben |
-| Függőségek | reqwest 0.13 (rustls + platform verifier, HTTP/2, gzip/brotli/zstd), scraper 0.29, thiserror 2, eframe/egui 0.37, rfd 0.17; `cargo audit` 0 sebezhetőség; `cargo deny` (advisories, licenses, sources, bans) |
+| Függőségek | reqwest 0.13 (rustls + platform verifier, HTTP/2, gzip/brotli/zstd), scraper 0.29, jiff 1.0, eframe/egui 0.37, rfd 0.17; `cargo audit` 0 sebezhetőség; `cargo deny` (advisories, licenses, sources, bans) |
 | robots.txt | **RFC 9309**: összevont csoportok, pontos egyezés a termék-tokenre, százalék/UTF-8 normalizálás, `*` és `$`, a leghosszabb szabály nyer (egyenlőségnél Allow), 500 KiB korlát, 4xx ⇒ engedélyezett, 5xx/hálózati hiba ⇒ nem elérhető, az ellenőrzés folytatódik (egy halott oldal hibásként jelenik meg, nem „0 hibás”-ként); a kezdőoldalt a robots.txt soha nem blokkolja |
 | HTTP | RFC 9110: `Retry-After` (másodperc/dátum) 429/503 esetén, 301/302/303/307/308 átirányítások, relatív `Location`, `HEAD` `GET`-re való visszalépéssel |
 | URL | WHATWG URL / IDNA (UTS 46) az `url` crate-en keresztül (az `idna`-val) |

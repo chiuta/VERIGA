@@ -2,9 +2,9 @@
 
 [English](README.md) · [Română](README.ro.md) · [Français](README.fr.md) · [Italiano](README.it.md) · **Español** · [Português](README.pt.md) · [Deutsch](README.de.md) · [Magyar](README.hu.md)
 
-**Descarga:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.4.1
+**Descarga:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.5.0
 
-Versión: 1.4.1 · Última actualización: 17.11.2026 · Sitio de presentación: https://veriga.chiuta.ro
+Versión: 1.5.0 · Última actualización: 18.11.2026 · Sitio de presentación: https://veriga.chiuta.ro
 
 Aplicación Rust de 64 bits para Windows, macOS y Linux (x86-64 y ARM64) que rastrea un sitio web
 o una carpeta local y comprueba sus enlaces. Se presenta en tres formas que comparten un mismo modelo de resultados:
@@ -40,6 +40,24 @@ enlaces externos sí/no, «permanecer en el directorio», excluir / no seguir / 
 códigos HTTP tratados como correctos (p. ej. 999), User-Agent, proxy (HTTP/SOCKS), autenticación Basic (solo hosts internos),
 cabeceras y cookies, certificados no válidos, retardo entre solicitudes.
 
+`--honor-nofollow` — los enlaces marcados con `rel="nofollow"` se siguen comprobando (estado HTTP), pero la página de destino no se rastrea en busca de más enlaces; desactivado por defecto. Con `--report-rel`, los tokens `rel` de cada enlace (sin distinguir mayúsculas, únicos) también se indican en el JSON (`rel`), en el CSV/TSV (columna `Rel`) y junto a los enlaces rotos en el informe de texto; sin la opción, esas salidas son exactamente las de la v1.1.0.
+
+`--check-schemes` — valida la sintaxis de las direcciones `tel:`, `geo:` y `data:` (RFC 3966, RFC 5870, RFC 2397 con la tolerancia de base64 de Fetch); no se hace ninguna petición de red. Las inválidas se indican como «URL no válida» con el motivo; las direcciones `data:` de más de 1 MiB se indican como no verificadas. Desactivado por defecto (esos esquemas se ignoran en silencio).
+
+`--check-link-names` — calcula el nombre accesible de cada `<a href>` (aria-labelledby, aria-label, contenido incluido el `alt` de las imágenes, luego `title`; el contenido oculto se ignora) e indica los enlaces sin nombre o solo con signos de puntuación (WCAG 2.4.4 / 4.1.2) en los informes de texto y JSON (`a11y`). `--check-ambiguous-names` añade una nota informativa cuando nombres idénticos (sin distinguir mayúsculas) apuntan a direcciones distintas en una misma página. Ambos desactivados por defecto.
+
+`--check-link-header` — lee los campos de cabecera HTTP `Link` (RFC 8288) de las páginas rastreadas y comprueba cada destino declarado como cualquier otro enlace (origen = la página solicitada, mostrado como «Link header: …»; se conservan los tokens `rel`). Los valores mal formados se omiten con una advertencia (informes de texto/JSON, `warnings`); se leen como máximo 100 enlaces por respuesta. Desactivado por defecto.
+
+`--check-seo-links` — comprueba `rel="canonical"` (destino roto, destino redirigido indicado aparte, varios canónicos distintos en una página; un canónico que apunta a la propia página es correcto, también leído de la cabecera `Link` con `--check-link-header`) y los valores `hreflang` en `link rel=alternate` / `a` (solo sintaxis BCP 47, sin el registro IANA; `x-default` se lista como convención externa, no como error). Los hallazgos están en los informes de texto y JSON (`seo`). Desactivado por defecto.
+
+`--check-mixed-content` — en las páginas `https:`, indica los subrecursos cargados por `http:` (contenido mixto): imágenes, audio y vídeo son «bloqueables opcionalmente»; scripts, hojas de estilo, precargas, iframes, objetos, fuentes, `@import` de CSS y acciones de formulario son «bloqueables». Los enlaces de navegación simples no son subrecursos; `localhost`, `127.0.0.0/8` y `[::1]` nunca se indican; una cabecera `Content-Security-Policy: upgrade-insecure-requests` añade una nota en lugar de anular el hallazgo; un subrecurso `https:` que redirige a `http:` también se indica. Los resultados están en los informes de texto y JSON (`mixed`). Desactivado por defecto.
+
+`--check-feeds` — lee los feeds RSS 2.0 y Atom 1.0 encontrados mediante `<link rel="alternate" type="application/rss+xml|application/atom+xml">` (o cualquier respuesta XML obtenida al rastrear) y comprueba los enlaces que contienen: `link`, `comments`, `enclosure@url`, `source@url` del canal y de los elementos, `url`/`link` de la imagen, un `guid` permanente, `link@href` de Atom (`rel` ausente = alternate), `content@src` y los enlaces en descripciones HTML escapadas/CDATA y en el contenido Atom `html`/`xhtml`. Las direcciones relativas siguen `xml:base` y después la dirección del feed. Un XML mal formado o un documento que no es un feed produce una advertencia y ningún enlace. Desactivado por defecto.
+
+`--check-sri` — verifica el atributo `integrity` de `<script src>` y de `<link rel=stylesheet|preload|modulepreload>`: sintaxis (base64 estándar, longitud de resumen correcta), algoritmos reconocidos (sha256/384/512; decide el más fuerte presente, cualquiera de sus valores puede coincidir), el resumen SHA-2 de los bytes descargados y CORS para los recursos de otro origen (atributo `crossorigin` más un `Access-Control-Allow-Origin` coincidente). Veredictos: coincide / no coincide / sintaxis no válida / ningún algoritmo reconocido / sin CORS / no verificado; `integrity` en otros elementos se anota como no aplicable. Los recursos se descargan completos (GET) solo cuando un enlace pide la comprobación. Los resultados están en los informes de texto y JSON (`sri`). Desactivado por defecto.
+
+`--check-cert-expiry` / `--cert-warn-days N` (14 por defecto) — lee el certificado TLS hoja que presenta cada host:puerto `https` durante la comprobación e indica, una vez por host:puerto con el número de enlaces comprobados allí: caducado, aún no válido, caduca en N días (umbral; `0` = solo caducados), ilegible, o un nombre que no coincide con ninguna entrada SAN. Funciona también con `--insecure`. Un proxy que intercepta TLS muestra su propio certificado; un reloj del sistema equivocado no se puede detectar. Los resultados están en los informes de texto y JSON (`certs`). Desactivado por defecto.
+
 ## Proxies gratuitos y éticos
 
 Elige un preajuste con `--proxy-preset tor|tor-browser|warp` (lista: `--list-proxy-presets`) o, en la GUI, en «Proxy gratuito ético…». Todos son puntos SOCKS5 locales (`socks5h://127.0.0.1:…`): los nombres los resuelve el proxy, no tu sistema. Tor (voluntarios, sin ánimo de lucro, código abierto) es la opción recomendada; la comprobación se limita a 4 hilos y 2 conexiones por servidor, y algunos sitios bloquean las salidas de Tor, así que pueden aparecer falsos «enlaces rotos». Cloudflare WARP es gratuito, pero es un servicio comercial con cliente cerrado. Las listas de proxies públicos abiertos se excluyen a propósito: suelen estar comprometidos o interceptar el tráfico. Tu propio proxy sigue disponible con `--proxy`.
@@ -48,6 +66,12 @@ Elige un preajuste con `--proxy-preset tor|tor-browser|warp` (lista: `--list-pro
 
 HTML autónomo (se abre en cualquier parte), CSV, TSV, JSON, texto, sitemap.xml, un árbol del sitio y una sesión `.veriga`.
 **Nueva comprobación de enlaces rotos** a partir de una sesión guardada (`--recheck`, un botón en la GUI/web).
+
+**Direcciones alias** (`--report-aliases`): las distintas grafías de una misma dirección (mayúsculas del host, puerto por defecto, caracteres codificados con porcentaje sin necesidad, segmentos de punto) se listan como grupos informativos en los informes de texto y JSON (`aliases`); las mayúsculas de la ruta/consulta, el orden de los parámetros, la barra final y `www.` nunca se agrupan. El seguimiento tiene un tope de memoria (100 000 direcciones, 10 grafías por dirección, 20 páginas por grafía). `--canonical-urls` además fusiona esas grafías en una sola comprobación (e indica la dirección normalizada); por defecto las URL se comprueban e informan exactamente como están escritas, como en la v1.1.0. Otro interruptor desactivado por defecto: `--xml-encoding` (respetar `<?xml encoding=…?>` cuando no se da cabecera ni meta charset).
+
+**SARIF 2.1.0** (`-o report.sarif`): los enlaces rotos pasan a `error`, las redirecciones / 401-403 / respuestas lentas a `warning`, los elementos omitidos u huérfanos a `note`; los enlaces buenos no se emiten. La ubicación es la página (o archivo) que contiene el enlace, como URI; `region.startLine` solo se escribe cuando se conoce una línea (los resultados del rastreo aún no llevan línea, por eso se omite). La salida es determinista y se escribe de forma atómica.
+
+**JUnit XML** (`-o report.junit`): un `testsuite` por página de origen, un `testcase` por enlace comprobado (`name` = destino, `classname` = página de origen). Los enlaces rotos son `failure`; los tiempos agotados / sin conexión son `error`; los elementos omitidos o solo para revisar son `skipped`; los caracteres no permitidos en XML 1.0 pasan a U+FFFD. Los archivos huérfanos no son enlaces y se dejan fuera.
 
 ## CLI
 
@@ -132,8 +156,10 @@ Apoye el proyecto: https://www.buymeacoffee.com/echo.of.the.strings
 
 ## Límites conocidos
 
+- **Protección de red:** la comprobación de direcciones privadas resuelve el host y luego el cliente HTTP lo resuelve otra vez (existe una ventana de DNS rebinding); ejecute VERIGA sobre sitios no fiables desde una red que no pueda alcanzar rangos privados.
+- **`veriga watch`** lee por defecto `./veriga-guardian.json` del directorio actual, y ese archivo puede nombrar un comando `sendmail` y las fuentes que se reescriben: no lo ejecute dentro de un directorio en el que no confíe.
 - No envía informes por correo electrónico (SMTP) ni detecta huérfanos por FTP; solo en un directorio local.
-- No se leen los sitemaps comprimidos `.xml.gz`.
+- Los sitemaps comprimidos `.xml.gz` se leen (gzip se detecta por los primeros bytes, no por la extensión); el tamaño descomprimido está limitado a 50 MB y un sitemap se lee hasta sus primeras 50 000 URL.
 - Las páginas que construyen sus enlaces con JavaScript no se renderizan (no hay motor de navegador); se analiza el HTML servido.
 - La interfaz gráfica solo se ha probado bajo una pantalla virtual (Linux/X11): rastreo, filtros, panel de detalles y Guardian. Las versiones para Windows y macOS las genera la CI, pero no se han probado de forma interactiva.
 
@@ -161,7 +187,7 @@ VERIGA procesa contenido no confiable (páginas web, archivos exportados, archiv
 | Área | Estado |
 |---|---|
 | Rust | edición **2024**, MSRV **1.88** (núcleo + CLI; sus dependencias declaran como máximo 1.88), GUI **1.95** (egui 0.37); `cargo clippy -- -D warnings` y `cargo fmt --check` sin avisos; `--locked` en CI |
-| Dependencias | reqwest 0.13 (rustls + platform verifier, HTTP/2, gzip/brotli/zstd), scraper 0.29, thiserror 2, eframe/egui 0.37, rfd 0.17; `cargo audit` con 0 vulnerabilidades; `cargo deny` (advisories, licenses, sources, bans) |
+| Dependencias | reqwest 0.13 (rustls + platform verifier, HTTP/2, gzip/brotli/zstd), scraper 0.29, jiff 1.0, eframe/egui 0.37, rfd 0.17; `cargo audit` con 0 vulnerabilidades; `cargo deny` (advisories, licenses, sources, bans) |
 | robots.txt | **RFC 9309**: grupos fusionados, coincidencia exacta con el product token, normalización percent/UTF-8, `*` y `$`, prevalece la regla más larga (Allow en caso de empate), límite de 500 KiB, 4xx ⇒ permitido, 5xx/red ⇒ no disponible, la verificación continúa (un sitio caído aparece roto, no «0 rotos»); la página de inicio nunca la bloquea robots.txt |
 | HTTP | RFC 9110: `Retry-After` (segundos/fecha) en 429/503, redirecciones 301/302/303/307/308, `Location` relativo, `HEAD` con respaldo a `GET` |
 | URL | WHATWG URL / IDNA (UTS 46) mediante el crate `url` (con `idna`) |

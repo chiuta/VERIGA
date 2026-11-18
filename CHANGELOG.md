@@ -4,12 +4,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+## [1.5.0] — 2026-11-18
+
 ### Schimbat
 - Aplicația HTML (`web/veriga.html`, varianta PWA din `app/`, extensia WordPress) și pagina site-ului rulează în browsere mai vechi (Chrome/Edge 55+, Firefox 52+, Safari 10.1+/iOS 10.3+): sintaxă JavaScript ES2017, rezerve pentru API-urile care lipsesc în motoarele vechi (kit 1.8.0), iar pozițiile grupurilor de captură (`m.indices`) se deduc din textul potrivit acolo unde motorul nu le oferă — verificat pe zeci de mii de intrări aleatoare în `web/tests/indices.test.js`. Fără modificări de funcționalitate intenționate.
 - `web/stamp-csp.py` și `web/stamp-site-csp.py` calculează hash-urile CSP pentru toate scripturile inline executabile (inclusiv stratul de compatibilitate și modulele), nu doar pentru cele fără `type`.
+- **Dată și oră:** `jiff` înlocuiește `chrono`, declarat nemenținut de RustSec (RUSTSEC-2026-0543); din cauza lui pica jobul `supply-chain` (`cargo deny check`). Formatele scrise rămân aceleași (RFC 3339 cu `+00:00`, RFC 2822, ora locală cu decalaj), iar valorile scrise de versiunile anterioare se citesc în continuare. Modul nou `veriga-core::clock` (9 teste), singurul loc care atinge biblioteca de dată/oră.
+- Paginile pe limbă ale site-ului (`en`, `de`, `es`, `fr`, `hu`, `it`, `pt`) sunt regenerate din `index.html` cu `web/build-i18n.py`; ajunseseră în urma paginii principale.
+- Dependența directă `thiserror`, nefolosită, este scoasă din `veriga-core`; `THIRD-PARTY-NOTICES.md` este regenerat din `cargo metadata` (−`chrono` și ce aducea doar el, +`jiff`).
+
+### Reparat
+- Interfața nativă: ferestrele nu mai depășesc ecranul; conținutul derulează, iar bara de titlu și butonul de închidere rămân la îndemână (verificat de la 1920×1080 până la 390×740).
+- `veriga compliance --days 4294967295` (și alte valori uriașe) intra în panic; acum înseamnă tot istoricul.
+- `cargo clippy -- -D warnings` pica pe un `use egui;` redundant din `veriga-gui/src/bounded.rs`.
 
 ### Neverificat
 - Browserele vechi nu au fost încercate pe dispozitive reale; verificare cu parser ES2017 și într-un motor vechi simulat.
+- Jobul `lint` din CI folosește Rust 1.100, iar local am avut doar 1.97: ce lint-uri noi are 1.100 se vede abia în CI.
 
 ## [1.4.1] — 2026-11-17
 

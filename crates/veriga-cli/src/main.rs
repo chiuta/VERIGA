@@ -713,9 +713,7 @@ async fn main() -> Result<()> {
         && cli.recheck.is_none()
     {
         // nimic de verificat în rețea: se adnotează local și se iese
-        let now = chrono::Utc::now()
-            .format("%Y-%m-%dT%H:%M:%S%.3fZ")
-            .to_string();
+        let now = veriga_core::clock::now_utc_millis_z();
         if let Some(o) = &cli.fff_out {
             let items = fff::annotate(&inp.items, None, &now);
             std::fs::write(o, fff::envelope(inp, items, &now))
@@ -891,9 +889,7 @@ async fn main() -> Result<()> {
     }
     write_outputs(&session, &cli.out, cli.only_broken)?;
     if let (Some(inp), Some(o)) = (&fff_input, &cli.fff_out) {
-        let now = chrono::Utc::now()
-            .format("%Y-%m-%dT%H:%M:%S%.3fZ")
-            .to_string();
+        let now = veriga_core::clock::now_utc_millis_z();
         let items = fff::annotate(&inp.items, Some(&session), &now);
         std::fs::write(o, fff::envelope(inp, items, &now))
             .with_context(|| trf!("nu pot scrie {}", "cannot write {}", o.display()))?;
@@ -951,13 +947,7 @@ fn verdict_line(s: &Session, color: bool) -> String {
         .flat_map(|r| r.parents.iter().map(|p| p.url.as_str()))
         .collect::<std::collections::HashSet<_>>()
         .len();
-    let secs = match (
-        chrono::DateTime::parse_from_rfc3339(&s.started),
-        chrono::DateTime::parse_from_rfc3339(&s.finished),
-    ) {
-        (Ok(a), Ok(b)) => (b - a).num_milliseconds().max(0) as f64 / 1000.0,
-        _ => 0.0,
-    };
+    let secs = veriga_core::clock::elapsed_secs(&s.started, &s.finished);
     verdict_text(s.results.len(), broken.len(), pages, secs, color)
 }
 

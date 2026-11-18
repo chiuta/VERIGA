@@ -788,7 +788,7 @@ pub fn run_id() -> String {
     use std::sync::atomic::{AtomicU32, Ordering};
     static SEQ: AtomicU32 = AtomicU32::new(0);
     let n = SEQ.fetch_add(1, Ordering::Relaxed);
-    let base = chrono::Local::now().format("%Y%m%d-%H%M%S%.3f").to_string();
+    let base = crate::clock::local_stamp_millis();
     let base = base.replace('.', "-");
     if n == 0 { base } else { format!("{base}-{n}") }
 }
@@ -889,7 +889,7 @@ pub fn apply(props: &[Proposal], log: &mut FixLog, o: &ApplyOpts) -> ApplyReport
                 FixEntry {
                     id: format!("{}-{}", o.run, log.entries.len() + done.len() + 1),
                     run: o.run.clone(),
-                    time: chrono::Local::now().to_rfc3339(),
+                    time: crate::clock::now_rfc3339_local(),
                     file: std::fs::canonicalize(file).unwrap_or_else(|_| file.to_path_buf()),
                     rule: p.rule,
                     old: p.old.clone(),

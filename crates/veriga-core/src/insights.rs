@@ -383,12 +383,13 @@ pub enum Period {
 pub fn compliance_html(s: &Session, log: &FixLog, hist: &[Snapshot], period: Period) -> String {
     let lang = crate::report::safe_lang(&s.config.lang);
     let cutoff = match period {
-        Period::Days(d) => Some(chrono::Local::now() - chrono::Duration::days(d as i64)),
+        // `None` și pentru o perioadă prea mare ca să încapă în calendar: atunci acoperă tot istoricul
+        Period::Days(d) => crate::clock::days_ago(d),
         Period::All => None,
     };
     let in_period = |t: &str| -> bool {
-        match (cutoff, chrono::DateTime::parse_from_rfc3339(t)) {
-            (Some(c), Ok(t)) => t.with_timezone(&chrono::Local) >= c,
+        match (cutoff, crate::clock::parse_rfc3339(t)) {
+            (Some(c), Some(t)) => t >= c,
             _ => true,
         }
     };

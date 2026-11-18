@@ -1137,7 +1137,7 @@ impl Coord {
 }
 
 fn now_rfc3339() -> String {
-    chrono::Utc::now().to_rfc3339()
+    crate::clock::now_rfc3339_utc()
 }
 
 /// Rulează o verificare completă.
@@ -1190,7 +1190,7 @@ pub async fn run(
     let aliases = co.alias_groups();
     let mut certs: Vec<crate::cert::CertFinding> = vec![];
     if cfg.check_cert_expiry {
-        let now = chrono::Utc::now().timestamp();
+        let now = crate::clock::now_unix_secs();
         for (hp, (obs, n)) in &co.cert_obs {
             certs.extend(crate::cert::findings_for(
                 hp,

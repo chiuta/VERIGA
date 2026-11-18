@@ -22,7 +22,6 @@ impl Bounded for egui::Window<'_> {
 #[cfg(test)]
 mod tests {
     use super::Bounded;
-    use egui;
 
     #[test]
     fn tall_window_stays_on_screen() {

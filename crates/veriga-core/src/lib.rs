@@ -6,6 +6,7 @@
 pub mod a11y;
 pub mod cert;
 pub mod check;
+pub mod clock;
 pub mod config;
 pub mod engine;
 pub mod extract;

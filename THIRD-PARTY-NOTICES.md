@@ -4,7 +4,7 @@
 Big Shoulders Display, Hanken Grotesk and IBM Plex Mono, each under SIL OFL-1.1; the licence texts are the LICENSE-*.txt files in assets/fonts and must accompany any redistribution.
 
 ## Rust dependencies
-Generated from `cargo metadata` on 2026-11-09 (name, version, declared SPDX licence, repository). Full licence texts and copyright notices (required by Apache-2.0, BSD, ISC, MIT, MPL-2.0) are in each crate source distribution. Replace with `cargo about` output for release packages.
+Generated from `cargo metadata` on 2026-11-18 (name, version, declared SPDX licence, repository). Full licence texts and copyright notices (required by Apache-2.0, BSD, ISC, MIT, MPL-2.0) are in each crate source distribution. Replace with `cargo about` output for release packages.
 
 | Crate | Version | Licence | Repository |
 |---|---|---|---|
@@ -16,7 +16,6 @@ Generated from `cargo metadata` on 2026-11-09 (name, version, declared SPDX lice
 | alloc-stdlib | 0.3.0 | BSD-3-Clause | https://github.com/dropbox/rust-alloc-no-stdlib |
 | android-activity | 0.6.1 | MIT OR Apache-2.0 | https://github.com/rust-mobile/android-activity |
 | android-properties | 0.2.2 | MIT | https://github.com/miklelappo/android-properties |
-| android_system_properties | 0.1.6 | MIT OR Apache-2.0 | https://github.com/nical/android_system_properties |
 | anstream | 1.0.0 | MIT OR Apache-2.0 | https://github.com/rust-cli/anstyle.git |
 | anstyle | 1.0.14 | MIT OR Apache-2.0 | https://github.com/rust-cli/anstyle.git |
 | anstyle-parse | 1.0.0 | MIT OR Apache-2.0 | https://github.com/rust-cli/anstyle.git |
@@ -53,7 +52,6 @@ Generated from `cargo metadata` on 2026-11-09 (name, version, declared SPDX lice
 | cfg_aliases | 0.2.2 | MIT | https://github.com/katharostech/cfg_aliases |
 | cgl | 0.3.2 | MIT / Apache-2.0 | https://github.com/servo/cgl-rs |
 | chacha20 | 0.10.2 | MIT OR Apache-2.0 | https://github.com/RustCrypto/stream-ciphers |
-| chrono | 0.4.45 | MIT OR Apache-2.0 | https://github.com/chronotope/chrono |
 | clap | 4.6.7 | MIT OR Apache-2.0 | https://github.com/clap-rs/clap |
 | clap_builder | 4.6.7 | MIT OR Apache-2.0 | https://github.com/clap-rs/clap |
 | clap_derive | 4.6.7 | MIT OR Apache-2.0 | https://github.com/clap-rs/clap |
@@ -174,8 +172,6 @@ Generated from `cargo metadata` on 2026-11-09 (name, version, declared SPDX lice
 | hyper | 1.12.0 | MIT | https://github.com/hyperium/hyper |
 | hyper-rustls | 0.27.10 | Apache-2.0 OR ISC OR MIT | https://github.com/rustls/hyper-rustls |
 | hyper-util | 0.1.21 | MIT | https://github.com/hyperium/hyper-util |
-| iana-time-zone | 0.1.65 | MIT OR Apache-2.0 | https://github.com/strawlab/iana-time-zone |
-| iana-time-zone-haiku | 0.1.2 | MIT OR Apache-2.0 | https://github.com/strawlab/iana-time-zone |
 | icu_collections | 2.4.0 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
 | icu_locale_core | 2.4.0 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
 | icu_normalizer | 2.4.0 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
@@ -191,6 +187,11 @@ Generated from `cargo metadata` on 2026-11-09 (name, version, declared SPDX lice
 | is_terminal_polyfill | 1.70.2 | MIT OR Apache-2.0 | https://github.com/polyfill-rs/is_terminal_polyfill |
 | itertools | 0.15.0 | MIT OR Apache-2.0 | https://github.com/rust-itertools/itertools |
 | itoa | 1.0.18 | MIT OR Apache-2.0 | https://github.com/dtolnay/itoa |
+| jiff | 1.0.1 | Unlicense OR MIT | https://github.com/BurntSushi/jiff |
+| jiff-core | 1.0.1 | Unlicense OR MIT | https://github.com/BurntSushi/jiff |
+| jiff-static | 1.0.1 | Unlicense OR MIT | https://github.com/BurntSushi/jiff |
+| jiff-tzdb | 1.0.0 | Unlicense OR MIT | https://github.com/BurntSushi/jiff |
+| jiff-tzdb-platform | 1.0.0 | Unlicense OR MIT | https://github.com/BurntSushi/jiff |
 | jni | 0.22.4 | MIT OR Apache-2.0 | https://github.com/jni-rs/jni-rs |
 | jni-macros | 0.22.4 | MIT OR Apache-2.0 | https://github.com/jni-rs/jni-rs |
 | jni-sys | 0.3.1 | MIT OR Apache-2.0 | https://github.com/jni-rs/jni-sys |
@@ -450,9 +451,6 @@ Generated from `cargo metadata` on 2026-11-09 (name, version, declared SPDX lice
 | wgpu-naga-bridge | 30.0.1 | MIT OR Apache-2.0 | https://github.com/gfx-rs/wgpu |
 | wgpu-types | 30.0.1 | MIT OR Apache-2.0 | https://github.com/gfx-rs/wgpu |
 | winapi-util | 0.1.11 | Unlicense OR MIT | https://github.com/BurntSushi/winapi-util |
-| windows-core | 0.62.2 | MIT OR Apache-2.0 | https://github.com/microsoft/windows-rs |
-| windows-implement | 0.60.2 | MIT OR Apache-2.0 | https://github.com/microsoft/windows-rs |
-| windows-interface | 0.59.3 | MIT OR Apache-2.0 | https://github.com/microsoft/windows-rs |
 | windows-link | 0.2.1 | MIT OR Apache-2.0 | https://github.com/microsoft/windows-rs |
 | windows-registry | 0.6.1 | MIT OR Apache-2.0 | https://github.com/microsoft/windows-rs |
 | windows-result | 0.4.1 | MIT OR Apache-2.0 | https://github.com/microsoft/windows-rs |
@@ -503,3 +501,7 @@ Generated from `cargo metadata` on 2026-11-09 (name, version, declared SPDX lice
 - `flate2` 1.1.10 (MIT OR Apache-2.0), runtime, pure-Rust backend: gzip sitemaps. It was already a transitive dependency (via `reqwest`/`async-compression`) and is now also a direct one.
 - `quick-xml` 0.41.0 (MIT), **runtime** dependency of `veriga-core` and therefore of `veriga-cli` and the GUI: RSS/Atom feed parsing (`--check-feeds`) and sitemap parsing; it is also used by the JUnit well-formedness test. It was already a transitive dependency.
 - Dev/test only (not shipped): `tokio-rustls` 0.26.6 and `rustls-pki-types` 1.15.1 (MIT OR Apache-2.0, local TLS test server). `crates/veriga-core/tests/fixtures/test-*.pem` is a throw-away self-signed certificate and key generated for the tests; it protects nothing.
+
+## Changes in 1.5.0
+- `jiff` 1.0.1 (Unlicense OR MIT) is a direct **runtime** dependency of `veriga-core` (dates, time zones, RFC 3339 / RFC 2822 / HTTP dates); it replaces `chrono`, which RustSec marked unmaintained (RUSTSEC-2026-0543). `chrono` and the crates only it needed (`iana-time-zone`, `android_system_properties`, …) are gone from the table; the crates `jiff` brings in are listed above. The licence is a choice between the two (`Unlicense OR MIT`).
+- The unused direct dependency `thiserror` was removed from `veriga-core`; `thiserror` 1.x and 2.x remain only as transitive dependencies of other crates.

@@ -13,12 +13,11 @@ name = "veriga"
 path = "src/main.rs"
 
 [dependencies]
-veriga-core = { path = "../veriga-core", version = "1.4.1" }
+veriga-core = { path = "../veriga-core", version = "1.5.0" }
 tokio = { workspace = true, features = ["signal"] }
 clap.workspace = true
 anyhow.workspace = true
 serde_json.workspace = true
 serde.workspace = true
 url.workspace = true
-chrono.workspace = true
 reqwest.workspace = true
