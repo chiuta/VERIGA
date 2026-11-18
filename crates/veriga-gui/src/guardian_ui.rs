@@ -2,6 +2,7 @@
 //! domenii, hartă de sănătate, redirecționări, tendințe, 404 din jurnale,
 //! conformitate și configurare programată.
 
+use crate::bounded::Bounded;
 use eframe::egui::{self, RichText};
 use egui_extras::{Column, TableBuilder};
 use std::path::PathBuf;
@@ -255,7 +256,7 @@ impl GuardianUi {
             self.log_loaded = true;
         }
         let mut open = self.open;
-        egui::Window::new("VERIGA Guardian").open(&mut open).default_size([920.0, 560.0]).show(ctx, |ui| {
+        egui::Window::new("VERIGA Guardian").bounded(ctx).open(&mut open).default_size([920.0, 560.0]).show(ctx, |ui| {
             ui.horizontal_wrapped(|ui| {
                 for (tab, ro, en) in [
                     (Tab::Fix, "Reparații", "Fixes"),

@@ -5,6 +5,7 @@
     windows_subsystem = "windows"
 )]
 
+mod bounded;
 mod guardian_ui;
 use eframe::egui::{self, Color32, RichText};
 use egui_extras::{Column, TableBuilder};
