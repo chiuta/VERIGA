@@ -1,7 +1,7 @@
 # VERIGA Link Checker — Romanian translation
 msgid ""
 msgstr ""
-"Project-Id-Version: VERIGA Link Checker 1.5.0\n"
+"Project-Id-Version: VERIGA Link Checker 1.5.1\n"
 "Language: ro_RO\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"

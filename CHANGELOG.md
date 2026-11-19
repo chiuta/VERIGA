@@ -4,6 +4,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+## [1.5.1] — 2026-11-19
+
+### Schimbat
+- Versiune de corecție fără modificări de cod: eticheta `v1.5.0` fusese creată pe un commit anterior pachetelor YunoHost/Termux și paginii de descărcări; `v1.5.1` e etichetat pe commitul care le conține. Binarele sunt cele ale aceluiași cod ca la 1.5.0.
+
 ## [1.5.0] — 2026-11-18
 
 ### Schimbat
