@@ -15,8 +15,12 @@ def inline_scripts(doc):
         if t and t.group(1).lower() not in ("", "text/javascript", "application/javascript", "module"): continue
         out.append(m.group(2))
     return out
+def without_scripts(doc):
+    """Documentul fără corpul scripturilor. Un «<style>» scris într-un comentariu sau într-un șir din cod nu este un element de stil: un regex peste tot documentul îl lua drept început
+    de bloc, hash-ul ieșea pentru un text greșit, iar browserul bloca stilul real al paginii (pagina apărea fără aspect, fără nicio eroare la verificarea --check)."""
+    return re.sub(r"<script\b[^>]*>.*?</script>", "", doc, flags=re.S | re.I)
 scripts = inline_scripts(s)
-styles = [m.group(1) for m in re.finditer(r'<style[^>]*>(.*?)</style>', s, re.S)]
+styles = [m.group(1) for m in re.finditer(r'<style[^>]*>(.*?)</style>', without_scripts(s), re.S | re.I)]
 h = lambda t: "'sha256-" + base64.b64encode(hashlib.sha256(t.encode('utf-8')).digest()).decode() + "'"
 csp = ("default-src 'none'; script-src " + ' '.join(h(t) for t in scripts) + "; style-src " + ' '.join(h(t) for t in styles) +
        "; img-src 'self' data:; media-src 'self'; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'none'")

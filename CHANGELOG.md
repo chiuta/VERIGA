@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/ro/1.1.0/) · versionare [
 
 ## [Nepublicat / Unreleased]
 
+### Reparat
+- Site-ul (`index.html` și paginile `en`, `fr`, `it`, `es`, `pt`, `de`, `hu`) apărea în browsere fără stil, la fel în `v1.5.0` și `v1.5.1`: `web/stamp-site-csp.py` căuta elementele `<style>` în tot documentul, iar un comentariu din codul inclus, care conținea textul „<style>”, era luat drept început de bloc; hash-ul din CSP ieșea pentru un text greșit, iar browserul bloca stilul real al paginii (pe telefon, derulare orizontală de ~3200 px). Ștampilatorul ignoră acum corpul scripturilor, iar paginile sunt re-ștampilate.
+- `web/tests/site-csp.test.js` (rulează în `npm test`) pică dacă un bloc `<style>` al paginilor site-ului nu are hash în CSP, dacă browserul raportează o încălcare CSP de stil sau de script, sau dacă pagina derulează orizontal pe 360 px; verificarea `--check` nu prindea defectul, fiindcă folosea același regex.
+
 ## [1.5.1] — 2026-11-19
 
 ### Schimbat
