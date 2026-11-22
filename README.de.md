@@ -4,7 +4,7 @@
 
 **Download:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.5.1
 
-Version: 1.5.1 · Zuletzt aktualisiert: 19.11.2026 · Präsentationsseite: https://veriga.chiuta.ro
+Version: 1.5.1 · Zuletzt aktualisiert: 2026-11-22 · Präsentationsseite: https://veriga.chiuta.ro
 
 Eine 64-Bit-Rust-Anwendung für Windows, macOS und Linux (x86-64 und ARM64), die eine Website
 oder einen lokalen Ordner durchsucht und deren Links prüft. Sie gibt es in drei Formen, die ein gemeinsames Ergebnismodell teilen:

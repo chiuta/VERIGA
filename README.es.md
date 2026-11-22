@@ -4,7 +4,7 @@
 
 **Descarga:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.5.1
 
-Versión: 1.5.1 · Última actualización: 19.11.2026 · Sitio de presentación: https://veriga.chiuta.ro
+Versión: 1.5.1 · Última actualización: 2026-11-22 · Sitio de presentación: https://veriga.chiuta.ro
 
 Aplicación Rust de 64 bits para Windows, macOS y Linux (x86-64 y ARM64) que rastrea un sitio web
 o una carpeta local y comprueba sus enlaces. Se presenta en tres formas que comparten un mismo modelo de resultados:

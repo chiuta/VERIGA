@@ -4,7 +4,7 @@
 
 **Descărcare:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.5.1
 
-Versiune: 1.5.1 · Ultima actualizare: 19.11.2026 · Pagina de prezentare: https://veriga.chiuta.ro
+Versiune: 1.5.1 · Ultima actualizare: 2026-11-22 · Pagina de prezentare: https://veriga.chiuta.ro
 
 Aplicație 64-bit în Rust, pentru Windows, macOS și Linux (x86-64 și ARM64), care parcurge un site
 sau un director local și verifică legăturile. Vine în trei forme cu același model de rezultate:

@@ -4,7 +4,7 @@
 
 **Letöltés:** https://veriga.chiuta.ro/#descarca · https://github.com/chiuta/VERIGA/releases/tag/v1.5.1
 
-Verzió: 1.5.1 · Utolsó frissítés: 2026.11.18. · Bemutatkozó oldal: https://veriga.chiuta.ro
+Verzió: 1.5.1 · Utolsó frissítés: 2026-11-22. · Bemutatkozó oldal: https://veriga.chiuta.ro
 
 Egy 64 bites Rust alkalmazás Windowsra, macOS-re és Linuxra (x86-64 és ARM64), amely bejár egy weboldalt
 vagy egy helyi mappát, és ellenőrzi a hivatkozásait. Három formában érhető el, amelyek egyetlen közös eredménymodellen osztoznak:
